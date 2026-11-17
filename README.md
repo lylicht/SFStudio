@@ -35,7 +35,7 @@ SFStudio is also an MCP server. Point your AI agent at the installed app and it 
 
 The macOS app isn’t signed yet. The first time you open it, Control-click the app and choose **Open**.
 
-The intended canonical repository is [lylicht/sfstudio](https://github.com/lylicht/sfstudio). Its availability was not verified during this rebrand; release links will work after the repository is created or migrated and releases are published.
+The canonical repository is [lylicht/sfstudio](https://github.com/lylicht/sfstudio). Tagged releases publish the Windows, macOS, and Linux installers.
 
 ## Build with Compose
 

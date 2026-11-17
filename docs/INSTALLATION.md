@@ -43,7 +43,7 @@ kotlin {
 }
 ```
 
-Replace `TAG` with a published SFStudio release tag, such as `v1.0.0`. This coordinate uses the intended canonical repository; that repository has not yet been verified as available, so the dependency becomes usable after it is created or migrated and published through JitPack. For Android-only projects, use the same coordinate with `implementation(...)` in the app module's dependencies block.
+Replace `TAG` with a published SFStudio release tag, such as `v1.0.0`. Publish the tag through JitPack before using the coordinate. For Android-only projects, use the same coordinate with `implementation(...)` in the app module's dependencies block.
 
 Existing consumers may continue to use the previous coordinate, `com.github.bxanedot.GlyphStudio:sfsymbols:TAG`, while the original JitPack project remains available. The public Kotlin package names remain `com.composables.sfsymbols` for compatibility.
 

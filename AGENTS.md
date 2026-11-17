@@ -86,6 +86,6 @@ Without the app installed, build the server from source with `./gradlew :app:ass
 - Kotlin official style. Public API uses explicit `public` (the library is published).
 - The logo geometry lives in two places: `ui/AppLogo.kt` and `scripts/render_icons.py`. If you change one, change the other and rerun the script.
 - Compatibility identities: keep macOS bundle ID `com.bxane.glyphstudio`, Windows upgrade UUID, Debian package ID `glyphstudio`, pinned-symbol directory `~/.sf-symbols-catalog`, and library packages under `com.composables.sfsymbols` stable unless a migration is explicitly designed.
-- Canonical repository is intended to be `https://github.com/lylicht/sfstudio`; its availability has not been verified.
+- Canonical repository is `https://github.com/lylicht/sfstudio`.
 - Historical commit identity: past commits use `bxanedot <332934531+bxanedot@users.noreply.github.com>`. Preserve that history and attribution.
 - SF Symbols are Apple property. Don't use them in app icons or logos (see README).
