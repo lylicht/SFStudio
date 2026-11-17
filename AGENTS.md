@@ -9,7 +9,7 @@ Two Gradle modules in one build:
 | Module | What | Targets |
 | --- | --- | --- |
 | `sfsymbols/` | Compose Multiplatform SF Symbols library (`com.composables.sfsymbols`), published through JitPack | Android, JVM, iOS, JS, Wasm |
-| `app/` | GlyphStudio desktop catalog (`com.sfsymbols`), plus a headless MCP server | JVM desktop only |
+| `app/` | SFStudio desktop catalog (`com.sfsymbols`), plus a headless MCP server | JVM desktop only |
 
 `app` depends on `:sfsymbols` for every icon and the symbol catalog. It has no icon data of its own.
 
@@ -63,8 +63,8 @@ These paths are listed in `.ignore`, so ripgrep-based search skips them. To find
 The installed app is the server: launching it with `--mcp` serves MCP on stdio instead of opening a window. Point your client at the installed app (**Settings → MCP** in the app shows this config with the exact path):
 
 ```json
-{ "mcpServers": { "glyphstudio": {
-  "command": "<installed app>",
+{ "mcpServers": { "sfstudio": {
+  "command": "<installed SFStudio app>",
   "args": ["--mcp"]
 } } }
 ```
@@ -73,9 +73,9 @@ Default `<installed app>` paths:
 
 | OS | Path |
 | --- | --- |
-| Windows (per-user install) | `%LOCALAPPDATA%\GlyphStudio\GlyphStudio.exe` (write it with `/` or `\\` in JSON) |
-| macOS | `/Applications/GlyphStudio.app/Contents/MacOS/GlyphStudio` |
-| Linux (.deb) | `/opt/glyphstudio/bin/GlyphStudio` |
+| Windows (per-user install) | `%LOCALAPPDATA%\SFStudio\SFStudio.exe` (write it with `/` or `\\` in JSON) |
+| macOS | `/Applications/SFStudio.app/Contents/MacOS/SFStudio` |
+| Linux (.deb) | `/opt/sfstudio/bin/SFStudio` (the Debian package ID remains `glyphstudio` for upgrades) |
 
 Without the app installed, build the server from source with `./gradlew :app:assembleMcp` and use `"command": "java"`, `"args": ["-Djava.awt.headless=true", "-cp", "/abs/path/app/build/mcp/lib/*", "com.sfsymbols.MainKt", "--mcp"]` (Java 21+).
 
@@ -85,5 +85,7 @@ Without the app installed, build the server from source with `./gradlew :app:ass
 
 - Kotlin official style. Public API uses explicit `public` (the library is published).
 - The logo geometry lives in two places: `ui/AppLogo.kt` and `scripts/render_icons.py`. If you change one, change the other and rerun the script.
-- Commit identity: past commits use `bxanedot <332934531+bxanedot@users.noreply.github.com>`.
+- Compatibility identities: keep macOS bundle ID `com.bxane.glyphstudio`, Windows upgrade UUID, Debian package ID `glyphstudio`, pinned-symbol directory `~/.sf-symbols-catalog`, and library packages under `com.composables.sfsymbols` stable unless a migration is explicitly designed.
+- Canonical repository is intended to be `https://github.com/lylicht/sfstudio`; its availability has not been verified.
+- Historical commit identity: past commits use `bxanedot <332934531+bxanedot@users.noreply.github.com>`. Preserve that history and attribution.
 - SF Symbols are Apple property. Don't use them in app icons or logos (see README).

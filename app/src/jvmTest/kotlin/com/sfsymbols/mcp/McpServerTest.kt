@@ -25,6 +25,10 @@ class McpServerTest {
         )
         assertEquals(listOf(1, 2, 3), replies.map { it["id"]!!.jsonPrimitive.int })
         assertEquals("2025-11-25", replies[0]["result"]!!.jsonObject["protocolVersion"]!!.jsonPrimitive.content)
+        assertEquals(
+            "sfstudio",
+            replies[0]["result"]!!.jsonObject["serverInfo"]!!.jsonObject["name"]!!.jsonPrimitive.content,
+        )
         assertEquals(setOf("search_symbols", "get_symbol"), replies[1]["result"]!!.jsonObject["tools"]!!.jsonArray
             .map { it.jsonObject["name"]!!.jsonPrimitive.content }.toSet())
     }
@@ -68,11 +72,12 @@ class McpServerTest {
     }
 
     @Test fun `client config launches the installed app with --mcp`() {
-        val server = Json.parseToJsonElement(mcpClientConfig("C:/Apps/GlyphStudio/GlyphStudio.exe"))
-            .jsonObject["mcpServers"]!!.jsonObject["glyphstudio"]!!.jsonObject
-        assertEquals("C:/Apps/GlyphStudio/GlyphStudio.exe", server["command"]!!.jsonPrimitive.content)
+        val server = Json.parseToJsonElement(mcpClientConfig("C:/Apps/SFStudio/SFStudio.exe"))
+            .jsonObject["mcpServers"]!!.jsonObject["sfstudio"]!!.jsonObject
+        assertEquals("C:/Apps/SFStudio/SFStudio.exe", server["command"]!!.jsonPrimitive.content)
         assertEquals(listOf("--mcp"), server["args"]!!.jsonArray.map { it.jsonPrimitive.content })
-        val dev = Json.parseToJsonElement(mcpClientConfig(null)).jsonObject["mcpServers"]!!.jsonObject["glyphstudio"]!!.jsonObject
+        val dev = Json.parseToJsonElement(mcpClientConfig(null))
+            .jsonObject["mcpServers"]!!.jsonObject["sfstudio"]!!.jsonObject
         assertEquals("java", dev["command"]!!.jsonPrimitive.content)
     }
 }

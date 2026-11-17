@@ -54,7 +54,7 @@ public fun composeSnippet(
     """.trimIndent() + "\n" + icon.prependIndent("    ") + "\n}"
     return """
         // Add the icon library to your module dependencies:
-        // implementation("com.github.bxanedot.GlyphStudio:sfsymbols:TAG")
+        // implementation("com.github.lylicht.sfstudio:sfsymbols:TAG")
         // Add maven("https://jitpack.io") to your dependency repositories.
     """.trimIndent() + "\n\n" + imports.sorted().joinToString("\n") { "import $it" } +
         "\n\n@Composable\nfun ${symbol.pascalName}Icon(modifier: Modifier = Modifier) {\n" +

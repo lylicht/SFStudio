@@ -58,7 +58,7 @@ private fun BrowserHeader(viewModel: CatalogViewModel) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         BrandMark(Modifier.size(28.dp))
-        Text("GlyphStudio", color = cs.textPrimary)
+        Text("SFStudio", color = cs.textPrimary)
         Spacer(Modifier.weight(1f))
         SearchField(
             value = viewModel.query,
@@ -71,7 +71,7 @@ private fun BrowserHeader(viewModel: CatalogViewModel) {
 
 @Composable
 private fun BrandMark(modifier: Modifier = Modifier) {
-    Image(AppLogo, contentDescription = "GlyphStudio", modifier = modifier)
+    Image(AppLogo, contentDescription = "SFStudio", modifier = modifier)
 }
 
 @Composable

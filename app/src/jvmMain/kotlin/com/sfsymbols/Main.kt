@@ -23,7 +23,7 @@ fun main(args: Array<String>) {
 private fun launchCatalog() = nucleusApplication {
     MacosDecoratedWindow(
         onCloseRequest = { exitApplication() },
-        title = "GlyphStudio",
+        title = "SFStudio",
         icon = rememberVectorPainter(AppLogo),
         state = WindowState(
             position = WindowPosition(Alignment.Center),

@@ -67,7 +67,7 @@ public class McpServer(
                     put("protocolVersion", requested.takeIf { it in protocolVersions } ?: protocolVersions.first())
                     putJsonObject("capabilities") { putJsonObject("tools") {} }
                     putJsonObject("serverInfo") {
-                        put("name", "glyphstudio")
+                        put("name", "sfstudio")
                         put("version", "2.0.0")
                     }
                 }
@@ -251,7 +251,7 @@ public fun mcpClientConfig(appPath: String?): String {
     }
     val config = buildJsonObject {
         putJsonObject("mcpServers") {
-            putJsonObject("glyphstudio") {
+            putJsonObject("sfstudio") {
                 put("command", command)
                 putJsonArray("args") { args.forEach { add(JsonPrimitive(it)) } }
             }

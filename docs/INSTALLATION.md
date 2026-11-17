@@ -37,13 +37,15 @@ In a Kotlin Multiplatform module's `build.gradle.kts`, add the library to `commo
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            api("com.github.bxanedot.GlyphStudio:sfsymbols:TAG")
+            api("com.github.lylicht.sfstudio:sfsymbols:TAG")
         }
     }
 }
 ```
 
-Replace `TAG` with a published Glyph Studio release tag, such as `v1.0.0`. For Android-only projects, use the same coordinate with `implementation(...)` in the app module's dependencies block.
+Replace `TAG` with a published SFStudio release tag, such as `v1.0.0`. This coordinate uses the intended canonical repository; that repository has not yet been verified as available, so the dependency becomes usable after it is created or migrated and published through JitPack. For Android-only projects, use the same coordinate with `implementation(...)` in the app module's dependencies block.
+
+Existing consumers may continue to use the previous coordinate, `com.github.bxanedot.GlyphStudio:sfsymbols:TAG`, while the original JitPack project remains available. The public Kotlin package names remain `com.composables.sfsymbols` for compatibility.
 
 ### Step 3: Sync Gradle
 Select **Sync Project with Gradle Files** in Android Studio.
@@ -88,14 +90,14 @@ Sync your project to index all 7,007 vector definitions.
 
 ## Method 3: Gradle Composite Build
 
-When keeping Glyph Studio in a separate workspace directory:
+When keeping SFStudio in a separate workspace directory:
 
 In your application's `settings.gradle.kts`:
 
 ```kotlin
-includeBuild("../GlyphStudio") {
+includeBuild("../sfstudio") {
     dependencySubstitution {
-        substitute(module("com.github.bxanedot.GlyphStudio:sfsymbols"))
+        substitute(module("com.github.lylicht.sfstudio:sfsymbols"))
             .using(project(":sfsymbols"))
     }
 }

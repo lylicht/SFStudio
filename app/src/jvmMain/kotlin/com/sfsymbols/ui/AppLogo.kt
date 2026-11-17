@@ -15,13 +15,13 @@ import kotlin.math.sign
 import kotlin.math.sin
 
 /**
- * The GlyphStudio logo as a vector, so the title-bar mark and window icon stay
+ * The SFStudio logo as a vector, so the title-bar mark and window icon stay
  * sharp at any size: an Apple-style squircle with a navy gradient and three
  * capsules. Same 512-unit geometry as scripts/render_icons.py (which also
  * writes docs/logo.svg and the installer icons); keep the two in sync.
  */
 internal val AppLogo: ImageVector by lazy {
-    ImageVector.Builder("GlyphStudio", 512.dp, 512.dp, 512f, 512f).apply {
+    ImageVector.Builder("SFStudio", 512.dp, 512.dp, 512f, 512f).apply {
         path(fill = Brush.verticalGradient(listOf(Color(0xFF4A6385), Color(0xFF1E2A3C)), 0f, 512f)) {
             // Superellipse |x|^5 + |y|^5 = 1, about Apple's continuous-corner icon shape.
             for (i in 0 until 256) {

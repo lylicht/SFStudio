@@ -53,32 +53,35 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "GlyphStudio"
+            packageName = "SFStudio"
             packageVersion = providers.gradleProperty("appVersion").orElse(
                 providers.environmentVariable("GITHUB_REF_NAME").map { ref ->
                     ref.removePrefix("v").takeIf { it.matches(Regex("\\d+\\.\\d+\\.\\d+")) } ?: "1.0.0"
                 }
             ).orElse("1.0.0").get()
             description = "Browse, search, and copy SF Symbols for Compose projects"
-            vendor = "bxane"
+            vendor = "licht"
             modules("java.prefs", "java.management", "jdk.unsupported", "jdk.crypto.ec")
 
             windows {
                 iconFile.set(project.file("src/jvmMain/resources/app_icon.ico"))
                 shortcut = true
                 menu = true
-                menuGroup = "GlyphStudio"
+                menuGroup = "SFStudio"
                 perUserInstall = true
                 dirChooser = true
                 // Keep this ID stable so newer package versions upgrade the app.
                 upgradeUuid = "E09297C4-1F95-4BDB-B14C-60F3114F05BD"
             }
             linux {
+                // Keep the Debian package identifier so upgrades replace the existing package.
+                packageName = "glyphstudio"
                 iconFile.set(project.file("src/jvmMain/resources/app_icon.png"))
                 shortcut = true
             }
 
             macOS {
+                // Keep the original bundle ID so existing installs and user data continue to upgrade in place.
                 bundleID = "com.bxane.glyphstudio"
                 iconFile.set(project.file("src/jvmMain/resources/app_icon.icns"))
                 // Signing + notarization switch on only when CI provides the

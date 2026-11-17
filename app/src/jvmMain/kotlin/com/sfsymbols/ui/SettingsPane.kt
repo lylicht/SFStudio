@@ -37,8 +37,8 @@ import dev.nucleusframework.macoscompose.icons.LucideChevronLeft
 import dev.nucleusframework.macoscompose.theme.MacosTheme
 import com.sfsymbols.mcp.mcpClientConfig
 
-private const val DEVELOPER = "bxane"
-private const val GITHUB_URL = "https://github.com/bxanedot"
+private const val DEVELOPER = "licht"
+private const val GITHUB_URL = "https://github.com/lylicht"
 
 /** Settings screen: MCP setup for AI agents and developer links. */
 @Composable
@@ -78,7 +78,7 @@ public fun SettingsPane(
         ) {
             GroupBox(label = "MCP (AI agent access)", modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "AI agents can search the catalog by running GlyphStudio as an MCP server. " +
+                    text = "AI agents can search the catalog by running SFStudio as an MCP server. " +
                         "Add the configuration below to your agent's MCP settings. It points at this " +
                         "installed app, so there is nothing else to build or install.",
                     color = cs.textSecondary,

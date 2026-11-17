@@ -17,5 +17,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GlyphStudio"
+rootProject.name = "SFStudio"
 include(":app", ":sfsymbols")

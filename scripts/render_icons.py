@@ -1,4 +1,4 @@
-"""Render the GlyphStudio logo to every icon file the app and installers need.
+"""Render the SFStudio logo to every icon file the app and installers need.
 
 The logo is pure geometry on a 512x512 grid: an Apple-style squircle with a
 navy gradient and three capsules, each with a soft shadow below it. This file
@@ -46,7 +46,7 @@ def svg() -> str:
     r, g, b, a = SHADOW
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {GRID} {GRID}" width="{GRID}" height="{GRID}">\n'
-        f'  <title>GlyphStudio</title>\n  <defs>\n'
+        f'  <title>SFStudio</title>\n  <defs>\n'
         f'    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{BG_TOP}"/><stop offset="1" stop-color="{BG_BOTTOM}"/></linearGradient>\n'
         f'    <linearGradient id="pill" gradientUnits="userSpaceOnUse" x1="0" y1="108" x2="0" y2="404"><stop offset="0" stop-color="{PILL_TOP}"/><stop offset="1" stop-color="{PILL_BOTTOM}"/></linearGradient>\n'
         f'  </defs>\n  <path d="{path}" fill="url(#bg)"/>\n'

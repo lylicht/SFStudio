@@ -61,7 +61,7 @@ class CatalogViewModelTest {
     @Test fun `copying MCP configuration uses shared clipboard feedback`() {
         var copied: String? = null
         val vm = CatalogViewModel { copied = it }
-        val config = "{\"mcpServers\":{\"glyphstudio\":{}}}"
+        val config = "{\"mcpServers\":{\"sfstudio\":{}}}"
 
         vm.copyMcpConfig(config)
 
