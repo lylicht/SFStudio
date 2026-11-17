@@ -2,3 +2,6 @@ jdk:
   - openjdk21
 before_install:
   - chmod +x gradlew
+install:
+  # One task at a time: the symbol catalog is large, and compiling every Kotlin target at once runs JitPack out of heap.
+  - ./gradlew publishToMavenLocal --max-workers=1 --no-parallel --no-configuration-cache
