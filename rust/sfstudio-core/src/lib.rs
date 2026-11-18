@@ -160,7 +160,7 @@ impl Catalog {
         let dot_count = q.chars().filter(|c| *c == '.').count();
         if dot_count >= 2 && tokens.len() == dot_count + 1 {
             let matches = tokens.iter().filter(|t| {
-                symbol.segments.iter().any(|s| s == *t || s.starts_with(t))
+                symbol.segments.iter().any(|s| s == *t || s.starts_with(t.as_str()))
                     || self.edit_match(symbol, t) > 0
             }).count();
             if matches < tokens.len() {
