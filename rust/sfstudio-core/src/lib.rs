@@ -64,7 +64,7 @@ impl Catalog {
             };
             let segments = split_words(&apple_name.to_lowercase());
             let pascal_words = camel_words(&pascal_name);
-            let normalized = apple_name.to_lowercase().replace(['.', '-', '_'], " ");
+            let normalized = apple_name.to_lowercase().replace('.', " ").replace('-', " ").replace('_', " ");
             let symbol_tags = tags_for(&apple_name, &tags);
             vocabulary.extend(segments.iter().chain(&pascal_words).chain(&symbol_tags).cloned());
             symbols.push(Symbol {
