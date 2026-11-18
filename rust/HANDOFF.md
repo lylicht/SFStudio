@@ -13,12 +13,15 @@
 
 ## Verification status
 
-Code was authored and committed through the GitHub connector. This environment
-did not provide an installed Rust compiler or network-capable repository clone,
-so **local compilation and test execution have not been performed**.
-GitHub Actions on the PR must establish compile, clippy and parity status.
-Do not mark this slice production-ready without green gates and manual
-cross-platform smoke tests.
+Code was authored and committed through the GitHub connector. The local
+tool environment did not have an installed Rust compiler, but GitHub Actions
+**successfully compiled the Rust workspace on Linux**, ran its six unit tests,
+passed Clippy with warnings denied, built the original Kotlin MCP implementation
+and confirmed **92 out of 92 differential JSON-RPC responses matched**.
+See GitHub Actions run 44417720106.
+
+Do not mark this slice production-ready without additional Windows/macOS
+smoke tests and review of behavior not covered by the 92 replay cases.
 
 ## Next
 
