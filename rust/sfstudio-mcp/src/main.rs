@@ -174,7 +174,7 @@ fn search_symbols(args: &serde_json::Map<String, Value>) -> RpcResult {
     // Preserve Kotlin behavior: scope AFTER scoring, BEFORE applying limit.
     let index = catalog();
     let symbols: Vec<Value> = index.search(query, index.all().len()).into_iter()
-        .filter(|s| category.is_none_or(|cat| s.categories.iter().any(|c| c.eq_ignore_ascii_case(cat))))
+        .filter(|s| category.map_or(true, |cat| s.categories.iter().any(|c| c.eq_ignore_ascii_case(cat))))
         .take(limit)
         .map(symbol_json)
         .collect();
