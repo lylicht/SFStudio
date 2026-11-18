@@ -10,3 +10,4 @@ Thumbs.db
 SF_Symbol/
 Jetpack_SF_Symbols/
 __pycache__/
+rust/target/
