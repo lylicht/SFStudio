@@ -170,6 +170,10 @@ Last local check: 2026-11-20, Windows x64, branch
   passed every job: Rust and MCP on Windows/macOS/Linux; JVM and Compose API
   checks on Windows/macOS/Linux; Android, iOS, JS/Wasm, packaged MCP launchers
   on Linux/macOS/Windows, and Kotlin/Rust MCP differential replay.
+- [GitHub Actions run #41](https://github.com/lylicht/SFStudio/actions/runs/44823541760)
+  passed after wiring draw-field levels into the JVM renderer: Rust/C ABI and
+  JVM checks on Windows/macOS/Linux; Android, iOS, JS/Wasm; packaged MCP
+  launchers on all desktop OSes; and Kotlin/Rust MCP differential replay.
 
 ## Not yet verified
 
