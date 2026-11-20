@@ -8,6 +8,8 @@ on:
     paths:
       - "rust/**"
       - "scripts/check_rust_mcp_parity.py"
+      - "scripts/test_mcp.py"
+      - "scripts/mcp.*"
       - "sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"
       - "app/src/jvmMain/resources/symbol_tags.txt"
       - "app/src/**"
@@ -68,6 +70,8 @@ jobs:
         run: ./gradlew :app:assembleMcp --no-daemon
       - name: Build Rust MCP server
         run: cargo build --manifest-path rust/Cargo.toml -p sfstudio-mcp
+      - name: Exercise Rust MCP through the existing --mcp launcher
+        run: python3 scripts/test_mcp.py --rust-binary rust/target/debug/sfstudio-mcp
       - name: Differential replay
         run: python3 scripts/check_rust_mcp_parity.py
 
@@ -91,6 +95,37 @@ jobs:
       - name: JVM app and public library tests (Windows)
         if: runner.os == 'Windows'
         run: .\gradlew.bat :app:jvmTest :sfsymbols:jvmTest --no-daemon
+
+  desktop-bundled-mcp:
+    name: Packaged Rust MCP entrypoint (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: Build desktop app image (Windows)
+        if: runner.os == 'Windows'
+        run: .\gradlew.bat :app:createDistributable --no-daemon
+      - name: Build desktop app image (Unix)
+        if: runner.os != 'Windows'
+        run: ./gradlew :app:createDistributable --no-daemon
+      - name: Exercise packaged MCP launcher (Windows)
+        if: runner.os == 'Windows'
+        run: python scripts/test_mcp.py --launcher app/build/compose/binaries/main/app/SFStudio/SFStudio.exe
+      - name: Exercise packaged MCP launcher (Linux)
+        if: runner.os == 'Linux'
+        run: python3 scripts/test_mcp.py --launcher app/build/compose/binaries/main/app/SFStudio/bin/SFStudio
+      - name: Exercise packaged MCP launcher (macOS)
+        if: runner.os == 'macOS'
+        run: python3 scripts/test_mcp.py --launcher app/build/compose/binaries/main/app/SFStudio.app/Contents/MacOS/SFStudio
 
   kmp-web:
     name: Existing JS and Wasm targets
@@ -125,8 +160,8 @@ jobs:
           java-version: "21"
           cache: gradle
       - uses: android-actions/setup-android@v4
-      - name: Install Android API 37
-        run: sdkmanager "platforms;android-37"
+      - name: Install Android API 37 preview
+        run: sdkmanager --channel=3 "platforms;android-37"
       - name: Android library compilation
         run: ./gradlew :sfsymbols:compileAndroidMain --no-daemon
 

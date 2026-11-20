@@ -1,7 +1,8 @@
 # SFStudio Rust migration
 
-This is the **first executable slice** of a gradual Rust port. The desktop app
-and its published Compose Multiplatform library remain unchanged.
+This is the **first executable slice** of a gradual Rust port. The desktop UI
+and published Compose Multiplatform API remain compatible while Rust replaces
+portable logic behind the installed desktop entry points.
 
 ## What has been ported
 
@@ -17,8 +18,8 @@ and its published Compose Multiplatform library remain unchanged.
   catalog data and alias tags**. This is deliberately temporary: no parallel
   icon catalog is maintained. The embedded source is not parsed at runtime.
 
-The Rust implementation must not replace the installed JVM MCP endpoint
-until the differential replay and platform tests pass.
+Packaged `--mcp` launches delegate to the Rust executable after parity checks;
+classpath-based development launches retain the Kotlin fallback.
 
 ## Verify
 
@@ -30,6 +31,7 @@ cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D war
 cargo build --manifest-path rust/Cargo.toml -p sfstudio-mcp
 ./gradlew :app:assembleMcp
 python3 scripts/check_rust_mcp_parity.py
+python3 scripts/test_mcp.py --rust-binary rust/target/debug/sfstudio-mcp
 ```
 
 On Windows run `gradlew.bat :app:assembleMcp` in place of the Gradle shell script.

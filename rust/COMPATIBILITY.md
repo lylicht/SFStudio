@@ -11,7 +11,9 @@ dualtone vectors.
 
 The desktop application is Kotlin/Compose on JVM. The installed app remains
 the default MCP endpoint and continues to use the existing favorite file at
-`~/.sf-symbols-catalog/pins.json`.
+`~/.sf-symbols-catalog/pins.json`. Packaged `--mcp` invocations delegate to
+the bundled Rust MCP process; development classpath launches fall back to
+Kotlin.
 The Rust favorites module currently handles ordered state and JSON only; it
 does not read or write this file.
 
@@ -23,8 +25,9 @@ does not read or write this file.
   Rust-only change.
 - Treat Kotlin behavior and generated symbol sources as the reference until a
   Rust replacement passes per-target behavioral and visual checks.
-- Do not claim that current Rust code backs KMP callers: the first Rust slice
-  is a separate core and opt-in MCP executable, with no FFI integration yet.
+- Do not claim that current Rust code backs KMP callers: the Rust core has no
+  FFI integration into the published Kotlin APIs yet. Packaged desktop MCP
+  launches use Rust; development classpath launches retain Kotlin.
 - A Rust bridge must sit behind existing public Kotlin APIs; Rust types and
   ABI details must not leak into downstream Compose source.
 

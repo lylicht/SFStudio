@@ -5,17 +5,42 @@ from pathlib import Path
 import queue
 import subprocess
 import threading
+import zipfile
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--java", default="java", help="Java 21+ executable")
+    launch = parser.add_mutually_exclusive_group()
+    launch.add_argument("--rust-binary", help="Run the Rust server through the existing --mcp launcher")
+    launch.add_argument("--launcher", help="Run a packaged SFStudio launcher with --mcp")
     args = parser.parse_args()
     lib = Path(__file__).resolve().parents[1] / "app/build/mcp/lib"
-    if not lib.is_dir():
-        parser.error("Run ./gradlew assembleMcp first")
+    if args.launcher:
+        launcher = Path(args.launcher).resolve()
+        if not launcher.is_file():
+            parser.error(f"SFStudio launcher not found: {launcher}")
+        command = [str(launcher), "--mcp"]
+    else:
+        if not lib.is_dir():
+            parser.error("Run ./gradlew assembleMcp first")
+        command = [args.java, "-Djava.awt.headless=true"]
+    if args.rust_binary:
+        rust_binary = Path(args.rust_binary).resolve()
+        if not rust_binary.is_file():
+            parser.error(f"Rust MCP binary not found: {rust_binary}")
+        rust_resource = "native/sfstudio-mcp.exe" if rust_binary.suffix == ".exe" else "native/sfstudio-mcp"
+        app_jar = lib / "app-jvm.jar"
+        if not app_jar.is_file() or not zipfile.is_zipfile(app_jar):
+            parser.error("Assemble the app JAR with :app:assembleMcp first")
+        with zipfile.ZipFile(app_jar) as archive:
+            if rust_resource not in archive.namelist():
+                parser.error(f"Rust MCP resource missing from app JAR: {rust_resource}")
+        command.append(f"-Dcompose.application.resources.dir={rust_binary.parent}")
+    if not args.launcher:
+        command.extend(["-cp", str(lib / "*"), "com.sfsymbols.MainKt", "--mcp"])
     process = subprocess.Popen(
-        [args.java, "-Djava.awt.headless=true", "-cp", str(lib / "*"), "com.sfsymbols.MainKt", "--mcp"],
+        command,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         text=True, encoding="utf-8", bufsize=1,
     )

@@ -1,4 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.bundling.Jar
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -6,11 +9,35 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val windowsHost = System.getProperty("os.name").startsWith("Windows", ignoreCase = true)
+val rustMcpName = "sfstudio-mcp" + if (windowsHost) ".exe" else ""
+val rustMcpBinary = rootProject.file("rust/target/release/$rustMcpName")
+val buildRustMcp by tasks.registering(Exec::class) {
+    group = "build"
+    description = "Build the native Rust MCP server for this platform"
+    workingDir(rootProject.projectDir)
+    commandLine("cargo", "build", "--manifest-path", "rust/Cargo.toml", "-p", "sfstudio-mcp", "--release")
+    inputs.files(
+        fileTree(rootProject.file("rust")) { include("**/*.rs", "**/*.toml") },
+        rootProject.file("rust/Cargo.lock"),
+        rootProject.file("sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"),
+        rootProject.file("app/src/jvmMain/resources/symbol_tags.txt"),
+    )
+    outputs.file(rustMcpBinary)
+}
+
+val stageRustMcp by tasks.registering(Copy::class) {
+    dependsOn(buildRustMcp)
+    from(rustMcpBinary)
+    into(layout.buildDirectory.dir("rust-mcp-resources"))
+}
+
 // A standalone stdio launcher needs the complete runtime classpath. The normal
 // jvmJar is not executable with `java -jar` and does not bundle dependencies.
 tasks.register<Sync>("assembleMcp") {
     group = "distribution"
     description = "Assemble the headless MCP server and its runtime dependencies"
+    dependsOn(stageRustMcp)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     into(layout.buildDirectory.dir("mcp"))
     from(tasks.named("jvmJar")) { into("lib") }
@@ -19,6 +46,7 @@ tasks.register<Sync>("assembleMcp") {
         // Different artifacts can share a filename; retain both on the wildcard classpath.
         eachFile { name = "${file.parentFile.name}-$name" }
     }
+    from(layout.buildDirectory.dir("rust-mcp-resources")) { into("bin") }
     from(project.file("../scripts/mcp.cmd"))
     from(project.file("../scripts/mcp.sh"))
 }
@@ -44,6 +72,11 @@ kotlin {
             }
         }
     }
+}
+
+tasks.named<Jar>("jvmJar") {
+    dependsOn(stageRustMcp)
+    from(stageRustMcp) { into("native") }
 }
 
 compose.desktop {
