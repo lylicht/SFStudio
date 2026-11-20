@@ -48,6 +48,12 @@ def main():
         ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
     ]
     mcp_client_config_json.restype = ctypes.c_ssize_t
+    filter_selection_json = library.sfstudio_filter_selection_json
+    filter_selection_json.argtypes = [
+        ctypes.c_int32, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int32,
+        ctypes.c_void_p, ctypes.c_size_t,
+    ]
+    filter_selection_json.restype = ctypes.c_ssize_t
     search_filtered_json = library.sfstudio_search_filtered_json
     search_filtered_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                                      ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
@@ -262,6 +268,33 @@ def main():
         ],
     }
     assert mcp_client_config_json(None, 0, 2, None, 0, None, 0) == -13
+
+    def filter_selection(action, category=None):
+        encoded = category.encode("utf-8") if category is not None else b""
+        category_buffer = ctypes.create_string_buffer(encoded) if category is not None else None
+
+        def call(output, capacity):
+            return filter_selection_json(
+                action,
+                category_buffer,
+                len(encoded),
+                0 if category is None else 1,
+                output,
+                capacity,
+            )
+
+        required = call(None, 0)
+        assert required > 0, f"filter selection sizing call failed: {required}"
+        output = ctypes.create_string_buffer(required)
+        written = call(output, required)
+        assert written == required
+        return json.loads(output.raw[:written])
+
+    assert filter_selection(0, "天气") == ["天气", False]
+    assert filter_selection(0, "") == ["", False]
+    assert filter_selection(1) == [None, True]
+    assert filter_selection(2) == [None, False]
+    assert filter_selection_json(3, None, 0, 0, None, 0) == -14
 
     def filtered_search(query, category, favorites, limit):
         encoded_query = query.encode("utf-8")

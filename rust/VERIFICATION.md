@@ -74,9 +74,8 @@ Last local check: 2026-11-20, Windows x64, branch
 - [GitHub Actions run #20](https://github.com/lylicht/SFStudio/actions/runs/44768406103)
   — metadata lookup C ABI, Python `ctypes` smoke, and JVM parity passed on
   Windows/macOS/Linux; Android, iOS, JS/Wasm, and packaged MCP jobs passed too.
-- The vector decoder and weight-aware glyph C ABI passed the local Rust,
-  Kotlin parity, Clippy, and Python checks above. Run #20 predates this code;
-  cross-OS CI results for the vector work are pending.
+- The vector decoder and weight-aware glyph C ABI passed local Rust, Kotlin
+  parity, Clippy, Python, and the Windows/macOS/Linux CI checks in run #24.
 - [GitHub Actions run #22](https://github.com/lylicht/SFStudio/actions/runs/44775446369)
   passed Rust and Kotlin checks on macOS/Linux, Rust and FFI checks on Windows,
   Android, iOS, JS/Wasm, and packaged MCP jobs. Its Windows JVM job exposed
@@ -89,10 +88,15 @@ Last local check: 2026-11-20, Windows x64, branch
 
 ## Rust-backed desktop logic
 
+- Category, favorites, and show-all state transitions now come from Rust through
+  the language-neutral C ABI in the desktop ViewModel. Rust/Python/JVM checks
+  cover Unicode and empty categories, action reset behavior, error flags, and
+  the Kotlin empty-category fallback. The new C ABI addition awaits cross-OS
+  verification in run #34.
 - MCP client configuration is generated in Rust and called by the existing
   Settings helper through JNA when the native library is available. The
-  original Kotlin generator remains the native-library fallback. Local C ABI
-  and JVM parity pass; cross-OS CI for this addition is pending.
+  original Kotlin generator remains the native-library fallback. Local byte-
+  exact C ABI/JVM parity and the cross-platform checks in run #33 pass.
 
 ## Apple animation evaluator
 
@@ -101,7 +105,10 @@ Last local check: 2026-11-20, Windows x64, branch
   `ctypes`, including Appear transforms, DownUp replacement, variable layers,
   malformed input, and unknown symbols.
 - Rust effect calculations match a Kotlin-generated fixture across 16 effect
-  configurations, selected symbols, and their flattened layers. [GitHub
+  configurations spanning all effect types in SFStudio's public API, selected
+  symbols, and their flattened layers. This includes Apple's Appear, Disappear,
+  Bounce, Pulse, Scale, Variable Color, Wiggle, Rotate, Breathe, Draw On/Off,
+  and Magic Replace behaviors. [GitHub
   Actions run #25](https://github.com/lylicht/SFStudio/actions/runs/44787007184)
   passed the full Windows/macOS/Linux, JVM, Android, iOS, JS/Wasm, packaged
   launcher, and MCP matrix for those effect frames. The local
@@ -137,9 +144,9 @@ Last local check: 2026-11-20, Windows x64, branch
 - Pixel rendering and visual parity, installer upgrades, user-data migration,
   performance baselines, and native bindings. Layer color calculation has
   cross-OS smoke coverage but no Kotlin differential fixture. Draw-field API
-  integration with the active renderer is pending. MCP config generation's
-  cross-OS checks are pending. The geometry and draw-field C ABIs have cross-OS
-  CI coverage, but target-specific bindings remain untested.
+  integration with the active renderer is pending. The geometry and draw-field
+  C ABIs have cross-OS CI coverage, but target-specific bindings remain
+  untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain

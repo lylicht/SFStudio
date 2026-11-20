@@ -11,6 +11,7 @@ pub mod favorites;
 pub mod mcp_config;
 pub mod rendering;
 pub mod vector;
+pub mod view_state;
 
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};

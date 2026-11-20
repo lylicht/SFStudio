@@ -107,7 +107,7 @@ public class CatalogViewModel(
         val q = query.trim()
         val cat = selectedCategory
         if (cat != null || onlyPinned) {
-            val rustResults = try {
+            val rustResults = if (cat == "") null else try {
                 RustCatalogSearch.searchFiltered(
                     q,
                     cat,
@@ -150,20 +150,33 @@ public class CatalogViewModel(
     }
 
     public fun filterCategory(category: String?) {
-        selectedCategory = category
-        onlyPinned = false
-        recomputeFiltered()
+        updateFilter(RustCatalogSearch.FilterAction.Category, category, category to false)
     }
 
     public fun showOnlyPinned() {
-        onlyPinned = true
-        selectedCategory = null
-        recomputeFiltered()
+        updateFilter(RustCatalogSearch.FilterAction.Favorites, null, null to true)
     }
 
     public fun showAll() {
-        onlyPinned = false
-        selectedCategory = null
+        updateFilter(RustCatalogSearch.FilterAction.All, null, null to false)
+    }
+
+    private fun updateFilter(
+        action: RustCatalogSearch.FilterAction,
+        category: String?,
+        kotlinFallback: Pair<String?, Boolean>,
+    ) {
+        val selection = try {
+            RustCatalogSearch.filterSelection(action, category)
+        } catch (error: Exception) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        } catch (error: LinkageError) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        } ?: kotlinFallback
+        selectedCategory = selection.first
+        onlyPinned = selection.second
         recomputeFiltered()
     }
 

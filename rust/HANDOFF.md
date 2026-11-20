@@ -17,9 +17,11 @@ invalid IDs and batches, and notifications. See
 [VERIFICATION.md](VERIFICATION.md).
 
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
-Compose snippet generation, favorite toggling, and MCP client config generation
-through JNA. Search,
-filtering, snippets, and favorites passed Windows/macOS/Linux checks in run #17.
+filter-selection transitions, Compose snippet generation, favorite toggling,
+and MCP client config generation through JNA. The latest [GitHub Actions run #33](https://github.com/lylicht/SFStudio/actions/runs/44803230690)
+passed Rust/C ABI checks on Windows/macOS/Linux, JVM tests on Windows/macOS/Linux,
+Android, iOS, JS/Wasm, packaged MCP launchers on all three desktop OSes, and
+differential MCP replay.
 The metadata lookup binding passed Windows/macOS/Linux parity and the Windows
 MSI passed in run #20; lookup is not yet called by a production UI path.
 Android/iOS/JS/Wasm Kotlin targets still compile and retain their Kotlin paths;
@@ -45,8 +47,10 @@ C ABI function; Kotlin fixture parity and Linux/Windows/macOS checks passed in
 [GitHub Actions run #31](https://github.com/lylicht/SFStudio/actions/runs/44799137234).
 The Settings screen now gets installed-app and development-classpath MCP
 configuration from Rust through JNA when the native library is available.
-Parsed-JSON parity and escaped path handling pass locally; cross-OS checks for
-this addition are pending.
+Byte-exact parity and escaped path handling pass locally, and run #33 verifies
+the change across the Rust/C ABI, JVM, and packaged MCP matrix.
+The category/favorites/all filter-selection transition passes Rust, Python C
+ABI, and JVM ViewModel checks locally; run #34 is pending for this latest unit.
 
 ## Existing work inherited from PR #7
 
@@ -61,9 +65,8 @@ this addition are pending.
 
 ## Next unblocked migration work
 
-1. Port the remaining portable desktop state transitions, then evaluate
-   Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately; one FFI
-   mechanism is not assumed to fit every target.
+1. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
+   the desktop filter-selection C ABI is not assumed to fit every target.
 2. Expand animation and layer-appearance parity fixtures, then connect the
    verified draw-field C ABI result to target renderers while preserving each
    platform's rasterized mask and clip behavior. Keep the existing renderer as

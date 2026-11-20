@@ -16,6 +16,7 @@ const INVALID_WEIGHT: isize = -10;
 const INVALID_ANIMATION: isize = -11;
 const INVALID_DRAW_FIELD: isize = -12;
 const INVALID_MCP_CONFIG: isize = -13;
+const INVALID_FILTER_SELECTION: isize = -14;
 
 unsafe fn read_utf8<'a>(input: *const u8, input_len: usize) -> Result<&'a str, isize> {
     if input_len == 0 {
@@ -809,6 +810,63 @@ pub unsafe extern "C" fn sfstudio_mcp_client_config_json(
     }
 }
 
+/// Return the selected category and favorites flag after a catalog filter action.
+///
+/// Actions are 0 = select category, 1 = favorites, and 2 = show all. The
+/// category presence flag distinguishes no selection from a selected empty
+/// string. Output is a JSON pair `[selectedCategory, onlyPinned]`.
+///
+/// # Safety
+/// For a category action with nonzero length, `category` must point to that
+/// many readable UTF-8 bytes. If `output_capacity` is nonzero, `output` must
+/// point to that many writable bytes.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_filter_selection_json(
+    action: i32,
+    category: *const u8,
+    category_len: usize,
+    category_present: i32,
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+    let action = match action {
+        0 => sfstudio_core::view_state::FilterAction::Category,
+        1 => sfstudio_core::view_state::FilterAction::Favorites,
+        2 => sfstudio_core::view_state::FilterAction::All,
+        _ => return INVALID_FILTER_SELECTION,
+    };
+    let category = if action == sfstudio_core::view_state::FilterAction::Category {
+        if !matches!(category_present, 0 | 1) || (category_present == 0 && category_len != 0) {
+            return INVALID_FILTER_SELECTION;
+        }
+        if category_present == 1 {
+            match unsafe { read_utf8(category, category_len) } {
+                Ok(category) => Some(category),
+                Err(code) => return code,
+            }
+        } else {
+            None
+        }
+    } else {
+        if category_present != 0 || category_len != 0 {
+            return INVALID_FILTER_SELECTION;
+        }
+        None
+    };
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let selection = sfstudio_core::view_state::filter_selection(action, category);
+        serde_json::to_vec(&selection).map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
 struct DrawFieldRequest {
     mask: Vec<u8>,
     origin: [f32; 2],
@@ -1461,6 +1519,48 @@ mod tests {
                     0,
                 ),
                 INVALID_FAVORITES_JSON
+            );
+        }
+    }
+
+    #[test]
+    fn returns_filter_selection_and_rejects_inconsistent_arguments() {
+        // SAFETY: Inputs and output satisfy their declared lengths.
+        unsafe {
+            let category = "天气".as_bytes();
+            let required = sfstudio_filter_selection_json(
+                0,
+                category.as_ptr(),
+                category.len(),
+                1,
+                std::ptr::null_mut(),
+                0,
+            );
+            assert!(required > 0);
+            let mut output = vec![0; required as usize];
+            assert_eq!(
+                sfstudio_filter_selection_json(
+                    0,
+                    category.as_ptr(),
+                    category.len(),
+                    1,
+                    output.as_mut_ptr(),
+                    output.len(),
+                ),
+                required
+            );
+            assert_eq!(String::from_utf8(output).unwrap(), "[\"天气\",false]");
+            assert_eq!(
+                sfstudio_filter_selection_json(1, std::ptr::null(), 0, 0, std::ptr::null_mut(), 0),
+                11
+            );
+            assert_eq!(
+                sfstudio_filter_selection_json(0, std::ptr::null(), 1, 0, std::ptr::null_mut(), 0),
+                INVALID_FILTER_SELECTION
+            );
+            assert_eq!(
+                sfstudio_filter_selection_json(3, std::ptr::null(), 0, 0, std::ptr::null_mut(), 0),
+                INVALID_FILTER_SELECTION
             );
         }
     }

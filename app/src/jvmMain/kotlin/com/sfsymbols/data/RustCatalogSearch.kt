@@ -15,6 +15,15 @@ import java.nio.file.StandardCopyOption
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface NativeSearch : Library {
+    fun sfstudio_filter_selection_json(
+        action: Int,
+        category: ByteArray?,
+        categoryLength: Long,
+        categoryPresent: Int,
+        output: ByteArray?,
+        outputCapacity: Long,
+    ): Long
+
     fun sfstudio_search_json(
         query: ByteArray?,
         queryLength: Long,
@@ -81,9 +90,44 @@ internal object RustCatalogSearch {
     private val symbolsByAppleName by lazy { SfSymbolsCatalog.all.associateBy { it.appleName } }
     private val native: NativeSearch? by lazy { loadNative() }
 
+    enum class FilterAction(val nativeId: Int) { Category(0), Favorites(1), All(2) }
+
     fun available(): Boolean = native != null
 
     fun reportFailure(error: Throwable) = warn(error)
+
+    fun filterSelection(action: FilterAction, category: String? = null): Pair<String?, Boolean>? {
+        val library = native ?: return null
+        val categoryBytes = category?.toByteArray(Charsets.UTF_8)
+        val required = library.sfstudio_filter_selection_json(
+            action.nativeId,
+            categoryBytes,
+            categoryBytes?.size?.toLong() ?: 0,
+            if (category == null) 0 else 1,
+            null,
+            0,
+        )
+        check(required >= 0) { "Rust filter selection failed with code $required" }
+        check(required <= Int.MAX_VALUE) { "Rust filter selection is too large for the JVM" }
+
+        val output = ByteArray(required.toInt())
+        val written = library.sfstudio_filter_selection_json(
+            action.nativeId,
+            categoryBytes,
+            categoryBytes?.size?.toLong() ?: 0,
+            if (category == null) 0 else 1,
+            output,
+            output.size.toLong(),
+        )
+        check(written == required) { "Rust filter selection wrote $written bytes; expected $required" }
+        val selection = Json.parseToJsonElement(output.decodeToString()).jsonArray
+        check(selection.size == 2) { "Rust filter selection returned an invalid pair" }
+        val selectedCategory = selection[0].let { value ->
+            if (value is kotlinx.serialization.json.JsonNull) null else value.jsonPrimitive.content
+        }
+        val onlyPinned = selection[1].jsonPrimitive.content.toBooleanStrict()
+        return selectedCategory to onlyPinned
+    }
 
     fun lookup(symbolName: String): SfSymbolMetadata? {
         val library = native ?: return null

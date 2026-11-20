@@ -5,14 +5,17 @@ import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.graphics.Color
 import com.composables.sfsymbols.SfSymbolsCatalog
 import com.sfsymbols.data.SymbolMode
+import com.sfsymbols.data.RustCatalogSearch
 import kotlin.test.*
 
 class CatalogViewModelTest {
     private val heart = SfSymbolsCatalog.all.first { it.appleName == "heart.fill" }
 
     @Test fun `category changes invalidate the observed grid results`() {
+        assertTrue(RustCatalogSearch.available(), "jvmTest must load the Rust native library")
         val vm = CatalogViewModel { }
         val category = vm.categories.first().first
+        assertEquals("" to false, RustCatalogSearch.filterSelection(RustCatalogSearch.FilterAction.Category, ""))
         var invalidations = 0
         val observer = SnapshotStateObserver { it() }
         observer.start()
@@ -23,6 +26,14 @@ class CatalogViewModelTest {
             assertTrue(invalidations > 0, "The grid must be notified when its result list changes")
             assertTrue(vm.filteredSymbols.isNotEmpty())
             assertTrue(vm.filteredSymbols.all { category in it.categories })
+            vm.showOnlyPinned()
+            assertNull(vm.selectedCategory)
+            assertTrue(vm.onlyPinned)
+            vm.filterCategory(category)
+            assertEquals(category, vm.selectedCategory)
+            assertFalse(vm.onlyPinned)
+            vm.filterCategory("")
+            assertEquals(emptyList(), vm.filteredSymbols)
             vm.showAll()
             assertEquals(SfSymbolsCatalog.all, vm.filteredSymbols)
         } finally { observer.stop() }

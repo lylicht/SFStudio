@@ -105,6 +105,20 @@ intptr_t sfstudio_mcp_client_config_json(
     uint8_t *output, size_t output_capacity);
 
 /*
+ * Catalog filter selection transition. action: 0 category, 1 favorites,
+ * 2 all. category_present distinguishes null from an empty category string.
+ * Returns a JSON pair [selectedCategory, onlyPinned]. Error -14 means invalid
+ * action or inconsistent category arguments; other errors use the common
+ * buffer/error contract above.
+ */
+intptr_t sfstudio_filter_selection_json(int32_t action,
+                                        const uint8_t *category,
+                                        size_t category_len,
+                                        int32_t category_present,
+                                        uint8_t *output,
+                                        size_t output_capacity);
+
+/*
  * Returns raw UTF-8 Kotlin source for the snippet, using the same required-size
  * buffer contract. Mode: 0 dualtone, 1 monochrome. Boolean arguments use
  * zero/nonzero. Negative errors: -1 invalid symbol pointer, -2 invalid UTF-8,
