@@ -8,6 +8,7 @@ import kotlinx.serialization.builtins.SetSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -18,6 +19,13 @@ internal interface NativeSearch : Library {
         query: ByteArray?,
         queryLength: Long,
         limit: Long,
+        output: ByteArray?,
+        outputCapacity: Long,
+    ): Long
+
+    fun sfstudio_symbol_json(
+        symbolName: ByteArray?,
+        symbolNameLength: Long,
         output: ByteArray?,
         outputCapacity: Long,
     ): Long
@@ -66,6 +74,31 @@ internal object RustCatalogSearch {
     fun available(): Boolean = native != null
 
     fun reportFailure(error: Throwable) = warn(error)
+
+    fun lookup(symbolName: String): SfSymbolMetadata? {
+        val library = native ?: return null
+        val name = symbolName.toByteArray(Charsets.UTF_8)
+        val required = library.sfstudio_symbol_json(name, name.size.toLong(), null, 0)
+        if (required == -6L) return null
+        check(required >= 0) { "Rust symbol lookup sizing failed with code $required" }
+        check(required <= Int.MAX_VALUE) { "Rust symbol metadata is too large for the JVM" }
+
+        val output = ByteArray(required.toInt())
+        val written = library.sfstudio_symbol_json(
+            name,
+            name.size.toLong(),
+            output,
+            output.size.toLong(),
+        )
+        check(written == required) { "Rust symbol lookup wrote $written bytes; expected $required" }
+        val metadata = Json.parseToJsonElement(output.decodeToString()).jsonObject
+        return SfSymbolMetadata(
+            appleName = metadata.getValue("appleName").jsonPrimitive.content,
+            pascalName = metadata.getValue("pascalName").jsonPrimitive.content,
+            categories = metadata.getValue("categories").jsonArray.map { it.jsonPrimitive.content },
+            isRestricted = metadata.getValue("isRestricted").jsonPrimitive.content.toBooleanStrict(),
+        )
+    }
 
     fun search(query: String, limit: Int): List<SfSymbolMetadata>? {
         val library = native ?: return null

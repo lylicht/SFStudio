@@ -84,6 +84,50 @@ pub unsafe extern "C" fn sfstudio_search_json(
     }
 }
 
+/// Resolve a catalog name to its stable public metadata as UTF-8 JSON.
+///
+/// The JSON shape is `SfSymbolMetadata`: `appleName`, `pascalName`, `categories`,
+/// and `isRestricted`. The return value and output-buffer contract match
+/// `sfstudio_search_json`; -6 indicates an unknown symbol.
+///
+/// # Safety
+/// For nonzero `symbol_name_len`, `symbol_name` must point to that many readable
+/// bytes. If `output_capacity` is nonzero, `output` must point to that many
+/// writable bytes. The buffers may overlap because output is built before it is
+/// written.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_symbol_json(
+    symbol_name: *const u8,
+    symbol_name_len: usize,
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    let symbol_name = match unsafe { read_utf8(symbol_name, symbol_name_len) } {
+        Ok(name) => name,
+        Err(code) => return code,
+    };
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let symbol = sfstudio_core::catalog()
+            .find(symbol_name)
+            .ok_or(UNKNOWN_SYMBOL)?;
+        serde_json::to_vec(&serde_json::json!({
+            "appleName": symbol.apple_name,
+            "pascalName": symbol.pascal_name,
+            "categories": symbol.categories,
+            "isRestricted": symbol.is_restricted,
+        }))
+        .map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
 /// Search the catalog while applying an optional category and favorites filter.
 ///
 /// An empty category disables category filtering. `favorites_only` uses zero
@@ -290,6 +334,29 @@ mod tests {
             r#"["0.circle.fill","0.circle","0.square.fill"]"#
         );
         assert_eq!(search("🐈".as_bytes(), 5).unwrap(), "[]");
+    }
+
+    #[test]
+    fn symbol_lookup_returns_kotlin_public_metadata() {
+        let name = b"SFHeartFill";
+        let mut output = [0; 256];
+        // SAFETY: Input and output slices are valid for their lengths.
+        let written = unsafe {
+            sfstudio_symbol_json(name.as_ptr(), name.len(), output.as_mut_ptr(), output.len())
+        };
+        assert!(written > 0);
+        let value: serde_json::Value = serde_json::from_slice(&output[..written as usize]).unwrap();
+        assert_eq!(value["appleName"], "heart.fill");
+        assert_eq!(value["pascalName"], "SFHeartFill");
+        assert_eq!(value["isRestricted"], false);
+        assert!(value["categories"]
+            .as_array()
+            .is_some_and(|values| !values.is_empty()));
+        // SAFETY: Input is valid; output is a size query.
+        assert_eq!(
+            unsafe { sfstudio_symbol_json(b"unknown".as_ptr(), 7, std::ptr::null_mut(), 0) },
+            UNKNOWN_SYMBOL
+        );
     }
 
     #[test]

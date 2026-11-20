@@ -29,6 +29,9 @@ def main():
     search_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t,
                             ctypes.c_void_p, ctypes.c_size_t]
     search_json.restype = ctypes.c_ssize_t
+    symbol_json = library.sfstudio_symbol_json
+    symbol_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
+    symbol_json.restype = ctypes.c_ssize_t
     search_filtered_json = library.sfstudio_search_filtered_json
     search_filtered_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                                      ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
@@ -59,6 +62,20 @@ def main():
     assert search("hosue", 1) == ["house"]
     assert search("🐈", 5) == []
     assert search("", 3) == ["0.circle.fill", "0.circle", "0.square.fill"]
+
+    symbol_name = ctypes.create_string_buffer(b"SFHeartFill")
+    symbol_length = len(b"SFHeartFill")
+    symbol_required = symbol_json(symbol_name, symbol_length, None, 0)
+    assert symbol_required > 0
+    symbol_output = ctypes.create_string_buffer(symbol_required)
+    symbol_written = symbol_json(symbol_name, symbol_length, symbol_output, symbol_required)
+    assert symbol_written == symbol_required
+    metadata = json.loads(symbol_output.raw[:symbol_written])
+    assert metadata["appleName"] == "heart.fill"
+    assert metadata["pascalName"] == "SFHeartFill"
+    assert metadata["isRestricted"] is False
+    assert metadata["categories"]
+    assert symbol_json(ctypes.create_string_buffer(b"missing"), 7, None, 0) == -6
 
     def filtered_search(query, category, favorites, limit):
         encoded_query = query.encode("utf-8")
@@ -135,7 +152,7 @@ def main():
     assert toggle_favorites(broken_json, 7, ctypes.create_string_buffer(b"gear"), 4,
                             None, 0) == -8
 
-    print("Rust C ABI search, filtering, codegen, and favorites smoke test passed (Python ctypes)")
+    print("Rust C ABI search, metadata, filtering, codegen, and favorites smoke test passed (Python ctypes)")
 
 
 if __name__ == "__main__":

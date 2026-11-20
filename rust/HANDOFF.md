@@ -6,17 +6,19 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all nineteen workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all twenty workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. All 99 Kotlin/Rust MCP differential
 responses match, including malformed JSON, invalid IDs and batches, and
 notifications. See [VERIFICATION.md](VERIFICATION.md).
 
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
-Compose snippet generation, and favorite toggling through JNA. All four passed
-Windows/macOS/Linux checks in run #17; the Windows MSI includes the shared
-library. Android/iOS/JS/Wasm Kotlin targets still compile and retain their
-Kotlin paths; Rust-backed adapters for those targets are not implemented.
+Compose snippet generation, and favorite toggling through JNA. Search,
+filtering, snippets, and favorites passed Windows/macOS/Linux checks in run #17.
+The metadata lookup binding and Windows MSI packaging passed locally, with
+cross-platform lookup CI pending; lookup is not yet called by a production UI
+path. Android/iOS/JS/Wasm Kotlin targets still compile and retain their Kotlin
+paths; Rust-backed adapters for those targets are not implemented.
 
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge

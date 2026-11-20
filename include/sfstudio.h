@@ -36,6 +36,15 @@ intptr_t sfstudio_search_filtered_json(const uint8_t *query, size_t query_len,
                                        size_t output_capacity);
 
 /*
+ * Resolve Apple or Pascal name to SfSymbolMetadata JSON:
+ * appleName, pascalName, categories, and isRestricted. Error -6 means unknown
+ * symbol. Uses the same UTF-8 output buffer contract as sfstudio_search_json.
+ */
+intptr_t sfstudio_symbol_json(const uint8_t *symbol_name,
+                              size_t symbol_name_len, uint8_t *output,
+                              size_t output_capacity);
+
+/*
  * Returns raw UTF-8 Kotlin source for the snippet, using the same required-size
  * buffer contract. Mode: 0 dualtone, 1 monochrome. Boolean arguments use
  * zero/nonzero. Negative errors: -1 invalid symbol pointer, -2 invalid UTF-8,

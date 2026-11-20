@@ -6,18 +6,19 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 19 Rust tests
-  passed (9 core, 7 C ABI, and 3 MCP).
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 20 Rust tests
+  passed (9 core, 8 C ABI, and 3 MCP).
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
   Windows x64; Python `ctypes` smoke passed, including sizing calls, typo search,
   Unicode, invalid UTF-8, null pointers, short-buffer handling, exact Compose
-  snippet fixtures, favorite ordering/toggle behavior, and filtered search.
+  snippet fixtures, favorite ordering/toggle behavior, filtered search, and
+  symbol metadata lookup.
 - `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
 - `gradlew.bat :app:jvmTest --no-daemon` — passed with the Rust search library
   loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries,
-  both Compose snippet variants, favorite ordering/removal, and filtered
-  category/favorites results matched Kotlin references.
+  both Compose snippet variants, favorite ordering/removal, filtered
+  category/favorites results, and symbol metadata lookup matched Kotlin references.
 - `gradlew.bat :app:packageMsi --no-daemon` — Windows MSI build passed with the
   Rust FFI DLL and MCP executable in `app-jvm.jar`.
 - The `CatalogViewModelTest` snippet cases match the Rust fixtures exactly,
@@ -55,6 +56,9 @@ Last local check: 2026-11-20, Windows x64, branch
 - [GitHub Actions run #17](https://github.com/lylicht/SFStudio/actions/runs/44764947372)
   — filtered C ABI and JNA parity passed on Windows/macOS/Linux; all existing
   Kotlin targets and packaged MCP jobs passed as well.
+- The metadata lookup C ABI, Python smoke, JVM parity test, and Windows MSI
+  packaging passed locally. Cross-platform CI for this endpoint is pending;
+  run #17 predates the metadata lookup change.
 
 ## Not yet verified
 
