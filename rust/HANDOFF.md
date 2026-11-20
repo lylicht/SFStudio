@@ -15,10 +15,10 @@ notifications. See [VERIFICATION.md](VERIFICATION.md).
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
 Compose snippet generation, and favorite toggling through JNA. Search,
 filtering, snippets, and favorites passed Windows/macOS/Linux checks in run #17.
-The metadata lookup binding and Windows MSI packaging passed locally, with
-cross-platform lookup CI pending; lookup is not yet called by a production UI
-path. Android/iOS/JS/Wasm Kotlin targets still compile and retain their Kotlin
-paths; Rust-backed adapters for those targets are not implemented.
+The metadata lookup binding passed Windows/macOS/Linux parity and the Windows
+MSI passed in run #20; lookup is not yet called by a production UI path.
+Android/iOS/JS/Wasm Kotlin targets still compile and retain their Kotlin paths;
+Rust-backed adapters for those targets are not implemented.
 
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge

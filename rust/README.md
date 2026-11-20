@@ -23,8 +23,8 @@ portable logic behind the installed desktop entry points.
   smoke checks for search, filtering,
   codegen, and favorites passed on Windows, macOS, and Linux in run #17. The
   packaged JVM UI calls it through JNA; published KMP callers remain unchanged.
-  The JVM metadata lookup binding passes local parity checks but is not yet
-  called by a production UI path; its cross-platform CI check is pending.
+  The JVM metadata lookup binding passed parity checks on Windows, macOS, and
+  Linux in run #20; it is not yet called by a production UI path.
 - The Rust catalog is **read directly at compile time from the existing Kotlin
   catalog data and alias tags**. This is deliberately temporary: no parallel
   icon catalog is maintained. The embedded source is not parsed at runtime.

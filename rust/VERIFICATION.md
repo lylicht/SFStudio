@@ -56,9 +56,9 @@ Last local check: 2026-11-20, Windows x64, branch
 - [GitHub Actions run #17](https://github.com/lylicht/SFStudio/actions/runs/44764947372)
   — filtered C ABI and JNA parity passed on Windows/macOS/Linux; all existing
   Kotlin targets and packaged MCP jobs passed as well.
-- The metadata lookup C ABI, Python smoke, JVM parity test, and Windows MSI
-  packaging passed locally. Cross-platform CI for this endpoint is pending;
-  run #17 predates the metadata lookup change.
+- [GitHub Actions run #20](https://github.com/lylicht/SFStudio/actions/runs/44768406103)
+  — metadata lookup C ABI, Python `ctypes` smoke, and JVM parity passed on
+  Windows/macOS/Linux; Android, iOS, JS/Wasm, and packaged MCP jobs passed too.
 
 ## Not yet verified
 

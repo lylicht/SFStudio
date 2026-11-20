@@ -27,8 +27,8 @@ language or platform already has a packaged adapter or complete app binding.
 The published KMP API does not call this ABI yet; its Android, iOS, JS, and
 Wasm implementations remain active. The desktop JVM app calls search, code
 generation, favorite toggling, and category/favorites filtering through JNA on
-Windows, macOS, and Linux. The JNA metadata lookup binding passes local parity
-checks; its cross-platform CI check is pending. JS and Wasm consumers still use
+Windows, macOS, and Linux. The JNA metadata lookup binding passed parity checks
+on all three operating systems in run #20. JS and Wasm consumers still use
 Kotlin until target-specific Rust/Wasm adapters pass their tests.
 
 ## Compatibility rules
@@ -50,7 +50,7 @@ Kotlin until target-specific Rust/Wasm adapters pass their tests.
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `NOT_STARTED`; keep the Kotlin path |
-| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, and `--mcp` use Rust | `IN_PROGRESS`; JNA search/snippet/favorite/filter paths passed Windows/macOS/Linux; metadata lookup binding parity passes locally and awaits CI; published KMP APIs, UI state, and rendering remain Kotlin |
+| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, and `--mcp` use Rust | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; published KMP APIs, UI state, and rendering remain Kotlin |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `NOT_STARTED`; evaluate a narrow C ABI / generated Swift bridge |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
 | Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |
