@@ -39,8 +39,9 @@ The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
 `arm64-v8a`, `x86`, and `x86_64`. The local AAR contains all four libraries
 and the consumer R8 keep rule. Its Android device parity test passed on the
 local Android 16 / API 36.1 x86_64 emulator for ten symbols across all nine
-weights and all three optical scales. The corresponding GitHub Actions gate
-is configured and awaits its first run after push.
+weights and all three optical scales. The first hosted emulator attempt failed
+before boot because current Emulator 37 requires `ANDROID_I_WANT_MY_TCG=yes`
+without hardware acceleration; the workflow now sets it and awaits rerun.
 Building the Android target now requires Android NDK `28.2.13676358` and
 `cargo-ndk` `4.1.2`; CI installs both before assembling the KMP AAR.
 

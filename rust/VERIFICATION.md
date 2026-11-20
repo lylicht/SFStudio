@@ -212,8 +212,10 @@ Last local check: 2026-11-20, Windows x64, branch
   test passed on an Android 16 / API 36.1 x86_64 emulator, comparing the Rust
   and Kotlin renderers across ten symbols, all nine weights, and all three
   optical scales. Android effect frames, appearance, and draw-field behavior
-  remain on Kotlin. The same emulator gate is configured in CI; its first run
-  is pending.
+  remain on Kotlin. The first hosted emulator attempt failed before device boot:
+  the latest emulator requires `ANDROID_I_WANT_MY_TCG=yes` when hardware
+  acceleration is unavailable. The CI step now sets that flag; hosted device
+  verification is pending a rerun.
 
 ## Not yet verified
 

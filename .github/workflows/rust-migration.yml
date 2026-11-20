@@ -188,6 +188,8 @@ jobs:
         run: ./gradlew :sfsymbols:compileAndroidMain :sfsymbols:assembleAndroidMain --no-daemon
       - name: Exercise Rust JNI on Android
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
         with:
           api-level: 36
           target: google_apis
