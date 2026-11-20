@@ -89,8 +89,9 @@ Last local check: 2026-11-20, Windows x64, branch
 - Rust effect calculations match a Kotlin-generated fixture across 16 effect
   configurations, selected symbols, and their flattened layers. The Compose
   renderer remains the visual reference; Magic Replace morphing and draw-rail
-  clipping are not implemented in Rust yet. This code postdates run #24 and
-  awaits cross-OS CI.
+  clipping are not implemented in Rust yet. [GitHub Actions run #25](https://github.com/lylicht/SFStudio/actions/runs/44787007184)
+  passed the full Windows/macOS/Linux, JVM, Android, iOS, JS/Wasm, packaged
+  launcher, and MCP matrix for this code.
 
 ## Not yet verified
 

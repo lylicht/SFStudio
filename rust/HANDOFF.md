@@ -30,8 +30,8 @@ coverage and a Rust vector decoder/bounds implementation, and checks
 Rust/KMP/package behavior in CI. GitHub Actions run
 [#24](https://github.com/lylicht/SFStudio/actions/runs/44782746583) passed the
 vector/bounds baseline on Windows/macOS/Linux, JVM, Android API 37, iOS,
-JS/Wasm, packaged launchers, and MCP replay. This animation slice is newer than
-that run and awaits its own CI after push.
+JS/Wasm, packaged launchers, and MCP replay. The animation port passed the full
+cross-platform matrix in [run #25](https://github.com/lylicht/SFStudio/actions/runs/44787007184).
 
 ## Existing work inherited from PR #7
 
