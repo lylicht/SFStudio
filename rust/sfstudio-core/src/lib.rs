@@ -4,6 +4,7 @@
 //! That keeps the 7,007 symbols in one authoritative location during migration.
 //! Run scripts/check_rust_mcp_parity.py to compare against the original JVM server.
 
+pub mod animation;
 pub mod codegen;
 pub mod favorites;
 pub mod vector;

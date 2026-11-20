@@ -75,11 +75,22 @@ Last local check: 2026-11-20, Windows x64, branch
   Android, iOS, JS/Wasm, and packaged MCP jobs. Its Windows JVM job exposed
   CRLF line endings in the fingerprint fixture; the test now normalizes them,
   and the failure was reproduced locally with a CRLF fixture. The corrected
-  run #23 has passed Rust on Windows/macOS/Linux, JVM on Windows/Linux,
-  Android, JS/Wasm, and Windows/Linux packaged launchers; remaining macOS/iOS
-  jobs are queued.
+  run #24 passed the vector and bounds baseline on Windows/macOS/Linux, JVM,
+  Android, iOS, JS/Wasm, packaged launchers, and MCP replay.
 - The new visible-bounds matrix is verified locally; cross-OS CI for this
-  latest geometry addition is pending.
+  latest geometry addition passed in run #24.
+
+## Apple animation evaluator
+
+- Rust unit tests cover Apple draw timing and replace recipe boundaries.
+- `python scripts/test_rust_ffi.py` exercises the animation JSON C ABI through
+  `ctypes`, including Appear transforms, DownUp replacement, variable layers,
+  malformed input, and unknown symbols.
+- Rust effect calculations match a Kotlin-generated fixture across 16 effect
+  configurations, selected symbols, and their flattened layers. The Compose
+  renderer remains the visual reference; Magic Replace morphing and draw-rail
+  clipping are not implemented in Rust yet. This code postdates run #24 and
+  awaits cross-OS CI.
 
 ## Not yet verified
 

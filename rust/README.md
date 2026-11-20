@@ -18,15 +18,19 @@ portable logic behind the installed desktop entry points.
 - `sfstudio-core::vector`: compile-time extraction and Rust decoding of the
   generated glyph geometry, layer trees, and optical variants. Exact Kotlin
   geometry fingerprints match for all 8,526 glyphs locally. This is the data
-  path-op layer, and tight visible bounds. The bounds match Kotlin over ten
-  symbols, all nine weights, and all three optical scales. Rendering modes,
-  color selection/tinting, effects, and animations are not yet ported.
+  source for vector path operations; visible bounds match Kotlin over ten
+  symbols, all nine weights, and all three optical scales.
+- `sfstudio-core::animation`: Apple-style effect timing, per-layer transforms,
+  variable-layer staging, and replace recipes. The JSON C ABI makes frame
+  evaluation available to foreign-language callers. Rendering modes, colors,
+  renderer integration, Magic Replace morphing, and draw-rail clipping remain
+  in Kotlin.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
 - `sfstudio-ffi`: a language-neutral C ABI for catalog search/filtering,
   symbol metadata lookup, glyph geometry at a requested weight and optical
-  scale, Compose code generation, and favorite toggling; its header and UTF-8
-  buffer contract are in `include/sfstudio.h`. Python `ctypes`
+  scale, animation frames, Compose code generation, and favorite toggling. Its
+  header and UTF-8 buffer contract are in `include/sfstudio.h`. Python `ctypes`
   smoke checks for search, filtering,
   codegen, and favorites passed on Windows, macOS, and Linux in run #17. The
   packaged JVM UI calls it through JNA; published KMP callers remain unchanged.
@@ -103,3 +107,6 @@ and [VERIFICATION.md](VERIFICATION.md) for current checks and unverified work.
 - Preserve MCP tool names, parameters, error codes and JSON-RPC behavior.
 - Keep Kotlin UI and symbol rendering operational until a native replacement
   passes visually reviewed per-OS tests; no UI rewrite is attempted here.
+- The C ABI is callable from languages with C FFI support. Android, iOS,
+  JavaScript, and Wasm still need target-specific adapters before their public
+  APIs use Rust.

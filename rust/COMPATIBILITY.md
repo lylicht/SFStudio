@@ -71,7 +71,11 @@ The Rust catalog and vector decoder read existing Kotlin catalog, alias, and
 generated geometry sources at compile time. Geometry decoding now matches all
 8,526 reference glyph fingerprints locally, including available optical
 variants. Visible bounds match Kotlin on a ten-symbol matrix of all nine
-weights and three optical scales. Path rendering, drawing modes, effects, and
-animations remain unported. The published 7,007 symbol definitions and their KMP API remain
-available. Do not extract or redistribute Apple-owned symbol assets beyond
-the repository's existing permitted scope.
+weights and three optical scales. Apple-style effect timing, per-layer
+transforms, variable-layer staging, and replace recipes have a Rust core
+implementation and JSON C ABI, with selected Kotlin differential fixtures.
+Kotlin remains the active visual renderer; Magic Replace morphing, draw-rail
+clipping, rendering modes, broader effect fixtures, and mobile/JS/Wasm adapters
+are still outstanding. The published symbol definitions and KMP API remain
+available. Do not extract or redistribute Apple-owned symbol assets beyond the
+repository's existing permitted scope.

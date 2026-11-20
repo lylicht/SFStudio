@@ -59,6 +59,22 @@ intptr_t sfstudio_glyph_json(const uint8_t *symbol_name,
                              uint8_t *output, size_t output_capacity);
 
 /*
+ * Evaluate Apple-style symbol effects and optional replace transitions from a
+ * UTF-8 JSON request. `time` and transition `time` are finite, nonnegative
+ * seconds. Request: {"symbol":"wifi","time":0.4,
+ * "effect":{"type":"bounce","direction":"up","scope":"by_layer"}}.
+ * Effect types: appear, disappear, bounce, pulse, variable_color, scale,
+ * wiggle, rotate, breathe, draw_on, draw_off. Each result layer contains its
+ * transform and separate variableAlpha/variableDraw values. Optional
+ * variableValue applies Apple's variable-layer ordering. Optional transition
+ * is {"direction":"down_up","time":0.1}; directions are down_up, off_up,
+ * and up_up. Returns the normal required/written JSON byte count; -11 means an
+ * invalid request and -6 means unknown symbol.
+ */
+intptr_t sfstudio_animation_json(const uint8_t *input, size_t input_len,
+                                 uint8_t *output, size_t output_capacity);
+
+/*
  * Returns raw UTF-8 Kotlin source for the snippet, using the same required-size
  * buffer contract. Mode: 0 dualtone, 1 monochrome. Boolean arguments use
  * zero/nonzero. Negative errors: -1 invalid symbol pointer, -2 invalid UTF-8,

@@ -13,6 +13,7 @@ const INTERNAL_ERROR: isize = -4;
 const OUTPUT_TOO_LARGE: isize = -5;
 const INVALID_SCALE: isize = -9;
 const INVALID_WEIGHT: isize = -10;
+const INVALID_ANIMATION: isize = -11;
 
 unsafe fn read_utf8<'a>(input: *const u8, input_len: usize) -> Result<&'a str, isize> {
     if input_len == 0 {
@@ -435,6 +436,272 @@ pub unsafe extern "C" fn sfstudio_favorites_toggle_json(
         Ok(Err(code)) => code,
         Err(_) => INTERNAL_ERROR,
     }
+}
+
+/// Evaluate an Apple-style symbol effect and optional replace transition as UTF-8 JSON.
+///
+/// Input is an object with `symbol`, finite nonnegative `time`, optional `rtl`, `effect`,
+/// optional `variableValue`, and optional `transition`. Effect names use snake
+/// case (for example `variable_color` and `draw_on`); layer results include the
+/// Apple effect transform and the independent variable-rendering alpha/draw.
+/// Returns the required/written byte count, or -11 for invalid animation JSON
+/// or options. Other errors use the common buffer contract; -6 means unknown
+/// symbol. Use `output = NULL` and `output_capacity = 0` to query the size.
+///
+/// # Safety
+/// For nonzero `input_len`, `input` must point to that many readable UTF-8
+/// bytes. If `output_capacity` is nonzero, `output` must point to that many
+/// writable bytes. The buffers may overlap because the result is built first.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_animation_json(
+    input: *const u8,
+    input_len: usize,
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    let input = match unsafe { read_utf8(input, input_len) } {
+        Ok(input) => input,
+        Err(code) => return code,
+    };
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+    let request: serde_json::Value = match serde_json::from_str(input) {
+        Ok(request) => request,
+        Err(_) => return INVALID_ANIMATION,
+    };
+    let Some(object) = request.as_object() else {
+        return INVALID_ANIMATION;
+    };
+    let Some(name) = object.get("symbol").and_then(serde_json::Value::as_str) else {
+        return INVALID_ANIMATION;
+    };
+    let Some(time) = object
+        .get("time")
+        .and_then(serde_json::Value::as_f64)
+        .map(|v| v as f32)
+        .filter(|v| v.is_finite() && *v >= 0.0)
+    else {
+        return INVALID_ANIMATION;
+    };
+    let rtl = match object.get("rtl") {
+        None => false,
+        Some(value) => match value.as_bool() {
+            Some(value) => value,
+            None => return INVALID_ANIMATION,
+        },
+    };
+    let Some(effect_value) = object.get("effect") else {
+        return INVALID_ANIMATION;
+    };
+    let effect = match parse_effect(effect_value) {
+        Some(effect) => effect,
+        None => return INVALID_ANIMATION,
+    };
+    let variable_value = match object.get("variableValue") {
+        None => None,
+        Some(value) => match value.as_f64().map(|v| v as f32).filter(|v| v.is_finite()) {
+            Some(value) => Some(value),
+            None => return INVALID_ANIMATION,
+        },
+    };
+    let transition = match object.get("transition") {
+        None | Some(serde_json::Value::Null) => None,
+        Some(value) => match parse_transition(value) {
+            Some(value) => Some(value),
+            None => return INVALID_ANIMATION,
+        },
+    };
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let catalog = sfstudio_core::vector::vector_catalog().map_err(|_| INTERNAL_ERROR)?;
+        let symbol = catalog.find(name).ok_or(UNKNOWN_SYMBOL)?;
+        let glyph = catalog
+            .glyph_for(symbol)
+            .map_err(|_| INTERNAL_ERROR)?
+            .ok_or(UNKNOWN_SYMBOL)?;
+        let geometry = catalog
+            .geometry_at_scale(symbol, &glyph, sfstudio_core::vector::OpticalScale::Medium)
+            .map_err(|_| INTERNAL_ERROR)?;
+        let animation = sfstudio_core::animation::AnimationSymbol::from_glyph(&glyph, &geometry);
+        let (variable_alpha, variable_draw) = variable_value
+            .map(|value| animation.variable_levels(value))
+            .unwrap_or_else(|| {
+                (
+                    vec![1.0; animation.layers.len()],
+                    vec![1.0; animation.layers.len()],
+                )
+            });
+        let layers: Vec<_> = animation
+            .layers
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+                let frame = animation
+                    .apply(effect, time, index, rtl)
+                    .unwrap_or_default();
+                serde_json::json!({
+                    "scale": frame.scale,
+                    "dx": frame.dx,
+                    "dy": frame.dy,
+                    "rotation": frame.rotation,
+                    "alpha": frame.alpha,
+                    "draw": frame.draw,
+                    "pivotX": frame.pivot_x.is_finite().then_some(frame.pivot_x),
+                    "pivotY": frame.pivot_y.is_finite().then_some(frame.pivot_y),
+                    "variableAlpha": variable_alpha[index],
+                    "variableDraw": variable_draw[index],
+                })
+            })
+            .collect();
+        let transition = transition.map(|(direction, t)| {
+            let out = sfstudio_core::animation::replace_out(t, direction);
+            let incoming = sfstudio_core::animation::replace_in(t, direction);
+            serde_json::json!({
+                "duration": sfstudio_core::animation::replace_seconds(direction),
+                "out": { "scale": out.scale, "alpha": out.alpha },
+                "in": { "scale": incoming.scale, "alpha": incoming.alpha },
+            })
+        });
+        serde_json::to_vec(&serde_json::json!({
+            "symbol": symbol.name,
+            "time": time,
+            "duration": animation.duration(effect),
+            "held": sfstudio_core::animation::AnimationSymbol::is_held(effect),
+            "defaultRepeat": if sfstudio_core::animation::AnimationSymbol::continuous_by_default(effect) { "continuous" } else { "once" },
+            "layers": layers,
+            "transition": transition,
+        })).map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
+fn parse_scope(
+    object: &serde_json::Map<String, serde_json::Value>,
+) -> Option<sfstudio_core::animation::Scope> {
+    use sfstudio_core::animation::Scope;
+    match object
+        .get("scope")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("whole")
+    {
+        "whole" | "whole_symbol" | "wholeSymbol" => Some(Scope::WholeSymbol),
+        "by_layer" | "byLayer" => Some(Scope::ByLayer),
+        _ => None,
+    }
+}
+
+fn parse_effect(value: &serde_json::Value) -> Option<sfstudio_core::animation::Effect> {
+    use sfstudio_core::animation::{Effect, WiggleDirection as W};
+    let object = value.as_object()?;
+    let kind = object.get("type")?.as_str()?;
+    let scope = || parse_scope(object);
+    let boolean = |key: &str, default: bool| {
+        object
+            .get(key)
+            .map_or(Some(default), serde_json::Value::as_bool)
+    };
+    Some(match kind {
+        "appear" => Effect::Appear { scope: scope()? },
+        "disappear" => Effect::Disappear { scope: scope()? },
+        "bounce" => Effect::Bounce {
+            up: match object
+                .get("direction")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("up")
+            {
+                "up" => true,
+                "down" => false,
+                _ => return None,
+            },
+            scope: scope()?,
+        },
+        "pulse" => Effect::Pulse { scope: scope()? },
+        "variable_color" => Effect::VariableColor {
+            cumulative: match object
+                .get("style")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("iterative")
+            {
+                "iterative" => false,
+                "cumulative" => true,
+                _ => return None,
+            },
+            reversing: boolean("reversing", false)?,
+            hide_inactive: boolean("hideInactiveLayers", false)?,
+        },
+        "scale" => Effect::Scale {
+            up: boolean("up", true)?,
+            returns: boolean("returns", false)?,
+        },
+        "wiggle" => {
+            let direction = match object.get("direction") {
+                None | Some(serde_json::Value::Null) => None,
+                Some(serde_json::Value::String(name)) => Some(match name.as_str() {
+                    "left" => W::Left,
+                    "right" => W::Right,
+                    "up" => W::Up,
+                    "down" => W::Down,
+                    "forward" => W::Forward,
+                    "backward" => W::Backward,
+                    "clockwise" => W::Clockwise,
+                    "counter_clockwise" => W::CounterClockwise,
+                    _ => return None,
+                }),
+                Some(value) => {
+                    let degrees = value.as_object()?.get("custom")?.as_f64()? as f32;
+                    if !degrees.is_finite() {
+                        return None;
+                    }
+                    Some(W::Custom(degrees))
+                }
+            };
+            Effect::Wiggle {
+                direction,
+                continuous: boolean("continuous", false)?,
+            }
+        }
+        "rotate" => {
+            let clockwise = match object.get("direction") {
+                None | Some(serde_json::Value::Null) => None,
+                Some(serde_json::Value::String(value)) => match value.as_str() {
+                    "clockwise" => Some(true),
+                    "counter_clockwise" => Some(false),
+                    _ => return None,
+                },
+                _ => return None,
+            };
+            Effect::Rotate {
+                clockwise,
+                scope: scope()?,
+                continuous: boolean("continuous", false)?,
+            }
+        }
+        "breathe" => Effect::Breathe {
+            pulsing: boolean("pulsing", false)?,
+        },
+        "draw_on" => Effect::DrawOn { scope: scope()? },
+        "draw_off" => Effect::DrawOff { scope: scope()? },
+        _ => return None,
+    })
+}
+
+fn parse_transition(
+    value: &serde_json::Value,
+) -> Option<(sfstudio_core::animation::ReplaceDirection, f32)> {
+    use sfstudio_core::animation::ReplaceDirection;
+    let object = value.as_object()?;
+    let direction = match object.get("direction")?.as_str()? {
+        "down_up" => ReplaceDirection::DownUp,
+        "off_up" => ReplaceDirection::OffUp,
+        "up_up" => ReplaceDirection::UpUp,
+        _ => return None,
+    };
+    let time = object.get("time")?.as_f64()? as f32;
+    (time.is_finite() && time >= 0.0).then_some((direction, time))
 }
 
 #[cfg(test)]

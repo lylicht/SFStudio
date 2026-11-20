@@ -36,6 +36,9 @@ def main():
     glyph_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_float,
                            ctypes.c_void_p, ctypes.c_size_t]
     glyph_json.restype = ctypes.c_ssize_t
+    animation_json = library.sfstudio_animation_json
+    animation_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
+    animation_json.restype = ctypes.c_ssize_t
     search_filtered_json = library.sfstudio_search_filtered_json
     search_filtered_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                                      ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
@@ -118,6 +121,43 @@ def main():
     assert glyph_json(ctypes.create_string_buffer(b"heart.fill"), 10, 3, 400.0, None, 0) == -9
     assert glyph_json(ctypes.create_string_buffer(b"heart.fill"), 10, 0, float("nan"), None, 0) == -10
 
+    def animation(request):
+        encoded = json.dumps(request, separators=(",", ":")).encode("utf-8")
+        input_buffer = ctypes.create_string_buffer(encoded)
+        required = animation_json(input_buffer, len(encoded), None, 0)
+        assert required > 0, f"animation sizing call failed: {required}"
+        output = ctypes.create_string_buffer(required)
+        written = animation_json(input_buffer, len(encoded), output, required)
+        assert written == required
+        return json.loads(output.raw[:written])
+
+    appear = animation({"symbol": "heart.fill", "time": 0.125,
+                        "effect": {"type": "appear"},
+                        "transition": {"direction": "down_up", "time": 0.25}})
+    assert appear["held"] is True and appear["defaultRepeat"] == "once"
+    assert abs(appear["layers"][0]["alpha"] - 0.5) < 0.01
+    assert abs(appear["layers"][0]["scale"] - 0.875) < 0.01
+    assert appear["transition"]["out"]["alpha"] == 0.0
+    assert abs(appear["transition"]["out"]["scale"] - 0.5) < 0.01
+    assert animation({"symbol": "wifi", "time": 0.5,
+                      "effect": {"type": "variable_color"}, "variableValue": 0.5})["layers"]
+    for effect in (
+        {"type": "disappear"},
+        {"type": "bounce", "direction": "down", "scope": "by_layer"},
+        {"type": "pulse", "scope": "by_layer"},
+        {"type": "variable_color", "style": "cumulative", "reversing": True,
+         "hideInactiveLayers": True},
+        {"type": "scale", "up": False, "returns": True},
+        {"type": "wiggle", "direction": {"custom": 37.0}, "continuous": True},
+        {"type": "rotate", "direction": "counter_clockwise", "scope": "by_layer",
+         "continuous": True},
+        {"type": "breathe", "pulsing": True},
+        {"type": "draw_on", "scope": "by_layer"},
+        {"type": "draw_off"},
+    ):
+        assert animation({"symbol": "wifi", "time": 0.5, "rtl": True,
+                          "effect": effect})["layers"]
+
     def filtered_search(query, category, favorites, limit):
         encoded_query = query.encode("utf-8")
         encoded_category = category.encode("utf-8") if category is not None else b""
@@ -190,10 +230,19 @@ def main():
     assert toggle('["heart.fill","star"]', "gear") == ["heart.fill", "star", "gear"]
     assert toggle('["heart.fill","star"]', "heart.fill") == ["star"]
     broken_json = ctypes.create_string_buffer(b"{broken")
+    assert animation_json(broken_json, 7, None, 0) == -11
+    negative_time = ctypes.create_string_buffer(
+        b'{"symbol":"wifi","time":-0.1,"effect":{"type":"appear"}}'
+    )
+    assert animation_json(negative_time, len(negative_time.value), None, 0) == -11
+    missing_animation = ctypes.create_string_buffer(
+        b'{"symbol":"missing","time":0,"effect":{"type":"appear"}}'
+    )
+    assert animation_json(missing_animation, len(missing_animation.value), None, 0) == -6
     assert toggle_favorites(broken_json, 7, ctypes.create_string_buffer(b"gear"), 4,
                             None, 0) == -8
 
-    print("Rust C ABI search, metadata, vectors, filtering, codegen, and favorites smoke test passed (Python ctypes)")
+    print("Rust C ABI search, metadata, vectors, Apple animations, filtering, codegen, and favorites smoke test passed (Python ctypes)")
 
 
 if __name__ == "__main__":
