@@ -20,9 +20,20 @@ import java.nio.file.StandardCopyOption
 import java.util.concurrent.atomic.AtomicBoolean
 
 private interface NativeAnimation : Library {
+    fun sfstudio_glyph_points(
+        symbolName: ByteArray,
+        symbolNameLength: Long,
+        scale: Int,
+        weight: Float,
+        output: FloatArray?,
+        outputCapacity: Long,
+    ): Long
     fun sfstudio_animation_json(input: ByteArray, inputLength: Long, output: ByteArray?, outputCapacity: Long): Long
     fun sfstudio_draw_field_json(input: ByteArray, inputLength: Long, output: ByteArray?, outputCapacity: Long): Long
 }
+
+internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? =
+    RustAnimation.glyphPoints(symbol, weight, scale)
 
 internal actual fun sfRustAnimationFrames(
     symbol: SfSymbol,
@@ -49,6 +60,37 @@ private object RustAnimation {
     private val warned = AtomicBoolean()
     private val native by lazy { loadNative() }
     private val output = ThreadLocal.withInitial { ByteArray(16 * 1024) }
+
+    fun glyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? = try {
+        val library = native ?: return null
+        val name = symbol.name.toByteArray(Charsets.UTF_8)
+        val scaleId = when (scale) {
+            SfScale.Medium -> 0
+            SfScale.Small -> 1
+            SfScale.Large -> 2
+        }
+        val required = library.sfstudio_glyph_points(name, name.size.toLong(), scaleId, weight, null, 0)
+        if (required < 0) {
+            warn("Rust glyph interpolation returned $required")
+            return null
+        }
+        if (required > Int.MAX_VALUE) return null
+        val points = FloatArray(required.toInt())
+        val written = library.sfstudio_glyph_points(
+            name, name.size.toLong(), scaleId, weight, points, points.size.toLong(),
+        )
+        if (written != required || points.any { !it.isFinite() }) {
+            warn("Rust glyph interpolation returned an invalid point array")
+            return null
+        }
+        points
+    } catch (error: Exception) {
+        warn(error.message ?: error::class.simpleName.orEmpty())
+        null
+    } catch (error: LinkageError) {
+        warn(error.message ?: error::class.simpleName.orEmpty())
+        null
+    }
 
     fun frames(
         symbol: SfSymbol,
@@ -237,7 +279,7 @@ private object RustAnimation {
 
     private fun warn(message: String) {
         if (warned.compareAndSet(false, true)) {
-            System.err.println("Rust animation module unavailable; Kotlin animation fallback will be used: $message")
+            System.err.println("Rust native module unavailable; Kotlin fallback will be used: $message")
         }
     }
 }

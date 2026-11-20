@@ -215,7 +215,11 @@ public class SfSymbol internal constructor(private val info: SfInfo) {
     internal fun points(weight: SfWeight, scale: SfScale = SfScale.Medium): FloatArray = points(weight.wght, scale)
 
     /** Interpolated point list, y flipped to screen orientation (y down). */
-    internal fun points(wght: Float, scale: SfScale = SfScale.Medium): FloatArray {
+    internal fun points(wght: Float, scale: SfScale = SfScale.Medium): FloatArray =
+        sfRustGlyphPoints(this, wght, scale) ?: pointsFromKotlinData(wght, scale)
+
+    /** Kotlin-backed compatibility path for targets without a verified Rust bridge. */
+    internal fun pointsFromKotlinData(wght: Float, scale: SfScale = SfScale.Medium): FloatArray {
         val g = glyphAt(scale)
         val n: Float
         val src: FloatArray

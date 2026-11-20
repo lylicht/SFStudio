@@ -89,3 +89,17 @@ while retaining every effect already exposed by SFStudio.
 **Reason:** SFSafeSymbols is a Swift access wrapper, while SFStudio has its own
 Kotlin Multiplatform API and rendering behavior. It informs compatibility; it
 does not replace SFStudio's public identity or supply its renderer.
+
+## 009 — Use typed Rust outline buffers in the JVM renderer
+
+**Decision:** Expose weight- and optical-scale-interpolated screen coordinates
+as a typed `f32` C ABI buffer and use it from the existing JVM `SfSymbol.points`
+path when the Rust native library is available. Keep the Kotlin decoder and
+interpolator as a fallback and on Android, iOS, JS, and Wasm until each target
+has its own verified bridge.
+
+**Reason:** The Rust vector decoder and interpolation already pass exhaustive
+geometry fingerprints and representative parity checks. Returning only the
+coordinate buffer avoids parsing a large JSON glyph payload in the renderer,
+while retaining the current Compose path construction and all public Kotlin
+APIs.

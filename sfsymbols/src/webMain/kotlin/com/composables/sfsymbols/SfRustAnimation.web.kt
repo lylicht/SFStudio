@@ -3,6 +3,8 @@ package com.composables.sfsymbols
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 
+internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? = null
+
 internal actual fun sfRustAnimationFrames(
     symbol: SfSymbol,
     effect: SfSymbolEffect,

@@ -27,7 +27,9 @@ portable logic behind the installed desktop entry points.
   generated glyph geometry, layer trees, and optical variants. Exact Kotlin
   geometry fingerprints match for all 8,526 glyphs locally. This is the data
   source for vector path operations; visible bounds match Kotlin over ten
-  symbols, all nine weights, and all three optical scales.
+  symbols, all nine weights, and all three optical scales. A direct `f32`
+  buffer C ABI now supplies weight-interpolated points to the JVM symbol
+  renderer, with exact parity across that same weight/scale matrix.
 - `sfstudio-core::animation`: Apple-style effect timing, per-layer transforms,
   variable-layer staging, replace recipes, and Magic Replace tag matching with
   morphed outlines. Rust covers all effect types in SFStudio's current public
@@ -39,8 +41,8 @@ portable logic behind the installed desktop entry points.
   providing the existing `search_symbols` and `get_symbol` tools.
 - `sfstudio-ffi`: a language-neutral C ABI for catalog search/filtering,
   filter-selection transitions, symbol metadata lookup, glyph geometry at a
-  requested weight and optical
-  scale, animation frames, Draw On/Off levels, MCP configuration, Compose code
+  requested weight and optical scale, typed `f32` outline points, animation
+  frames, Draw On/Off levels, MCP configuration, Compose code
   generation, and favorite toggling. Its header and UTF-8 buffer contract are
   in `include/sfstudio.h`. Python `ctypes`
   smoke checks for search, filtering,

@@ -6,8 +6,8 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 38 Rust tests
-  passed (26 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 42 Rust tests
+  passed (28 core, 11 C ABI, and 3 MCP), including Rust fingerprints for every
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
@@ -46,6 +46,9 @@ Last local check: 2026-11-20, Windows x64, branch
 - `PinnedSymbolsCompatibilityTest` reads both the legacy Kotlin JSON fixture
   and the Rust-written JSON fixture with the existing Kotlin set serializer.
 - `gradlew.bat :app:assembleMcp --no-daemon` — passed.
+- `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon -PsfstudioUseSystemWebTools=true` — passed after routing JVM outline interpolation through Rust; this ran the complete Compose library and desktop app test suites.
+- `gradlew.bat :sfsymbols:compileKotlinJs :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true` — passed with JS and Wasm retaining Kotlin geometry.
+- `python scripts/test_rust_ffi.py` — passed the typed-float glyph points endpoint through Python `ctypes`, including interpolation parity against the JSON endpoint and short-buffer behavior.
 - The packaged app image launcher passed the Rust MCP stdio smoke test.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-mcp` — passed.
 - `python scripts/check_rust_mcp_parity.py` — 99/99 Kotlin and Rust MCP
@@ -103,6 +106,22 @@ Last local check: 2026-11-20, Windows x64, branch
   Settings helper through JNA when the native library is available. The
   original Kotlin generator remains the native-library fallback. Local byte-
   exact C ABI/JVM parity and the cross-platform checks in run #33 pass.
+
+## Rust-backed outline interpolation
+
+- `sfstudio_glyph_points` exports weight- and optical-scale-interpolated screen
+  coordinates as a typed `f32` buffer. It uses the Rust vector decoder and
+  rejects invalid names, scales, weights, pointers, and short writes without
+  modifying a partial output.
+- JVM `SfSymbol.points()` now uses Rust points when its native library loads;
+  Kotlin retains its existing decoder/interpolator as the fallback and as the
+  implementation on Android, iOS, JS, and Wasm. Compose continues to build and
+  rasterize its paths.
+- Exact Rust/Kotlin point parity passes for ten representative symbols across
+  all nine supported weights and all three optical scales. The geometry
+  fingerprint test still covers all 8,526 outlines and available optical
+  variants; the full JVM Compose and app test suites passed with the Rust path
+  enabled.
 
 ## Apple animation evaluator
 
@@ -178,9 +197,10 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Not yet verified
 
 - Android, Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API.
-  Their existing KMP targets remain buildable and use the Kotlin evaluator;
-  only the JVM renderer calls Rust for effect frames, appearance, gradients,
-  and draw-field reveal levels today.
+  The JVM renderer consumes Rust outline points, effect frames, appearance,
+  gradients, and draw-field reveal levels; the other library targets retain
+  Kotlin implementations. JS and Wasm compilation passed locally; Android and
+  iOS compile checks require their respective SDK/host CI jobs.
 - Pixel-by-pixel rendering parity, installer upgrades, user-data migration,
   and performance baselines. Kotlin still rasterizes the source paths and
   constructs Compose clip geometry; geometry and draw-field C ABIs have

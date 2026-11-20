@@ -2,6 +2,12 @@ package com.composables.sfsymbols
 
 import androidx.compose.ui.graphics.Color
 
+internal expect fun sfRustGlyphPoints(
+    symbol: SfSymbol,
+    weight: Float,
+    scale: SfScale,
+): FloatArray?
+
 internal expect fun sfRustAnimationFrames(
     symbol: SfSymbol,
     effect: SfSymbolEffect,

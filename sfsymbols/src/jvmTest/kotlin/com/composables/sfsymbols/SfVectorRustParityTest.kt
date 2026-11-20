@@ -4,7 +4,9 @@ import com.composables.sfsymbols.core.SfData
 import com.composables.sfsymbols.core.SfGlyph
 import com.composables.sfsymbols.core.SfNode
 import com.composables.sfsymbols.core.SfScaleId
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 
 class SfVectorRustParityTest {
@@ -55,6 +57,41 @@ class SfVectorRustParityTest {
             ?.use { it.readText() }
             ?: error("missing Rust vector bounds fixture")
         assertEquals(expected.replace("\r\n", "\n"), actual)
+    }
+
+    @Test
+    fun rustPointInterpolationMatchesTheKotlinRendererAcrossWeightsAndScales() {
+        val names = listOf(
+            "0.circle",
+            "arrow.up.right",
+            "cloud.sun.rain.fill",
+            "figure.run",
+            "gearshape.2",
+            "heart.fill",
+            "person.crop.circle.badge.checkmark",
+            "person.crop.circle.fill",
+            "square.dashed",
+            "wifi",
+        )
+        for (name in names) {
+            val symbol = SfSymbol.named(name) ?: error("unknown SF Symbol $name")
+            for (weight in SfWeight.values()) for (scale in SfScale.values()) {
+                val rust = sfRustGlyphPoints(symbol, weight.wght, scale)
+                assertNotNull("Rust points missing for $name ${weight.name} ${scale.name}", rust)
+                assertArrayEquals(
+                    "$name ${weight.name} ${scale.name}",
+                    symbol.pointsFromKotlinData(weight.wght, scale),
+                    rust!!,
+                    0f,
+                )
+                assertArrayEquals(
+                    "The production renderer must use the Rust points when available",
+                    rust,
+                    symbol.points(weight.wght, scale),
+                    0f,
+                )
+            }
+        }
     }
 }
 

@@ -59,6 +59,20 @@ intptr_t sfstudio_glyph_json(const uint8_t *symbol_name,
                              uint8_t *output, size_t output_capacity);
 
 /*
+ * Interpolate a symbol's outline points for a weight and optical scale.
+ * scale: 0 medium, 1 small, 2 large. Returns the required/written count of
+ * float coordinates in screen coordinates (y down). output_capacity is a
+ * count of floats, not bytes. A short buffer is left untouched. Errors: -1
+ * invalid name pointer, -2 invalid UTF-8, -3 invalid output pointer, -4
+ * internal failure, -5 too large, -6 unknown symbol, -9 invalid scale, -10
+ * non-finite weight.
+ */
+intptr_t sfstudio_glyph_points(const uint8_t *symbol_name,
+                               size_t symbol_name_len, int32_t scale,
+                               float weight, float *output,
+                               size_t output_capacity);
+
+/*
  * Evaluate Apple-style symbol effects and optional replace transitions from a
  * UTF-8 JSON request. `time` and transition `time` are finite, nonnegative
  * seconds. Request: {"symbol":"wifi","time":0.4,

@@ -6,7 +6,7 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all 38 workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 42 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
 8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
@@ -18,10 +18,14 @@ invalid IDs and batches, and notifications. See
 
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
 filter-selection transitions, Compose snippet generation, favorite toggling,
-and MCP client config generation through JNA. The latest [GitHub Actions run #33](https://github.com/lylicht/SFStudio/actions/runs/44803230690)
+MCP client config generation, outline interpolation, and Apple effect rendering
+through JNA. The latest completed [GitHub Actions run #41](https://github.com/lylicht/SFStudio/actions/runs/44823541760)
 passed Rust/C ABI checks on Windows/macOS/Linux, JVM tests on Windows/macOS/Linux,
 Android, iOS, JS/Wasm, packaged MCP launchers on all three desktop OSes, and
-differential MCP replay.
+differential MCP replay. After run #41, the Rust typed-float outline endpoint
+was added and is now used by the JVM renderer; local Rust, Python `ctypes`, JVM,
+desktop app, JS, and Wasm checks pass. Cross-platform CI for that endpoint is
+pending.
 The metadata lookup binding passed Windows/macOS/Linux parity and the Windows
 MSI passed in run #20; lookup is not yet called by a production UI path.
 Android/iOS/JS/Wasm Kotlin targets still compile and retain their Kotlin paths;
@@ -66,13 +70,16 @@ coverage in [run #34](https://github.com/lylicht/SFStudio/actions/runs/448059126
 
 ## Next unblocked migration work
 
-1. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
-   the desktop filter-selection C ABI is not assumed to fit every target.
-2. Expand animation and layer-appearance parity fixtures, then connect the
-   verified draw-field C ABI result to target renderers while preserving each
-   platform's rasterized mask and clip behavior. Keep the existing renderer as
-   the visual reference until Rust rendering is verified.
-3. Preserve existing user data and package identities; test upgrade behavior
+1. Bring the Rust outline-point path to Android through a small JNI adapter and
+   package per-ABI native libraries; keep the current Kotlin fallback until
+   Android parity and packaging tests pass. Evaluate Kotlin/Native and
+   JS/Wasm bindings independently.
+2. Continue porting the shared vector renderer, including path/clip generation
+   and pixel-level comparison, while preserving Compose as the public UI until
+   a Rust-native frontend meets the existing screenshot and interaction gates.
+3. Compare current Rust UI frameworks against desktop visual/interaction
+   baselines before implementing a cutover candidate.
+4. Preserve existing user data and package identities; test upgrade behavior
    before changing persistence or installers.
 
 ## References

@@ -18,21 +18,23 @@ filter-selection transitions, and MCP client configuration call the Rust C ABI
 through JNA, with Kotlin fallbacks.
 Kotlin still owns favorite file reads and writes.
 
-The JVM implementation of the public `SfSymbolIcon` now evaluates Apple effect
-frames and Draw On/Off reveal levels through the Rust C ABI when the native
-library is available. It also requests Rust-resolved layer colors and automatic
-gradient stops when colors use sRGB. Compose still rasterizes paths and applies
-the results; wide-gamut colors use Kotlin color resolution, and unavailable
-native libraries use the Kotlin evaluator. Android, iOS, JS, and Wasm keep using
-the Kotlin evaluator until their Rust adapters are implemented.
+The JVM implementation of the public `SfSymbolIcon` now obtains weighted
+outline points, evaluates Apple effect frames and Draw On/Off reveal levels
+through the Rust C ABI when the native library is available. It also requests
+Rust-resolved layer colors and automatic gradient stops when colors use sRGB.
+Compose still constructs and rasterizes paths; wide-gamut colors use Kotlin
+color resolution, and unavailable native libraries use the Kotlin
+implementation. Android, iOS, JS, and Wasm keep using Kotlin until their Rust
+adapters are implemented.
 
 The shared catalog search and filters, filter-selection transitions, symbol
 metadata lookup, Compose code generator, ordered favorite toggle, glyph
-geometry decoder, and animation evaluator export C ABI entry points without
+geometry decoder and point interpolator, and animation evaluator export C ABI entry points without
 exposing Rust types. The header is
 `include/sfstudio.h`; `sfstudio_glyph_json` returns raw weight masters, points
 interpolated at a requested `wght` value, and tight visible bounds at an optical
-scale. `sfstudio_animation_json` evaluates Apple-style effect frames and can
+scale; `sfstudio_glyph_points` returns just the interpolated screen-coordinate
+points through a typed float buffer for renderer use. `sfstudio_animation_json` evaluates Apple-style effect frames and can
 optionally resolve per-layer monochrome, hierarchical, palette, or multicolor
 appearance plus automatic gradient stops, including Draw On/Off By Layer and
 Individually scheduling. `sfstudio_draw_field_json` accepts a
@@ -78,7 +80,7 @@ retained the KMP builds.
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `NOT_STARTED`; keep the Kotlin path |
-| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, animation frames, draw-field levels, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; MCP config has local Kotlin parity; Apple animation frames and draw-field levels pass native/Kotlin parity and the Compose suite; Compose still rasterizes symbol paths and constructs clips |
+| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, glyph points, animation frames, draw-field levels, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; Rust glyph points pass exact Kotlin parity across representative symbols, all nine weights, and three optical scales; Apple animation frames and draw-field levels pass native/Kotlin parity and the Compose suite; Compose still constructs paths and rasterizes symbol shapes |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `NOT_STARTED`; evaluate a narrow C ABI / generated Swift bridge |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
 | Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |
@@ -96,10 +98,14 @@ variants. Visible bounds match Kotlin on a ten-symbol matrix of all nine
 weights and three optical scales. Apple-style effect timing, per-layer
 transforms, variable-layer staging, replace recipes, layer color-mode
 calculations, and automatic gradient stops have Rust core implementations and
-JSON C ABI, along with tagged-layer Magic Replace morph paths. Selected Kotlin
-differential fixtures cover effect timing and layer transforms, and the JVM
-renderer now consumes Rust frames, sRGB layer colors, and gradient stops while
-Compose continues to rasterize paths and clip geometry. Rendering color
+JSON C ABI, along with tagged-layer Magic Replace morph paths. The Rust
+`sfstudio_glyph_points` C ABI supplies weighted, optical-scale screen
+coordinates, which the JVM `SfSymbol.points()` implementation now uses with
+exact Kotlin parity across representative symbols, weights, and scales.
+Selected Kotlin differential fixtures cover effect timing and layer
+transforms, and the JVM renderer consumes Rust points, frames, sRGB layer
+colors, and gradient stops while Compose continues to build/rasterize paths
+and clip geometry. Rendering color
 calculations have Rust unit tests, Windows/macOS/Linux C ABI smoke coverage, and
 JVM/Kotlin differential checks; wide-gamut color parity still uses the Kotlin
 fallback.

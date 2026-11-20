@@ -47,6 +47,22 @@ unsafe fn write_bytes(output: *mut u8, output_capacity: usize, bytes: &[u8]) -> 
     required
 }
 
+unsafe fn write_f32s(output: *mut f32, output_capacity: usize, values: &[f32]) -> isize {
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+    let required = match isize::try_from(values.len()) {
+        Ok(required) => required,
+        Err(_) => return OUTPUT_TOO_LARGE,
+    };
+    if output_capacity == 0 || output_capacity < values.len() {
+        return required;
+    }
+    // SAFETY: The caller provides `output_capacity` writable floats, and this branch proves the copy fits.
+    unsafe { std::ptr::copy_nonoverlapping(values.as_ptr(), output, values.len()) };
+    required
+}
+
 /// Search the SF Symbols catalog and write a JSON array of Apple symbol names.
 ///
 /// The return value is the number of JSON bytes required or written. Call once
@@ -265,6 +281,69 @@ pub unsafe extern "C" fn sfstudio_glyph_json(
         .map_err(|_| INTERNAL_ERROR)
     })) {
         Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
+/// Interpolate a symbol's vector points for a weight and optical scale.
+///
+/// `scale` is 0 for medium, 1 for small, and 2 for large. The return value is
+/// the number of `f32` coordinates required or written; use a null output and
+/// zero capacity to query the size. A short buffer is left untouched. Points
+/// are in screen coordinates (y points down). Negative errors use the common
+/// C ABI codes: -1 invalid name pointer, -2 invalid UTF-8, -3 invalid output
+/// pointer, -4 internal failure, -5 result too large, -6 unknown symbol,
+/// -9 invalid scale, and -10 non-finite weight.
+///
+/// # Safety
+/// For nonzero `symbol_name_len`, `symbol_name` must point to that many readable
+/// bytes. If `output_capacity` is nonzero, `output` must point to that many
+/// writable `f32` values. The buffers may overlap because points are computed
+/// before output is written.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_glyph_points(
+    symbol_name: *const u8,
+    symbol_name_len: usize,
+    scale: i32,
+    weight: f32,
+    output: *mut f32,
+    output_capacity: usize,
+) -> isize {
+    let symbol_name = match unsafe { read_utf8(symbol_name, symbol_name_len) } {
+        Ok(name) => name,
+        Err(code) => return code,
+    };
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+    if !weight.is_finite() {
+        return INVALID_WEIGHT;
+    }
+    let scale = match scale {
+        0 => sfstudio_core::vector::OpticalScale::Medium,
+        1 => sfstudio_core::vector::OpticalScale::Small,
+        2 => sfstudio_core::vector::OpticalScale::Large,
+        _ => return INVALID_SCALE,
+    };
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let catalog = sfstudio_core::vector::vector_catalog().map_err(|_| INTERNAL_ERROR)?;
+        let symbol = catalog.find(symbol_name).ok_or(UNKNOWN_SYMBOL)?;
+        let glyph = catalog
+            .glyph_for(symbol)
+            .map_err(|_| INTERNAL_ERROR)?
+            .ok_or(UNKNOWN_SYMBOL)?;
+        let geometry = catalog
+            .geometry_at_scale(symbol, &glyph, scale)
+            .map_err(|_| INTERNAL_ERROR)?;
+        let points = sfstudio_core::vector::interpolate_points(&geometry, weight);
+        if points.iter().any(|point| !point.is_finite()) {
+            return Err(INTERNAL_ERROR);
+        }
+        Ok(points)
+    })) {
+        Ok(Ok(points)) => unsafe { write_f32s(output, output_capacity, &points) },
         Ok(Err(code)) => code,
         Err(_) => INTERNAL_ERROR,
     }
@@ -1203,6 +1282,36 @@ mod tests {
         }
     }
 
+    fn glyph_points(name: &[u8], scale: i32, weight: f32) -> Result<Vec<f32>, isize> {
+        // SAFETY: Input remains alive for both calls; output has the queried float count.
+        unsafe {
+            let required = sfstudio_glyph_points(
+                name.as_ptr(),
+                name.len(),
+                scale,
+                weight,
+                std::ptr::null_mut(),
+                0,
+            );
+            if required < 0 {
+                return Err(required);
+            }
+            let mut output = vec![0.0; required as usize];
+            let written = sfstudio_glyph_points(
+                name.as_ptr(),
+                name.len(),
+                scale,
+                weight,
+                output.as_mut_ptr(),
+                output.len(),
+            );
+            if written != required {
+                return Err(written);
+            }
+            Ok(output)
+        }
+    }
+
     fn search(query: &[u8], limit: usize) -> Result<String, isize> {
         // SAFETY: Both slices remain alive for the call and output capacity is exact.
         unsafe {
@@ -1303,6 +1412,85 @@ mod tests {
         assert_eq!(glyph_json(b"missing", 0, 400.0), Err(UNKNOWN_SYMBOL));
         assert_eq!(glyph_json(b"heart.fill", 3, 400.0), Err(INVALID_SCALE));
         assert_eq!(glyph_json(b"heart.fill", 0, f32::NAN), Err(INVALID_WEIGHT));
+    }
+
+    #[test]
+    fn glyph_points_abi_matches_the_json_endpoint_and_rejects_bad_inputs() {
+        for (scale, weight) in [(0, 28.93), (1, 508.0), (2, 1000.0)] {
+            let json_points: Vec<f32> = glyph_json(b"heart.fill", scale, weight).unwrap()
+                ["geometry"]["points"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|point| point.as_f64().unwrap() as f32)
+                .collect();
+            assert_eq!(
+                glyph_points(b"heart.fill", scale, weight).unwrap(),
+                json_points
+            );
+        }
+
+        // A short output buffer reports its required length without partial writes.
+        let mut short = [123.0f32; 1];
+        // SAFETY: The symbol and output buffers are valid for the declared lengths.
+        unsafe {
+            let required = sfstudio_glyph_points(
+                b"heart.fill".as_ptr(),
+                10,
+                0,
+                400.0,
+                short.as_mut_ptr(),
+                short.len(),
+            );
+            assert!(required > short.len() as isize);
+            assert_eq!(short, [123.0]);
+
+            assert_eq!(
+                sfstudio_glyph_points(std::ptr::null(), 1, 0, 400.0, std::ptr::null_mut(), 0),
+                INVALID_QUERY
+            );
+            assert_eq!(
+                sfstudio_glyph_points([0xff].as_ptr(), 1, 0, 400.0, std::ptr::null_mut(), 0),
+                INVALID_UTF8
+            );
+            assert_eq!(
+                sfstudio_glyph_points(b"missing".as_ptr(), 7, 0, 400.0, std::ptr::null_mut(), 0),
+                UNKNOWN_SYMBOL
+            );
+            assert_eq!(
+                sfstudio_glyph_points(
+                    b"heart.fill".as_ptr(),
+                    10,
+                    3,
+                    400.0,
+                    std::ptr::null_mut(),
+                    0,
+                ),
+                INVALID_SCALE
+            );
+            assert_eq!(
+                sfstudio_glyph_points(
+                    b"heart.fill".as_ptr(),
+                    10,
+                    0,
+                    f32::NAN,
+                    std::ptr::null_mut(),
+                    0,
+                ),
+                INVALID_WEIGHT
+            );
+            assert_eq!(
+                sfstudio_glyph_points(
+                    b"heart.fill".as_ptr(),
+                    10,
+                    0,
+                    400.0,
+                    std::ptr::null_mut(),
+                    1
+                ),
+                INVALID_OUTPUT
+            );
+        }
     }
 
     #[test]

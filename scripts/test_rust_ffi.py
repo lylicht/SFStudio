@@ -36,6 +36,10 @@ def main():
     glyph_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_float,
                            ctypes.c_void_p, ctypes.c_size_t]
     glyph_json.restype = ctypes.c_ssize_t
+    glyph_points = library.sfstudio_glyph_points
+    glyph_points.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_float,
+                             ctypes.POINTER(ctypes.c_float), ctypes.c_size_t]
+    glyph_points.restype = ctypes.c_ssize_t
     animation_json = library.sfstudio_animation_json
     animation_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
     animation_json.restype = ctypes.c_ssize_t
@@ -135,6 +139,19 @@ def main():
     assert glyph_json(ctypes.create_string_buffer(b"missing"), 7, 0, 400.0, None, 0) == -6
     assert glyph_json(ctypes.create_string_buffer(b"heart.fill"), 10, 3, 400.0, None, 0) == -9
     assert glyph_json(ctypes.create_string_buffer(b"heart.fill"), 10, 0, float("nan"), None, 0) == -10
+
+    points_name = ctypes.create_string_buffer(b"heart.fill")
+    point_count = glyph_points(points_name, 10, 1, 508.0, None, 0)
+    assert point_count > 0
+    points_buffer = (ctypes.c_float * point_count)()
+    assert glyph_points(points_name, 10, 1, 508.0, points_buffer, point_count) == point_count
+    weighted_small_glyph = glyph("heart.fill", 1, 508.0)
+    expected_points = [ctypes.c_float(point).value for point in weighted_small_glyph["geometry"]["points"]]
+    assert list(points_buffer) == expected_points
+    short_points = (ctypes.c_float * 1)(123.0)
+    assert glyph_points(points_name, 10, 1, 508.0, short_points, 1) == point_count
+    assert list(short_points) == [123.0]
+    assert glyph_points(ctypes.create_string_buffer(b"heart.fill"), 10, 3, 400.0, None, 0) == -9
 
     def animation(request):
         encoded = json.dumps(request, separators=(",", ":")).encode("utf-8")
