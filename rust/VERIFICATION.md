@@ -6,16 +6,17 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 13 Rust tests
-  passed (8 core, 2 C ABI, and 3 MCP).
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 15 Rust tests
+  passed (8 core, 4 C ABI, and 3 MCP).
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
   Windows x64; Python `ctypes` smoke passed, including sizing calls, typo search,
-  Unicode, invalid UTF-8, null pointers, and short-buffer handling.
+  Unicode, invalid UTF-8, null pointers, short-buffer handling, and exact Compose
+  snippet fixtures.
 - `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
 - `gradlew.bat :app:jvmTest --no-daemon` — passed with the Rust search library
-  loaded and extracted from JVM resources; all 37 Rust-versus-Kotlin search
-  fixtures matched exactly.
+  loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries
+  and both Compose snippet variants matched exactly.
 - `gradlew.bat :app:packageMsi --no-daemon` — Windows MSI build passed with the
   Rust search DLL and MCP executable in `app-jvm.jar`.
 - The `CatalogViewModelTest` snippet cases match the Rust fixtures exactly,
@@ -43,12 +44,15 @@ Last local check: 2026-11-20, Windows x64, branch
 - [GitHub Actions run #13](https://github.com/lylicht/SFStudio/actions/runs/44754758733)
   — C ABI builds and Python `ctypes` smoke passed on Windows/macOS/Linux; all
   existing Kotlin targets and MCP differential replay passed.
+- [GitHub Actions run #14](https://github.com/lylicht/SFStudio/actions/runs/44758827641)
+  — JNA-backed Rust search passed 37-query Kotlin parity on Windows/macOS/Linux;
+  all existing Kotlin targets and packaged MCP checks passed.
 
 ## Not yet verified
 
 - Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API.
-- macOS/Linux JNA runtime integration for the desktop UI (covered by the next
-  branch CI run).
+- macOS/Linux JNA runtime integration for Compose snippet generation (the
+  search integration passed run #14; snippet integration is in the next run).
 - UI and vector-rendering parity, installer upgrades, user-data migration,
   performance baselines, and native bindings.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.

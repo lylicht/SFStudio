@@ -9,7 +9,8 @@ portable logic behind the installed desktop entry points.
 - `sfstudio-core`: the SFStudio catalog index and typo-tolerant search algorithm
   originally in `app/src/jvmMain/kotlin/com/sfsymbols/data/FuzzySearch.kt`.
 - `sfstudio-core::codegen`: Compose snippet generation ported against shared
-  Kotlin/Rust golden fixtures; the current desktop caller stays Kotlin.
+  Kotlin/Rust golden fixtures and exposed through the C ABI; the packaged JVM
+  caller uses Rust through JNA with a Kotlin fallback.
 - `sfstudio-core::favorites`: ordered favorite state and JSON codec compatible
   with the existing Kotlin array format; the Kotlin file store stays active.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable

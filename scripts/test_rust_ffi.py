@@ -29,6 +29,11 @@ def main():
     search_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t,
                             ctypes.c_void_p, ctypes.c_size_t]
     search_json.restype = ctypes.c_ssize_t
+    compose_snippet = library.sfstudio_compose_snippet
+    compose_snippet.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int,
+                                ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                ctypes.c_void_p, ctypes.c_size_t]
+    compose_snippet.restype = ctypes.c_ssize_t
 
     def search(query, limit):
         encoded = query.encode("utf-8")
@@ -54,7 +59,31 @@ def main():
     assert search_json(invalid_utf8, 1, 1, None, 0) == -2
     assert search_json(query, 4, 1, None, 1) == -3
 
-    print("Rust C ABI smoke test passed (Python ctypes)")
+    def snippet(mode, tint, tint_enabled, background, background_enabled):
+        name = b"heart.fill"
+        name_buffer = ctypes.create_string_buffer(name)
+        required = compose_snippet(
+            name_buffer, len(name), mode, ctypes.c_int32(tint), tint_enabled,
+            ctypes.c_int32(background), background_enabled, None, 0,
+        )
+        assert required >= 0, f"snippet sizing call failed: {required}"
+        output = ctypes.create_string_buffer(required)
+        written = compose_snippet(
+            name_buffer, len(name), mode, ctypes.c_int32(tint), tint_enabled,
+            ctypes.c_int32(background), background_enabled, output, required,
+        )
+        assert written == required
+        return output.raw[:written].decode("utf-8")
+
+    golden_dir = ROOT / "app/src/jvmTest/resources"
+    assert snippet(1, 0x80E0245E, 1, 0xFFDCE9D3, 1) == (
+        golden_dir / "compose-snippet-monochrome-background.kt.txt"
+    ).read_text(encoding="utf-8")
+    assert snippet(0, 0, 0, 0, 0) == (
+        golden_dir / "compose-snippet-dualtone-plain.kt.txt"
+    ).read_text(encoding="utf-8")
+
+    print("Rust C ABI search and codegen smoke test passed (Python ctypes)")
 
 
 if __name__ == "__main__":

@@ -3,11 +3,35 @@ package com.sfsymbols.util
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.composables.sfsymbols.SfSymbolMetadata
+import com.sfsymbols.data.RustCatalogSearch
 import com.sfsymbols.data.SymbolMode
 import java.util.Locale
 
 /** A complete composable using the public companion library and its extension import. */
 public fun composeSnippet(
+    symbol: SfSymbolMetadata,
+    mode: SymbolMode,
+    tint: Color,
+    tintEnabled: Boolean,
+    background: Color?,
+): String {
+    try {
+        RustCatalogSearch.composeSnippet(
+            symbol,
+            mode,
+            tint.toArgb(),
+            tintEnabled,
+            background?.toArgb(),
+        )?.let { return it }
+    } catch (error: Exception) {
+        RustCatalogSearch.reportFailure(error)
+    } catch (error: LinkageError) {
+        RustCatalogSearch.reportFailure(error)
+    }
+    return kotlinComposeSnippet(symbol, mode, tint, tintEnabled, background)
+}
+
+internal fun kotlinComposeSnippet(
     symbol: SfSymbolMetadata,
     mode: SymbolMode,
     tint: Color,

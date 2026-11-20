@@ -18,13 +18,15 @@ the Kotlin implementation retained as its fallback and reference.
 The Rust favorites module currently handles ordered state and JSON only; it
 does not read or write this file.
 
-The shared catalog search also exports a small C ABI (`sfstudio_search_json`)
-that returns ranked Apple symbol names as UTF-8 JSON. C, C++, Python, JNI/JNA,
-Kotlin/Native, Swift, and other runtimes with a C FFI can call it without
-depending on Rust types. The header is `include/sfstudio.h`. The published KMP
-API does not call this ABI yet; its Android, iOS, JS, and Wasm implementations
-remain active. The desktop JVM app calls it through JNA. JS and Wasm consumers
-still use Kotlin until target-specific Rust/Wasm adapters pass their tests.
+The shared catalog search and Compose code generator export C ABI entry points
+without exposing Rust types. The header is `include/sfstudio.h`. C, C++, Python,
+JNI/JNA, Kotlin/Native, Swift, and other runtimes with a C FFI can call them.
+This ABI is a language-neutral integration surface, not a claim that each
+language or platform already has a packaged adapter or complete app binding.
+The published KMP API does not call this ABI yet; its Android, iOS, JS, and
+Wasm implementations remain active. The desktop JVM app calls search and code
+generation through JNA. JS and Wasm consumers still use Kotlin until
+target-specific Rust/Wasm adapters pass their tests.
 
 ## Compatibility rules
 

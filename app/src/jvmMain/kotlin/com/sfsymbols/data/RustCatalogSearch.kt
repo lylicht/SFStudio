@@ -19,6 +19,18 @@ internal interface NativeSearch : Library {
         output: ByteArray?,
         outputCapacity: Long,
     ): Long
+
+    fun sfstudio_compose_snippet(
+        symbolName: ByteArray?,
+        symbolLength: Long,
+        mode: Int,
+        tintArgb: Int,
+        tintEnabled: Int,
+        backgroundArgb: Int,
+        backgroundEnabled: Int,
+        output: ByteArray?,
+        outputCapacity: Long,
+    ): Long
 }
 
 internal object RustCatalogSearch {
@@ -53,6 +65,49 @@ internal object RustCatalogSearch {
         }
     }
 
+    fun composeSnippet(
+        symbol: SfSymbolMetadata,
+        mode: SymbolMode,
+        tintArgb: Int,
+        tintEnabled: Boolean,
+        backgroundArgb: Int?,
+    ): String? {
+        val library = native ?: return null
+        val name = symbol.appleName.toByteArray(Charsets.UTF_8)
+        val modeId = if (mode == SymbolMode.Dualtone) 0 else 1
+        val tintFlag = if (tintEnabled) 1 else 0
+        val background = backgroundArgb ?: 0
+        val backgroundFlag = if (backgroundArgb == null) 0 else 1
+        val required = library.sfstudio_compose_snippet(
+            name,
+            name.size.toLong(),
+            modeId,
+            tintArgb,
+            tintFlag,
+            background,
+            backgroundFlag,
+            null,
+            0,
+        )
+        check(required >= 0) { "Rust snippet generation failed with code $required" }
+        check(required <= Int.MAX_VALUE) { "Rust snippet is too large for the JVM" }
+
+        val output = ByteArray(required.toInt())
+        val written = library.sfstudio_compose_snippet(
+            name,
+            name.size.toLong(),
+            modeId,
+            tintArgb,
+            tintFlag,
+            background,
+            backgroundFlag,
+            output,
+            output.size.toLong(),
+        )
+        check(written == required) { "Rust snippet wrote $written bytes; expected $required" }
+        return output.decodeToString()
+    }
+
     private fun loadNative(): NativeSearch? {
         return try {
             val explicitPath = System.getProperty("sfstudio.rust.search.library")
@@ -83,7 +138,7 @@ internal object RustCatalogSearch {
 
     private fun warn(error: Throwable) {
         if (warned.compareAndSet(false, true)) {
-            System.err.println("Rust catalog search could not load; Kotlin fallback will be used: ${error.message}")
+            System.err.println("Rust native module could not load; Kotlin fallback will be used: ${error.message}")
         }
     }
 }

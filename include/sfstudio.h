@@ -20,6 +20,19 @@ intptr_t sfstudio_search_json(const uint8_t *query, size_t query_len,
                               size_t limit, uint8_t *output,
                               size_t output_capacity);
 
+/*
+ * Returns raw UTF-8 Kotlin source for the snippet, using the same required-size
+ * buffer contract. Mode: 0 dualtone, 1 monochrome. Boolean arguments use
+ * zero/nonzero. Negative errors: -1 invalid symbol pointer, -2 invalid UTF-8,
+ * -3 invalid output pointer, -4 internal failure, -5 result too large,
+ * -6 unknown symbol, -7 invalid mode.
+ */
+intptr_t sfstudio_compose_snippet(const uint8_t *symbol_name, size_t symbol_len,
+                                  int32_t mode, int32_t tint_argb,
+                                  int32_t tint_enabled, int32_t background_argb,
+                                  int32_t background_enabled, uint8_t *output,
+                                  size_t output_capacity);
+
 #ifdef __cplusplus
 }
 #endif
