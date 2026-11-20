@@ -121,7 +121,9 @@ Last local check: 2026-11-20, Windows x64, branch
   all nine supported weights and all three optical scales. The geometry
   fingerprint test still covers all 8,526 outlines and available optical
   variants; the full JVM Compose and app test suites passed with the Rust path
-  enabled.
+  enabled. [GitHub Actions run #42](https://github.com/lylicht/SFStudio/actions/runs/44831150701)
+  passed the Windows/macOS/Linux, Android, iOS, JS/Wasm, packaged launcher, and
+  MCP differential matrix.
 
 ## Apple animation evaluator
 
@@ -193,6 +195,10 @@ Last local check: 2026-11-20, Windows x64, branch
   passed after wiring draw-field levels into the JVM renderer: Rust/C ABI and
   JVM checks on Windows/macOS/Linux; Android, iOS, JS/Wasm; packaged MCP
   launchers on all desktop OSes; and Kotlin/Rust MCP differential replay.
+- [GitHub Actions run #42](https://github.com/lylicht/SFStudio/actions/runs/44831150701)
+  passed after wiring Rust-interpolated outline points into the JVM renderer:
+  Rust/C ABI, JVM, Android, iOS, JS/Wasm, packaged launchers, and Kotlin/Rust
+  MCP differential checks passed across their Windows/macOS/Linux matrix.
 
 ## Not yet verified
 

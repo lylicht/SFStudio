@@ -19,13 +19,12 @@ invalid IDs and batches, and notifications. See
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
 filter-selection transitions, Compose snippet generation, favorite toggling,
 MCP client config generation, outline interpolation, and Apple effect rendering
-through JNA. The latest completed [GitHub Actions run #41](https://github.com/lylicht/SFStudio/actions/runs/44823541760)
+through JNA. The latest completed [GitHub Actions run #42](https://github.com/lylicht/SFStudio/actions/runs/44831150701)
 passed Rust/C ABI checks on Windows/macOS/Linux, JVM tests on Windows/macOS/Linux,
 Android, iOS, JS/Wasm, packaged MCP launchers on all three desktop OSes, and
-differential MCP replay. After run #41, the Rust typed-float outline endpoint
-was added and is now used by the JVM renderer; local Rust, Python `ctypes`, JVM,
-desktop app, JS, and Wasm checks pass. Cross-platform CI for that endpoint is
-pending.
+differential MCP replay after the Rust typed-float outline endpoint was wired
+into the JVM renderer. Local Rust, Python `ctypes`, JVM, desktop app, JS, and
+Wasm checks pass.
 The metadata lookup binding passed Windows/macOS/Linux parity and the Windows
 MSI passed in run #20; lookup is not yet called by a production UI path.
 Android/iOS/JS/Wasm Kotlin targets still compile and retain their Kotlin paths;

@@ -32,6 +32,9 @@ import dev.nucleusframework.macoscompose.theme.MacosTheme
 
 private val GRID_SIZE_OPTIONS = listOf("50%", "70%", "100%", "130%", "160%")
 private val GRID_SIZE_SCALES = listOf(0.5f, 0.7f, 1f, 1.3f, 1.6f)
+// shortcut: reserve the standard native control cluster on the right; adjust if the window chrome changes.
+private val WINDOW_CONTROLS_END_PADDING =
+    if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) 18.dp else 136.dp
 
 @Composable
 public fun AppChrome(viewModel: CatalogViewModel, modifier: Modifier = Modifier) {
@@ -53,7 +56,12 @@ public fun AppChrome(viewModel: CatalogViewModel, modifier: Modifier = Modifier)
 private fun BrowserHeader(viewModel: CatalogViewModel) {
     val cs = MacosTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().padding(
+            start = 18.dp,
+            end = WINDOW_CONTROLS_END_PADDING,
+            top = 8.dp,
+            bottom = 8.dp,
+        ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
