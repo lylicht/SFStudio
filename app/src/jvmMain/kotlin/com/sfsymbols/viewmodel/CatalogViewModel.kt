@@ -4,11 +4,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import com.composables.sfsymbols.SfSymbolMetadata
+import com.composables.sfsymbols.SfSymbolsCatalog
 import com.sfsymbols.data.FuzzySearch
 import com.sfsymbols.data.PinnedSymbols
 import com.sfsymbols.data.RustCatalogSearch
-import com.composables.sfsymbols.SfSymbolMetadata
-import com.composables.sfsymbols.SfSymbolsCatalog
+import com.sfsymbols.data.ThemeMode
 import com.sfsymbols.data.SymbolMode
 import com.sfsymbols.util.copyToClipboard
 import com.sfsymbols.util.composeSnippet
@@ -17,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.prefs.Preferences
 
 /**
  * Central state holder for the SF Symbols catalog.
@@ -29,6 +31,14 @@ public class CatalogViewModel(
     private val scope = CoroutineScope(Dispatchers.Default)
 
     public enum class Screen { Catalog, Settings }
+
+    private val preferences = runCatching { Preferences.userNodeForPackage(CatalogViewModel::class.java) }.getOrNull()
+
+    public var themeMode: ThemeMode by mutableStateOf(
+        runCatching { ThemeMode.valueOf(preferences?.get("themeMode", ThemeMode.System.name) ?: ThemeMode.System.name) }
+            .getOrDefault(ThemeMode.System),
+    )
+        private set
 
     public var screen: Screen by mutableStateOf(Screen.Catalog)
         private set
@@ -202,6 +212,14 @@ public class CatalogViewModel(
 
     public fun navigate(screen: Screen) {
         this.screen = screen
+    }
+
+    public fun updateThemeMode(mode: ThemeMode) {
+        themeMode = mode
+        runCatching {
+            preferences?.put("themeMode", mode.name)
+            preferences?.flush()
+        }
     }
 
     public fun updateGridScale(scale: Float) {

@@ -23,17 +23,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sfsymbols.data.ThemeMode
 import com.sfsymbols.util.openUrl
 import com.sfsymbols.viewmodel.CatalogViewModel
 import dev.nucleusframework.macoscompose.components.GroupBox
 import dev.nucleusframework.macoscompose.components.NavigationButtons
 import dev.nucleusframework.macoscompose.components.PushButton
+import dev.nucleusframework.macoscompose.components.SegmentedControl
 import dev.nucleusframework.macoscompose.components.Text
 import dev.nucleusframework.macoscompose.components.TitleBar
-import dev.nucleusframework.macoscompose.components.TitleBarButtonGroup
-import dev.nucleusframework.macoscompose.components.TitleBarGroupButton
-import dev.nucleusframework.macoscompose.icons.Icon
-import dev.nucleusframework.macoscompose.icons.LucideChevronLeft
 import dev.nucleusframework.macoscompose.theme.MacosTheme
 import com.sfsymbols.mcp.mcpClientConfig
 
@@ -62,13 +60,6 @@ public fun SettingsPane(
             title = {
                 Text("Settings")
             },
-            actions = {
-                TitleBarButtonGroup {
-                    TitleBarGroupButton(onClick = { viewModel.navigate(CatalogViewModel.Screen.Catalog) }) {
-                        Icon(LucideChevronLeft, modifier = Modifier.size(12.dp))
-                    }
-                }
-            },
         )
         Column(
             modifier = Modifier
@@ -76,6 +67,19 @@ public fun SettingsPane(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 28.dp, vertical = 24.dp),
         ) {
+            GroupBox(label = "Appearance", modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Theme", color = cs.textPrimary, modifier = Modifier.weight(1f))
+                    SegmentedControl(
+                        options = listOf("System", "Light", "Dark"),
+                        selectedIndex = viewModel.themeMode.ordinal,
+                        onSelectedIndexChange = { viewModel.updateThemeMode(ThemeMode.values()[it]) },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             GroupBox(label = "MCP (AI agent access)", modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "AI agents can search the catalog by running SFStudio as an MCP server. " +

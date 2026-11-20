@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import dev.nucleusframework.macoscompose.theme.MacosTheme
+import com.sfsymbols.data.ThemeMode
 import com.sfsymbols.ui.theme.AppTheme
 import com.sfsymbols.viewmodel.CatalogViewModel
+import dev.nucleusframework.macoscompose.theme.MacosTheme
 
 /**
  * Root composable: theme + app chrome. Layout is assembled inside [AppChrome]
@@ -19,7 +21,9 @@ import com.sfsymbols.viewmodel.CatalogViewModel
 @Composable
 public fun SfSymbolsCatalogApp() {
     val viewModel = remember { CatalogViewModel() }
-    AppTheme {
+    AppTheme(
+        darkTheme = viewModel.themeMode.isDark(isSystemInDarkTheme()),
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
