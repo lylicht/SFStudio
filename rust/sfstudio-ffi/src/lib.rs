@@ -11,6 +11,8 @@ const INVALID_UTF8: isize = -2;
 const INVALID_OUTPUT: isize = -3;
 const INTERNAL_ERROR: isize = -4;
 const OUTPUT_TOO_LARGE: isize = -5;
+const INVALID_SCALE: isize = -9;
+const INVALID_WEIGHT: isize = -10;
 
 unsafe fn read_utf8<'a>(input: *const u8, input_len: usize) -> Result<&'a str, isize> {
     if input_len == 0 {
@@ -119,6 +121,134 @@ pub unsafe extern "C" fn sfstudio_symbol_json(
             "pascalName": symbol.pascal_name,
             "categories": symbol.categories,
             "isRestricted": symbol.is_restricted,
+        }))
+        .map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
+fn layer_json(
+    node: &sfstudio_core::vector::LayerNode,
+    tags: &[String],
+    colors: &[String],
+) -> serde_json::Value {
+    let children: Vec<_> = node
+        .children
+        .iter()
+        .map(|child| layer_json(child, tags, colors))
+        .collect();
+    let names: Vec<_> = node.tags.iter().filter_map(|tag| tags.get(*tag)).collect();
+    let color = node.color_id.and_then(|id| colors.get(id));
+    serde_json::json!({
+        "isGroup": node.is_group,
+        "canPulse": node.can_pulse,
+        "canRotate": node.can_rotate,
+        "clearBehind": node.clear_behind,
+        "animateTogether": node.animate_together,
+        "variableDraw": node.variable_draw,
+        "autoVariable": node.auto_variable,
+        "monoErase": node.mono_erase,
+        "shapeErase": node.shape_erase,
+        "hierarchical": node.hierarchical,
+        "color": color,
+        "opacity": node.opacity,
+        "rootU": node.ties.first(),
+        "rootV": node.ties.get(1),
+        "ties": node.ties,
+        "contours": node.contours,
+        "tags": names,
+        "children": children,
+    })
+}
+
+/// Decode one symbol's weighted vector masters, layers, and optical-size outline.
+///
+/// `scale` is 0 for medium, 1 for small, and 2 for large. `weight` is the
+/// variable font's `wght` axis value. The JSON includes raw masters and points
+/// interpolated at that weight in screen coordinates (y points down). -6 means
+/// unknown symbol, -9 means an invalid scale, and -10 means a non-finite weight.
+/// Other errors use the common C ABI codes.
+///
+/// # Safety
+/// For nonzero `symbol_name_len`, `symbol_name` must point to that many readable
+/// UTF-8 bytes. If `output_capacity` is nonzero, `output` must point to that many
+/// writable bytes. The buffers may overlap because the complete result is built
+/// before writing output.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_glyph_json(
+    symbol_name: *const u8,
+    symbol_name_len: usize,
+    scale: i32,
+    weight: f32,
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    let symbol_name = match unsafe { read_utf8(symbol_name, symbol_name_len) } {
+        Ok(name) => name,
+        Err(code) => return code,
+    };
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+    if !weight.is_finite() {
+        return INVALID_WEIGHT;
+    }
+    let scale = match scale {
+        0 => sfstudio_core::vector::OpticalScale::Medium,
+        1 => sfstudio_core::vector::OpticalScale::Small,
+        2 => sfstudio_core::vector::OpticalScale::Large,
+        _ => return INVALID_SCALE,
+    };
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let catalog = sfstudio_core::vector::vector_catalog().map_err(|_| INTERNAL_ERROR)?;
+        let symbol = catalog.find(symbol_name).ok_or(UNKNOWN_SYMBOL)?;
+        let glyph = catalog
+            .glyph_for(symbol)
+            .map_err(|_| INTERNAL_ERROR)?
+            .ok_or(UNKNOWN_SYMBOL)?;
+        let geometry = catalog
+            .geometry_at_scale(symbol, &glyph, scale)
+            .map_err(|_| INTERNAL_ERROR)?;
+        let scale_name = match scale {
+            sfstudio_core::vector::OpticalScale::Medium => "medium",
+            sfstudio_core::vector::OpticalScale::Small => "small",
+            sfstudio_core::vector::OpticalScale::Large => "large",
+        };
+        let used_optical_variant = match scale {
+            sfstudio_core::vector::OpticalScale::Medium => false,
+            sfstudio_core::vector::OpticalScale::Small => symbol.small.is_some(),
+            sfstudio_core::vector::OpticalScale::Large => symbol.large.is_some(),
+        };
+        let tree: Vec<_> = glyph
+            .tree
+            .iter()
+            .map(|node| layer_json(node, catalog.tags(), catalog.colors()))
+            .collect();
+        serde_json::to_vec(&serde_json::json!({
+            "name": symbol.name,
+            "scale": scale_name,
+            "weight": weight,
+            "usedOpticalVariant": used_optical_variant,
+            "geometry": {
+                "ops": geometry.ops,
+                "points": sfstudio_core::vector::interpolate_points(&geometry, weight),
+                "regular": geometry.regular,
+                "light": geometry.light,
+                "heavy": geometry.heavy,
+            },
+            "layersExact": glyph.layers_exact,
+            "backToFront": glyph.back_to_front,
+            "gapless": glyph.gapless,
+            "defaultVariableRendering": glyph.default_variable_rendering,
+            "wiggle": glyph.wiggle,
+            "wiggleAngle": glyph.wiggle_angle,
+            "rotation": glyph.rotation,
+            "anchors": glyph.anchors,
+            "tree": tree,
         }))
         .map_err(|_| INTERNAL_ERROR)
     })) {
@@ -303,6 +433,36 @@ pub unsafe extern "C" fn sfstudio_favorites_toggle_json(
 mod tests {
     use super::*;
 
+    fn glyph_json(name: &[u8], scale: i32, weight: f32) -> Result<serde_json::Value, isize> {
+        // SAFETY: Input remains alive for both calls; output has the queried size.
+        unsafe {
+            let required = sfstudio_glyph_json(
+                name.as_ptr(),
+                name.len(),
+                scale,
+                weight,
+                std::ptr::null_mut(),
+                0,
+            );
+            if required < 0 {
+                return Err(required);
+            }
+            let mut output = vec![0; required as usize];
+            let written = sfstudio_glyph_json(
+                name.as_ptr(),
+                name.len(),
+                scale,
+                weight,
+                output.as_mut_ptr(),
+                output.len(),
+            );
+            if written != required {
+                return Err(written);
+            }
+            serde_json::from_slice(&output).map_err(|_| INTERNAL_ERROR)
+        }
+    }
+
     fn search(query: &[u8], limit: usize) -> Result<String, isize> {
         // SAFETY: Both slices remain alive for the call and output capacity is exact.
         unsafe {
@@ -357,6 +517,44 @@ mod tests {
             unsafe { sfstudio_symbol_json(b"unknown".as_ptr(), 7, std::ptr::null_mut(), 0) },
             UNKNOWN_SYMBOL
         );
+    }
+
+    #[test]
+    fn glyph_abi_returns_weight_masters_layers_and_optical_scales() {
+        let medium = glyph_json(b"SFHeartFill", 0, 400.0).unwrap();
+        assert_eq!(medium["name"], "heart.fill");
+        assert_eq!(medium["scale"], "medium");
+        assert_eq!(medium["usedOpticalVariant"], false);
+        assert!(!medium["geometry"]["ops"].as_array().unwrap().is_empty());
+        assert_eq!(
+            medium["geometry"]["regular"].as_array().unwrap().len(),
+            medium["geometry"]["heavy"].as_array().unwrap().len()
+        );
+        assert_eq!(medium["weight"], 400.0);
+        assert_eq!(
+            medium["geometry"]["points"].as_array().unwrap().len(),
+            medium["geometry"]["regular"].as_array().unwrap().len()
+        );
+        assert!(!medium["tree"].as_array().unwrap().is_empty());
+
+        let black = glyph_json(b"heart.fill", 0, 1000.0).unwrap();
+        let points = black["geometry"]["points"].as_array().unwrap();
+        let heavy = black["geometry"]["heavy"].as_array().unwrap();
+        for (index, (point, master)) in points.iter().zip(heavy).enumerate() {
+            let master = master.as_f64().unwrap();
+            let expected = if index % 2 == 1 { -master } else { master };
+            assert!((point.as_f64().unwrap() - expected).abs() < 1e-3);
+        }
+
+        let small = glyph_json(b"heart.fill", 1, 400.0).unwrap();
+        let large = glyph_json(b"heart.fill", 2, 400.0).unwrap();
+        assert_eq!(small["usedOpticalVariant"], true);
+        assert_eq!(large["usedOpticalVariant"], true);
+        assert_ne!(small["geometry"]["regular"], medium["geometry"]["regular"]);
+        assert_ne!(large["geometry"]["regular"], medium["geometry"]["regular"]);
+        assert_eq!(glyph_json(b"missing", 0, 400.0), Err(UNKNOWN_SYMBOL));
+        assert_eq!(glyph_json(b"heart.fill", 3, 400.0), Err(INVALID_SCALE));
+        assert_eq!(glyph_json(b"heart.fill", 0, f32::NAN), Err(INVALID_WEIGHT));
     }
 
     #[test]

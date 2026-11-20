@@ -18,10 +18,12 @@ the Rust C ABI through JNA, with Kotlin fallbacks. Kotlin still owns favorite
 file reads and writes.
 
 The shared catalog search and filters, symbol metadata lookup, Compose code
-generator, and ordered favorite toggle export C ABI entry points without
-exposing Rust types. The header is
-`include/sfstudio.h`. C, C++, Python, JNI/JNA, Kotlin/Native, Swift, and other
-runtimes with a C FFI can call them.
+generator, ordered favorite toggle, and glyph geometry decoder export C ABI
+entry points without exposing Rust types. The header is
+`include/sfstudio.h`; `sfstudio_glyph_json` returns raw weight masters and
+points interpolated at a requested `wght` value and optical scale. C, C++,
+Python, JNI/JNA, Kotlin/Native, Swift, and other runtimes with a C FFI can call
+these entry points.
 This ABI is a language-neutral integration surface, not a claim that each
 language or platform already has a packaged adapter or complete app binding.
 The published KMP API does not call this ABI yet; its Android, iOS, JS, and
@@ -29,7 +31,9 @@ Wasm implementations remain active. The desktop JVM app calls search, code
 generation, favorite toggling, and category/favorites filtering through JNA on
 Windows, macOS, and Linux. The JNA metadata lookup binding passed parity checks
 on all three operating systems in run #20. JS and Wasm consumers still use
-Kotlin until target-specific Rust/Wasm adapters pass their tests.
+Kotlin until target-specific Rust/Wasm adapters pass their tests. Glyph
+geometry C ABI smoke has passed locally on Windows; the current endpoint has
+not yet run in cross-OS CI or through platform adapters.
 
 ## Compatibility rules
 
@@ -61,8 +65,10 @@ Kotlin implementation can be retired.
 
 ## Data and licensing
 
-The Rust catalog currently reads the existing Kotlin catalog and JVM alias
-file at compile time. This avoids a second hand-maintained metadata source but
-does not port the generated vector assets or their renderer. The 7,007 symbol
-definitions remain in the original KMP library. Do not extract or redistribute
-Apple-owned symbol assets beyond the repository's existing permitted scope.
+The Rust catalog and vector decoder read existing Kotlin catalog, alias, and
+generated geometry sources at compile time. Geometry decoding now matches all
+8,526 reference glyph fingerprints locally, including available optical
+variants; it does not yet port the renderer, drawing modes, bounds, effects, or
+animations. The published 7,007 symbol definitions and their KMP API remain
+available. Do not extract or redistribute Apple-owned symbol assets beyond
+the repository's existing permitted scope.

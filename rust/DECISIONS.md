@@ -61,3 +61,15 @@ Compose signature would break downstream consumers.
 desktop `--mcp` uses the Rust server; classpath development launches retain
 the Kotlin implementation, with a launch fallback if the Rust process cannot
 start.
+
+## 007 — Decode existing vector data in Rust before rendering cutover
+
+**Decision:** Extract the repository's existing generated geometry blobs at
+Rust build time, decode their raw-DEFLATE blocks in `sfstudio-core`, and verify
+all glyph masters and optical variants against Kotlin fingerprints. Expose
+decoded geometry through the existing C ABI, including weight-interpolated
+points; keep Kotlin as the rendering and public KMP implementation.
+
+**Reason:** This ports reusable vector logic without hand-editing generated
+files or introducing a second asset catalog. Geometry parity is a necessary
+step, but it does not prove visual renderer or animation parity.

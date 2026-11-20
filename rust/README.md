@@ -15,19 +15,26 @@ portable logic behind the installed desktop entry points.
 - `sfstudio-core::favorites`: ordered favorite state and JSON codec compatible
   with the existing Kotlin array format; packaged JVM toggles use the C ABI,
   while Kotlin retains ownership of the favorite file.
+- `sfstudio-core::vector`: compile-time extraction and Rust decoding of the
+  generated glyph geometry, layer trees, and optical variants. Exact Kotlin
+  geometry fingerprints match for all 8,526 glyphs locally. This is the data
+  and path-op layer; rendering modes, bounds, color selection/tinting, effects,
+  and animations are not yet ported.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
 - `sfstudio-ffi`: a language-neutral C ABI for catalog search/filtering,
-  symbol metadata lookup, Compose code generation, and favorite toggling; its
-  header and UTF-8 buffer contract are in `include/sfstudio.h`. Python `ctypes`
+  symbol metadata lookup, glyph geometry at a requested weight and optical
+  scale, Compose code generation, and favorite toggling; its header and UTF-8
+  buffer contract are in `include/sfstudio.h`. Python `ctypes`
   smoke checks for search, filtering,
   codegen, and favorites passed on Windows, macOS, and Linux in run #17. The
   packaged JVM UI calls it through JNA; published KMP callers remain unchanged.
   The JVM metadata lookup binding passed parity checks on Windows, macOS, and
   Linux in run #20; it is not yet called by a production UI path.
-- The Rust catalog is **read directly at compile time from the existing Kotlin
-  catalog data and alias tags**. This is deliberately temporary: no parallel
-  icon catalog is maintained. The embedded source is not parsed at runtime.
+- The Rust catalog and vector data are **read directly at compile time from
+  the existing Kotlin catalog, alias tags, and generated geometry sources**.
+  This is deliberately temporary: no parallel icon catalog is maintained.
+  The embedded sources are not parsed at runtime.
 
 Packaged `--mcp` launches delegate to the Rust executable after parity checks;
 classpath-based development launches retain the Kotlin fallback. Packaged UI

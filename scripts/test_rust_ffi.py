@@ -32,6 +32,10 @@ def main():
     symbol_json = library.sfstudio_symbol_json
     symbol_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
     symbol_json.restype = ctypes.c_ssize_t
+    glyph_json = library.sfstudio_glyph_json
+    glyph_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_float,
+                           ctypes.c_void_p, ctypes.c_size_t]
+    glyph_json.restype = ctypes.c_ssize_t
     search_filtered_json = library.sfstudio_search_filtered_json
     search_filtered_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                                      ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
@@ -76,6 +80,41 @@ def main():
     assert metadata["isRestricted"] is False
     assert metadata["categories"]
     assert symbol_json(ctypes.create_string_buffer(b"missing"), 7, None, 0) == -6
+
+    def glyph(name, scale, weight=400.0):
+        encoded = name.encode("utf-8")
+        name_buffer = ctypes.create_string_buffer(encoded)
+        required = glyph_json(name_buffer, len(encoded), scale, weight, None, 0)
+        assert required > 0, f"glyph sizing call failed: {required}"
+        output = ctypes.create_string_buffer(required)
+        written = glyph_json(name_buffer, len(encoded), scale, weight, output, required)
+        assert written == required
+        return json.loads(output.raw[:written])
+
+    medium_glyph = glyph("SFHeartFill", 0)
+    black_glyph = glyph("heart.fill", 0, 1000.0)
+    small_glyph = glyph("heart.fill", 1)
+    large_glyph = glyph("heart.fill", 2)
+    assert medium_glyph["name"] == "heart.fill"
+    assert medium_glyph["scale"] == "medium"
+    assert medium_glyph["weight"] == 400.0
+    assert medium_glyph["geometry"]["ops"]
+    assert len(medium_glyph["geometry"]["points"]) == len(medium_glyph["geometry"]["regular"])
+    assert black_glyph["weight"] == 1000.0
+    assert all(
+        abs(point - master * (-1 if index % 2 else 1)) < 1e-3
+        for index, (point, master) in enumerate(zip(
+            black_glyph["geometry"]["points"], black_glyph["geometry"]["heavy"]
+        ))
+    )
+    assert medium_glyph["tree"]
+    assert small_glyph["usedOpticalVariant"] is True
+    assert large_glyph["usedOpticalVariant"] is True
+    assert small_glyph["geometry"]["regular"] != medium_glyph["geometry"]["regular"]
+    assert large_glyph["geometry"]["regular"] != medium_glyph["geometry"]["regular"]
+    assert glyph_json(ctypes.create_string_buffer(b"missing"), 7, 0, 400.0, None, 0) == -6
+    assert glyph_json(ctypes.create_string_buffer(b"heart.fill"), 10, 3, 400.0, None, 0) == -9
+    assert glyph_json(ctypes.create_string_buffer(b"heart.fill"), 10, 0, float("nan"), None, 0) == -10
 
     def filtered_search(query, category, favorites, limit):
         encoded_query = query.encode("utf-8")
@@ -152,7 +191,7 @@ def main():
     assert toggle_favorites(broken_json, 7, ctypes.create_string_buffer(b"gear"), 4,
                             None, 0) == -8
 
-    print("Rust C ABI search, metadata, filtering, codegen, and favorites smoke test passed (Python ctypes)")
+    print("Rust C ABI search, metadata, vectors, filtering, codegen, and favorites smoke test passed (Python ctypes)")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@
 
 pub mod codegen;
 pub mod favorites;
+pub mod vector;
 
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};

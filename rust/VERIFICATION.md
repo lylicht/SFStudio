@@ -6,14 +6,19 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 20 Rust tests
-  passed (9 core, 8 C ABI, and 3 MCP).
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 24 Rust tests
+  passed (12 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
+  decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
   Windows x64; Python `ctypes` smoke passed, including sizing calls, typo search,
   Unicode, invalid UTF-8, null pointers, short-buffer handling, exact Compose
-  snippet fixtures, favorite ordering/toggle behavior, filtered search, and
-  symbol metadata lookup.
+  snippet fixtures, favorite ordering/toggle behavior, filtered search,
+  symbol metadata lookup, and glyph decoding/interpolation at medium, small,
+  and large scales.
+- `gradlew.bat :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfVectorRustParityTest --rerun-tasks --no-daemon` —
+  passed; all 8,526 Kotlin glyphs and available small/large variants match the
+  committed geometry fingerprint fixture.
 - `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
 - `gradlew.bat :app:jvmTest --no-daemon` — passed with the Rust search library
   loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries,
@@ -59,13 +64,17 @@ Last local check: 2026-11-20, Windows x64, branch
 - [GitHub Actions run #20](https://github.com/lylicht/SFStudio/actions/runs/44768406103)
   — metadata lookup C ABI, Python `ctypes` smoke, and JVM parity passed on
   Windows/macOS/Linux; Android, iOS, JS/Wasm, and packaged MCP jobs passed too.
+- The vector decoder and weight-aware glyph C ABI passed the local Rust,
+  Kotlin parity, Clippy, and Python checks above. Run #20 predates this code;
+  cross-OS CI results for the vector work are pending.
 
 ## Not yet verified
 
 - Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API. Existing
   KMP targets remain buildable but still execute their Kotlin implementation.
-- UI and vector-rendering parity, installer upgrades, user-data migration,
-  performance baselines, and native bindings.
+- Rust rendering and visual parity, installer upgrades, user-data migration,
+  performance baselines, and native bindings. The geometry C ABI also needs
+  cross-OS CI coverage.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain

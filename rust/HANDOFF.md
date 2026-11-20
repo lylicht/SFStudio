@@ -6,11 +6,14 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all twenty workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 24 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
-tests against both Kotlin and Rust passed. All 99 Kotlin/Rust MCP differential
-responses match, including malformed JSON, invalid IDs and batches, and
-notifications. See [VERIFICATION.md](VERIFICATION.md).
+tests against both Kotlin and Rust passed. The Rust vector decoder matches all
+8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
+returns weight-interpolated points and passes Python `ctypes` smoke locally.
+All 99 Kotlin/Rust MCP differential responses match, including malformed JSON,
+invalid IDs and batches, and notifications. See
+[VERIFICATION.md](VERIFICATION.md).
 
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
 Compose snippet generation, and favorite toggling through JNA. Search,
@@ -22,7 +25,8 @@ Rust-backed adapters for those targets are not implemented.
 
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge
-coverage, and checks Rust/KMP/package behavior in CI. GitHub Actions run
+coverage and a Rust vector data decoder, and checks Rust/KMP/package behavior
+in CI. The vector decoder's latest checks are local; GitHub Actions run
 [#11](https://github.com/lylicht/SFStudio/actions/runs/44750825015) passed
 Rust on Windows/macOS/Linux; JVM on Windows/macOS/Linux; Android API 37; iOS;
 JS/Wasm; and packaged Rust MCP launchers on Windows/macOS/Linux.
@@ -42,8 +46,9 @@ JS/Wasm; and packaged Rust MCP launchers on Windows/macOS/Linux.
 
 1. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
    one FFI mechanism is not assumed to fit every target.
-2. Port compressed vector decoding and rendering semantics with reference
-   fixtures before any UI or library cutover.
+2. Add cross-OS checks for Rust vector decoding; port path rendering, bounds,
+   modes, effects, and animations with reference fixtures before UI or library
+   cutover.
 3. Preserve existing user data and package identities; test upgrade behavior
    before changing persistence or installers.
 
