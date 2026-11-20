@@ -63,6 +63,15 @@ class CatalogViewModelTest {
         )
     }
 
+    @Test fun `selected symbol metadata comes from Rust when available`() {
+        assertTrue(RustCatalogSearch.available(), "jvmTest must load the Rust native library")
+        val vm = CatalogViewModel { }
+
+        vm.selectSymbol(heart.copy(pascalName = "wrong", categories = listOf("wrong"), isRestricted = true))
+
+        assertEquals(heart, vm.selectedSymbol)
+    }
+
     @Test fun `clipboard failures do not report success`() {
         val vm = CatalogViewModel { throw IllegalStateException("clipboard busy") }
         vm.copyAppleName(heart)

@@ -25,6 +25,10 @@ Android, iOS, JS/Wasm, packaged MCP launchers on all three desktop OSes, and
 differential MCP replay after the Rust typed-float outline endpoint was wired
 into the JVM renderer. Local Rust, Python `ctypes`, JVM, desktop app, JS, and
 Wasm checks pass.
+The desktop detail selection now calls the Rust metadata lookup endpoint and
+keeps the supplied Kotlin metadata if Rust is unavailable or errors. The new
+selection-path JVM test passes locally; cross-platform CI for this caller is
+pending.
 The metadata lookup binding passed Windows/macOS/Linux parity and the Windows
 MSI passed in run #20; lookup is not yet called by a production UI path.
 Android/iOS/JS/Wasm Kotlin targets still compile and retain their Kotlin paths;

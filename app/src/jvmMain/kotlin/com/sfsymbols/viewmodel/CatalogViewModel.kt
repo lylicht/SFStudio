@@ -191,7 +191,16 @@ public class CatalogViewModel(
     }
 
     public fun selectSymbol(meta: SfSymbolMetadata) {
-        selectedSymbol = meta
+        val rustMetadata = try {
+            RustCatalogSearch.lookup(meta.appleName)
+        } catch (error: Exception) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        } catch (error: LinkageError) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        }
+        selectedSymbol = rustMetadata ?: meta
     }
 
     public fun updateMode(newMode: SymbolMode) {

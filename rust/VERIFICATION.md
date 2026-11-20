@@ -39,6 +39,7 @@ Last local check: 2026-11-20, Windows x64, branch
   passed; the Settings MCP config path calls the Rust JNA function and matches
   the Kotlin JSON contract for installed and development launches, including
   escaped Unicode paths. The full `:app:jvmTest` suite passed afterward.
+- `gradlew.bat :app:jvmTest --tests com.sfsymbols.viewmodel.CatalogViewModelTest --no-daemon -PsfstudioUseSystemWebTools=true` — passed with selected-symbol metadata resolved through the Rust C ABI and the Kotlin fallback retained.
 - `gradlew.bat :app:packageMsi --no-daemon` — Windows MSI build passed with the
   Rust FFI DLL and MCP executable in `app-jvm.jar`.
 - The `CatalogViewModelTest` snippet cases match the Rust fixtures exactly,

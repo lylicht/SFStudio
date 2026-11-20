@@ -103,3 +103,13 @@ geometry fingerprints and representative parity checks. Returning only the
 coordinate buffer avoids parsing a large JSON glyph payload in the renderer,
 while retaining the current Compose path construction and all public Kotlin
 APIs.
+
+## 010 — Resolve selected desktop metadata through Rust
+
+**Decision:** On JVM desktop symbol selection, call the existing Rust metadata
+lookup endpoint and retain the supplied Kotlin metadata if the native library
+is unavailable or fails. Keep bulk search-result mapping unchanged to avoid an
+extra FFI lookup per result.
+
+**Reason:** This makes Rust metadata authoritative in the detail view without
+changing the public KMP metadata type, the search C ABI, or fallback behavior.
