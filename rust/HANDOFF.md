@@ -12,11 +12,11 @@ tests against both Kotlin and Rust passed. All 99 Kotlin/Rust MCP differential
 responses match, including malformed JSON, invalid IDs and batches, and
 notifications. See [VERIFICATION.md](VERIFICATION.md).
 
-The Rust C ABI is loaded by packaged JVM search, Compose snippet generation,
-and favorite toggling through JNA. Search parity passed in run #14; snippet and
-favorites parity passed Windows/macOS/Linux in run #16. The Windows MSI includes
-the shared library. The new category/favorites filtered-search adapter passes
-local Rust/Kotlin parity; cross-OS verification is pending.
+The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
+Compose snippet generation, and favorite toggling through JNA. All four passed
+Windows/macOS/Linux checks in run #17; the Windows MSI includes the shared
+library. Android/iOS/JS/Wasm Kotlin targets still compile and retain their
+Kotlin paths; Rust-backed adapters for those targets are not implemented.
 
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge
@@ -38,16 +38,12 @@ JS/Wasm; and packaged Rust MCP launchers on Windows/macOS/Linux.
 
 ## Next unblocked migration work
 
-1. Verify JNA filtered search on Windows/macOS/Linux; search, snippets, and
-   favorites passed runs #14 and #16. Keep Kotlin fallback for development and
-   library-load failures.
-2. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
+1. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
    one FFI mechanism is not assumed to fit every target.
-3. Port favorites persistence, settings, app state, vector decoding, and
-   render semantics with
-   parity fixtures before any UI or library cutover.
-4. Capture visual/interaction baselines and test installer upgrades while
-   preserving package identities and user data.
+2. Port compressed vector decoding and rendering semantics with reference
+   fixtures before any UI or library cutover.
+3. Preserve existing user data and package identities; test upgrade behavior
+   before changing persistence or installers.
 
 ## References
 

@@ -19,19 +19,18 @@ portable logic behind the installed desktop entry points.
   providing the existing `search_symbols` and `get_symbol` tools.
 - `sfstudio-ffi`: a language-neutral C ABI for catalog search/filtering,
   Compose code generation, and favorite toggling; its header and UTF-8 buffer contract are
-  in `include/sfstudio.h`. Python `ctypes` smoke checks for search, codegen, and
-  favorites passed on Windows, macOS, and Linux in run #16. The packaged JVM UI
-  calls it through JNA; published KMP callers remain unchanged.
+  in `include/sfstudio.h`. Python `ctypes` smoke checks for search, filtering,
+  codegen, and favorites passed on Windows, macOS, and Linux in run #17. The
+  packaged JVM UI calls it through JNA; published KMP callers remain unchanged.
 - The Rust catalog is **read directly at compile time from the existing Kotlin
   catalog data and alias tags**. This is deliberately temporary: no parallel
   icon catalog is maintained. The embedded source is not parsed at runtime.
 
 Packaged `--mcp` launches delegate to the Rust executable after parity checks;
 classpath-based development launches retain the Kotlin fallback. Packaged UI
-search, snippet generation, and favorite toggling call the Rust C ABI through
-JNA, keeping Kotlin behavior as the development and load-failure fallback.
-Category/favorites filtering is in progress with the Kotlin filter retained as
-fallback.
+search, category/favorites filtering, snippet generation, and favorite toggling
+call the Rust C ABI through JNA, keeping Kotlin behavior as the development and
+load-failure fallback.
 
 ## Verify
 

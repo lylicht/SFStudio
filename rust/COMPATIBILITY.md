@@ -48,7 +48,7 @@ use Kotlin until target-specific Rust/Wasm adapters pass their tests.
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `NOT_STARTED`; keep the Kotlin path |
-| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, snippets, favorites, and `--mcp` use Rust | `IN_PROGRESS`; JNA search/snippet/favorite paths passed Windows/macOS/Linux; filtered search awaits cross-OS checks, while published KMP APIs, UI state, and rendering remain Kotlin |
+| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, and `--mcp` use Rust | `IN_PROGRESS`; JNA search/snippet/favorite/filter paths passed Windows/macOS/Linux; published KMP APIs, UI state, and rendering remain Kotlin |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `NOT_STARTED`; evaluate a narrow C ABI / generated Swift bridge |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
 | Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |

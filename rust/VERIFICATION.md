@@ -52,12 +52,14 @@ Last local check: 2026-11-20, Windows x64, branch
   — C ABI search, codegen, and favorites passed Windows/macOS/Linux smoke tests;
   JVM search/snippet/favorites tests passed on Windows/macOS/Linux; Android,
   iOS, JS/Wasm, and packaged MCP jobs passed.
+- [GitHub Actions run #17](https://github.com/lylicht/SFStudio/actions/runs/44764947372)
+  — filtered C ABI and JNA parity passed on Windows/macOS/Linux; all existing
+  Kotlin targets and packaged MCP jobs passed as well.
 
 ## Not yet verified
 
-- Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API.
-- Cross-OS category/favorites filtered-search binding (local Kotlin/Rust parity
-  passes; run #16 predates this adapter).
+- Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API. Existing
+  KMP targets remain buildable but still execute their Kotlin implementation.
 - UI and vector-rendering parity, installer upgrades, user-data migration,
   performance baselines, and native bindings.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
