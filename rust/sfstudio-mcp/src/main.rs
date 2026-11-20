@@ -1,6 +1,6 @@
 //! Standalone Rust implementation of SFStudio's headless MCP server.
-//! The Compose UI still uses Kotlin; this executable is an opt-in replacement
-//! for the existing `--mcp` mode, pending behavioral parity verification.
+//! Packaged desktop `--mcp` launches use this server; development classpath
+//! launches retain the Kotlin implementation.
 
 use serde_json::{json, Value};
 use sfstudio_core::{catalog, Symbol};

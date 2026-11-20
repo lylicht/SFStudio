@@ -17,7 +17,8 @@ Linux and a separate plan for Android/iOS/JS/Wasm library consumers.
 Keep Compose UI unchanged. Ensure exact ranked-result ordering and JSON-RPC
 format by differential testing against the JVM implementation.
 
-**Rollback:** Use the existing JVM `--mcp` command unchanged.
+Packaged `--mcp` now delegates to Rust after the differential and cross-OS
+launcher gates pass. Development classpath launches retain Kotlin.
 
 ## 003 — Single source of truth for symbol metadata
 
@@ -56,6 +57,7 @@ and rendering checks pass.
 assumed to cover all KMP targets. Removing a target or changing a public
 Compose signature would break downstream consumers.
 
-**Rollback:** Keep the existing Kotlin implementation as the active consumer
-path. The Rust search/MCP executable stays opt-in until compatibility gates
-pass.
+**Current boundary:** The published library and UI still use Kotlin. Packaged
+desktop `--mcp` uses the Rust server; classpath development launches retain
+the Kotlin implementation, with a launch fallback if the Rust process cannot
+start.
