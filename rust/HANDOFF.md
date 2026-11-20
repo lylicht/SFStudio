@@ -36,8 +36,9 @@ The Magic Replace morph extension passed the full matrix in
 [run #27](https://github.com/lylicht/SFStudio/actions/runs/44790870392).
 Layer rendering-mode colors and automatic gradient calculations are now
 available through the animation C ABI; Rust unit tests and Python `ctypes`
-smoke pass locally. Cross-platform CI and Kotlin differential coverage for
-those color calculations are still pending.
+smoke pass locally. [GitHub Actions run #29](https://github.com/lylicht/SFStudio/actions/runs/44794238481)
+passed the cross-platform C ABI and existing platform matrix. Kotlin
+differential coverage for those color calculations is still pending.
 
 ## Existing work inherited from PR #7
 

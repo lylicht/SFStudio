@@ -35,9 +35,9 @@ Wasm implementations remain active. The desktop JVM app calls search, code
 generation, favorite toggling, and category/favorites filtering through JNA on
 Windows, macOS, and Linux. The JNA metadata lookup binding passed parity checks
 on all three operating systems in run #20. JS and Wasm consumers still use
-Kotlin until target-specific Rust/Wasm adapters pass their tests. Glyph
-geometry C ABI smoke has passed locally on Windows; the current endpoint has
-not yet run in cross-OS CI or through platform adapters.
+Kotlin until target-specific Rust/Wasm adapters pass their tests. The vector
+geometry and animation C ABI smoke checks pass on Windows, macOS, and Linux in
+run #29; the published KMP callers still do not use these Rust endpoints.
 
 ## Compatibility rules
 
@@ -78,9 +78,10 @@ transforms, variable-layer staging, replace recipes, layer color-mode
 calculations, and automatic gradient stops have Rust core implementations and
 JSON C ABI, along with tagged-layer Magic Replace morph paths. Selected Kotlin
 differential fixtures cover effect timing and layer transforms; rendering color
-calculations currently have Rust unit and C ABI smoke coverage, but no Kotlin
-differential fixture. Kotlin remains the active visual renderer; Rust renderer
-integration, draw-rail clipping, visual rendering parity, broader morph
-fixtures, and mobile/JS/Wasm adapters are still outstanding. The published
-symbol definitions and KMP API remain available. Do not extract or redistribute
-Apple-owned symbol assets beyond the repository's existing permitted scope.
+calculations currently have Rust unit tests and Windows/macOS/Linux C ABI
+smoke coverage, but no Kotlin differential fixture. Kotlin remains the active
+visual renderer; Rust renderer integration, draw-rail clipping, visual
+rendering parity, broader morph fixtures, and mobile/JS/Wasm adapters are still
+outstanding. The published symbol definitions and KMP API remain available.
+Do not extract or redistribute Apple-owned symbol assets beyond the repository's
+existing permitted scope.

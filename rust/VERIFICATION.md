@@ -100,8 +100,10 @@ Last local check: 2026-11-20, Windows x64, branch
 - Layer appearance calculations now cover monochrome, hierarchical, palette,
   and multicolor modes, named Apple colors, layer opacity, and Apple's
   automatic two-stop gradient. Rust unit and Python C ABI smoke checks passed
-  locally; Kotlin differential fixtures, cross-platform CI, and integration
-  with a Rust renderer remain pending.
+  locally. [GitHub Actions run #29](https://github.com/lylicht/SFStudio/actions/runs/44794238481)
+  passed the Windows/macOS/Linux Rust and C ABI checks plus the existing JVM,
+  Android, iOS, JS/Wasm, packaged desktop, and MCP jobs. Kotlin differential
+  fixtures and integration with a Rust renderer remain pending.
 
 ## Not yet verified
 
@@ -109,8 +111,8 @@ Last local check: 2026-11-20, Windows x64, branch
   KMP targets remain buildable but still execute their Kotlin implementation.
 - Pixel rendering and visual parity, installer upgrades, user-data migration,
   performance baselines, and native bindings. Layer color calculation has
-  local coverage only; it has no Kotlin differential fixture or cross-OS CI
-  result yet. The geometry C ABI also needs cross-OS CI coverage.
+  cross-OS smoke coverage but no Kotlin differential fixture. The geometry
+  C ABI has cross-OS CI coverage, but target-specific bindings remain untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain
