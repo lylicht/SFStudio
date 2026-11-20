@@ -40,19 +40,7 @@ val stageRustMcp by tasks.registering(Copy::class) {
     into(layout.buildDirectory.dir("rust-mcp-resources"))
 }
 
-val buildRustFfi by tasks.registering(Exec::class) {
-    group = "build"
-    description = "Build the shared Rust catalog-search library for this platform"
-    workingDir(rootProject.projectDir)
-    commandLine("cargo", "build", "--manifest-path", "rust/Cargo.toml", "-p", "sfstudio-ffi", "--release")
-    inputs.files(
-        fileTree(rootProject.file("rust")) { include("**/*.rs", "**/*.toml") },
-        rootProject.file("rust/Cargo.lock"),
-        rootProject.file("sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"),
-        rootProject.file("app/src/jvmMain/resources/symbol_tags.txt"),
-    )
-    outputs.file(rustFfiBinary)
-}
+val buildRustFfi = rootProject.tasks.named("buildRustFfi")
 
 val stageRustFfi by tasks.registering(Copy::class) {
     dependsOn(buildRustFfi)

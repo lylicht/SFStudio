@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.multiplatform.library)
@@ -60,6 +62,11 @@ kotlin {
             api(libs.compose.ui.graphics)
         }
 
+        jvmMain.dependencies {
+            implementation(libs.jna)
+            implementation(libs.kotlinx.serialization.json)
+        }
+
         jvmTest.dependencies {
             implementation(kotlin("test-junit"))
             // Skia natives for the headless render tests (picked for the machine running them)
@@ -73,4 +80,19 @@ kotlin {
             implementation("org.jetbrains.skiko:skiko-awt-runtime-$skikoOs:0.150.1")
         }
     }
+}
+
+val rustFfiName = when {
+    System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> "sfstudio_ffi.dll"
+    System.getProperty("os.name").contains("mac", ignoreCase = true) -> "libsfstudio_ffi.dylib"
+    else -> "libsfstudio_ffi.so"
+}
+
+tasks.named<Test>("jvmTest") {
+    dependsOn(rootProject.tasks.named("buildRustFfi"))
+    systemProperty(
+        "sfstudio.rust.animation.library",
+        rootProject.file("rust/target/release/$rustFfiName").absolutePath,
+    )
+    if (Runtime.version().feature() >= 24) jvmArgs("--enable-native-access=ALL-UNNAMED")
 }

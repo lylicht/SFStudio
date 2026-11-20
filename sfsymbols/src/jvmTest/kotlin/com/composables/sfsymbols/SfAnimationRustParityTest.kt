@@ -31,9 +31,24 @@ class SfAnimationRustParityTest {
             for (case in cases) {
                 val symbol = SfSymbol.named(case.name) ?: error("unknown SF Symbol ${case.name}")
                 val levels = sfVariableLevels(symbol, 0.63f)
+                val rustFrames = checkNotNull(
+                    sfRustAnimationFrames(symbol, case.effect, case.time, case.rtl, 0.63f),
+                ) { "Rust animation frames unavailable for ${case.id}" }
                 for (index in symbol.layers.indices) {
                     val fx = SfFx()
                     applyEffect(case.effect, case.time, index, symbol, fx, case.rtl)
+                    val expectedFrame = floatArrayOf(
+                        fx.scale, fx.dx, fx.dy, fx.rot, fx.alpha, fx.draw, fx.pivotX, fx.pivotY,
+                        levels.alpha[index], levels.draw[index],
+                    )
+                    expectedFrame.forEachIndexed { field, expectedValue ->
+                        val actualValue = rustFrames[index * 10 + field]
+                        if (expectedValue.isNaN()) {
+                            assertEquals("${case.id} layer $index field $field", true, actualValue.isNaN())
+                        } else {
+                            assertEquals("${case.id} layer $index field $field", expectedValue, actualValue, 0.0002f)
+                        }
+                    }
                     append(listOf(
                         case.name, case.id, case.time.toString(), case.rtl.toString(), index.toString(),
                         effectDuration(case.effect, symbol).toString(), case.effect.isHeld().toString(),

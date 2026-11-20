@@ -292,10 +292,22 @@ private fun DrawScope.drawSymbol(
         drawContext.canvas.saveLayer(Rect(b.left - pad, b.top - pad, b.right + pad, b.bottom + pad), Paint().apply { this.alpha = alpha })
         val fx = SfFx()
         val tt = max(0f, time)
-        val variable = variableValue?.let { sfVariableLevels(sym, it) }
+        val rtl = layoutDirection == LayoutDirection.Rtl && !mirrored
+        val rustFrames = if (playing) sfRustAnimationFrames(sym, effect, tt, rtl, variableValue) else null
+        val variable = if (rustFrames == null) variableValue?.let { sfVariableLevels(sym, it) } else null
         for (i in layers.indices) {
             fx.reset()
-            if (playing) applyEffect(effect, tt, i, sym, fx, rtl = layoutDirection == LayoutDirection.Rtl && !mirrored)
+            val frame = i * 10
+            if (rustFrames != null) {
+                fx.scale = rustFrames[frame]
+                fx.dx = rustFrames[frame + 1]
+                fx.dy = rustFrames[frame + 2]
+                fx.rot = rustFrames[frame + 3]
+                fx.alpha = rustFrames[frame + 4] * rustFrames[frame + 8]
+                fx.draw = min(rustFrames[frame + 5], rustFrames[frame + 9])
+                fx.pivotX = rustFrames[frame + 6]
+                fx.pivotY = rustFrames[frame + 7]
+            } else if (playing) applyEffect(effect, tt, i, sym, fx, rtl)
             if (variable != null) {
                 fx.alpha *= variable.alpha[i]
                 fx.draw = min(fx.draw, variable.draw[i])

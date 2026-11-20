@@ -12,9 +12,11 @@ unchanged. This page covers the second API, a real symbol engine built on `SfSym
 | Rendering modes | dualtone / mono | Monochrome, Hierarchical, Palette, Multicolor |
 | Layers | flattened | Apple's real layer tree (knock-outs, groups, pulse/rotate/variable flags) |
 | Animation | none | 11 effects + symbol transitions |
-| Dependencies | `compose.ui` | `compose.ui` only — no Material, no foundation, no animation lib |
+| Dependencies | `compose.ui` | `compose.ui` public API; JVM runtime uses JNA and kotlinx.serialization for optional Rust animation |
 
 It runs anywhere `compose.ui` does: Android Compose and Compose Multiplatform (desktop, iOS, web).
+On JVM, effect frames use the Rust evaluator when its native library is available; Android, iOS, JS,
+Wasm, and JVM installs without that library use the Kotlin evaluator.
 
 ## Use
 

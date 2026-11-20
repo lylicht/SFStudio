@@ -18,6 +18,12 @@ filter-selection transitions, and MCP client configuration call the Rust C ABI
 through JNA, with Kotlin fallbacks.
 Kotlin still owns favorite file reads and writes.
 
+The JVM implementation of the public `SfSymbolIcon` now evaluates Apple effect
+frames through the same Rust C ABI when the native library is available. Compose
+still rasterizes paths and applies the frames; a Kotlin evaluator remains the
+fallback. Android, iOS, JS, and Wasm keep using that Kotlin evaluator until their
+Rust adapters are implemented.
+
 The shared catalog search and filters, filter-selection transitions, symbol
 metadata lookup, Compose code generator, ordered favorite toggle, glyph
 geometry decoder, and animation evaluator export C ABI entry points without
@@ -36,16 +42,18 @@ Python, JNI/JNA, Kotlin/Native, Swift, and other runtimes with a C FFI can call
 these entry points.
 This ABI is a language-neutral integration surface, not a claim that each
 language or platform already has a packaged adapter or complete app binding.
-The published KMP API does not call this ABI yet; its Android, iOS, JS, and
-Wasm implementations remain active. The desktop JVM app calls search, code
-generation, favorite toggling, category/favorites filtering, filter-selection
-transitions, and MCP client configuration through JNA on Windows, macOS, and
-Linux. The JNA metadata lookup binding passed parity checks on all three
-operating systems in run #20. JS and Wasm consumers still use Kotlin until
-target-specific Rust/Wasm adapters pass their tests. The vector geometry and
-animation C ABI smoke checks passed on Windows, macOS, and Linux. Run #34 passed
-the filter-selection C ABI on those operating systems and retained the KMP
-builds. The published KMP callers still do not use these Rust endpoints.
+The JVM `SfSymbolIcon` calls the animation endpoint when its native library is
+available; Android, iOS, JS, and Wasm retain the Kotlin evaluator. The desktop
+JVM app calls search, code generation, favorite toggling, category/favorites
+filtering, filter-selection transitions, MCP client configuration, and effect
+evaluation through JNA. The JNA metadata lookup binding passed parity checks on
+Windows, macOS, and Linux in run #20. Rust animation frames match the Kotlin
+evaluator in the JVM parity test, and the existing Compose renderer suite
+passes with the native path enabled. JS and Wasm consumers still use Kotlin
+until target-specific Rust/Wasm adapters pass their tests. The vector geometry
+and animation C ABI smoke checks passed on Windows, macOS, and Linux. Run #34
+passed the filter-selection C ABI on those operating systems and retained the
+KMP builds.
 
 ## Compatibility rules
 
@@ -53,11 +61,11 @@ builds. The published KMP callers still do not use these Rust endpoints.
   and target variants operational during migration.
 - Do not change installer IDs, user-data paths, or JSON formats as part of a
   Rust-only change.
-- Treat Kotlin behavior and generated symbol sources as the reference until a
-  Rust replacement passes per-target behavioral and visual checks.
-- Do not claim that current Rust code backs KMP callers: the Rust core has no
-  FFI integration into the published Kotlin APIs yet. Packaged desktop MCP
-  launches use Rust; development classpath launches retain Kotlin.
+- Treat Kotlin behavior and generated symbol sources as the reference; retain
+  the Kotlin fallback on targets without a tested Rust adapter.
+- JVM effect frames use Rust when the optional native library loads. The
+  Compose renderer still draws the paths. Packaged desktop MCP launches use
+  Rust; development classpath launches retain Kotlin.
 - A Rust bridge must sit behind existing public Kotlin APIs; Rust types and
   ABI details must not leak into downstream Compose source.
 
@@ -66,7 +74,7 @@ builds. The published KMP callers still do not use these Rust endpoints.
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `NOT_STARTED`; keep the Kotlin path |
-| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, and `--mcp` use Rust | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; MCP config is wired through JNA with local Kotlin parity; published KMP APIs, UI state, and rendering remain Kotlin |
+| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, animation frames, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; MCP config has local Kotlin parity; Apple animation frames pass native/Kotlin parity and the Compose suite; Compose still rasterizes symbol paths |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `NOT_STARTED`; evaluate a narrow C ABI / generated Swift bridge |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
 | Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |
@@ -85,12 +93,13 @@ weights and three optical scales. Apple-style effect timing, per-layer
 transforms, variable-layer staging, replace recipes, layer color-mode
 calculations, and automatic gradient stops have Rust core implementations and
 JSON C ABI, along with tagged-layer Magic Replace morph paths. Selected Kotlin
-differential fixtures cover effect timing and layer transforms; rendering color
-calculations currently have Rust unit tests and Windows/macOS/Linux C ABI
-smoke coverage, but no Kotlin differential fixture. Draw-field distance and
-level calculations are ported, while platform path rasterization and clip
-geometry generation remain in Kotlin. Kotlin remains the active visual
-renderer; renderer integration, visual rendering parity, broader morph
-fixtures, and mobile/JS/Wasm adapters are still outstanding. The published
-symbol definitions and KMP API remain available. Do not extract or redistribute
-Apple-owned symbol assets beyond the repository's existing permitted scope.
+differential fixtures cover effect timing and layer transforms, and the JVM
+renderer now consumes Rust frames while Compose continues to rasterize paths
+and clip geometry. Rendering color calculations have Rust unit tests and
+Windows/macOS/Linux C ABI smoke coverage, but no Kotlin differential fixture.
+Draw-field distance and level calculations are ported; platform path
+rasterization and clip geometry remain in Kotlin. Pixel-by-pixel Rust/Kotlin
+rendering comparison, broader morph fixtures, and mobile/JS/Wasm adapters are
+outstanding. The published symbol definitions and KMP API remain available. Do
+not extract or redistribute Apple-owned symbol assets beyond the repository's
+existing permitted scope.
