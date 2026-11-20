@@ -108,6 +108,10 @@ Last local check: 2026-11-20, Windows x64, branch
   Settings helper through JNA when the native library is available. The
   original Kotlin generator remains the native-library fallback. Local byte-
   exact C ABI/JVM parity and the cross-platform checks in run #33 pass.
+- Desktop symbol selection now obtains detail metadata from Rust through the
+  existing `sfstudio_symbol_json` C ABI; it keeps the supplied Kotlin metadata
+  on native-library errors or absence. The JVM selection-path test passed
+  locally and on Windows/macOS/Linux in [Actions run #44](https://github.com/lylicht/SFStudio/actions/runs/44832738954).
 
 ## Rust-backed outline interpolation
 

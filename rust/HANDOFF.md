@@ -19,18 +19,17 @@ invalid IDs and batches, and notifications. See
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
 filter-selection transitions, Compose snippet generation, favorite toggling,
 MCP client config generation, outline interpolation, and Apple effect rendering
-through JNA. The latest completed [GitHub Actions run #42](https://github.com/lylicht/SFStudio/actions/runs/44831150701)
+through JNA. The latest completed Rust migration [GitHub Actions run #44](https://github.com/lylicht/SFStudio/actions/runs/44832738954)
 passed Rust/C ABI checks on Windows/macOS/Linux, JVM tests on Windows/macOS/Linux,
 Android, iOS, JS/Wasm, packaged MCP launchers on all three desktop OSes, and
-differential MCP replay after the Rust typed-float outline endpoint was wired
-into the JVM renderer. Local Rust, Python `ctypes`, JVM, desktop app, JS, and
-Wasm checks pass.
-The desktop detail selection now calls the Rust metadata lookup endpoint and
-keeps the supplied Kotlin metadata if Rust is unavailable or errors. The new
-selection-path JVM test passes locally; cross-platform CI for this caller is
-pending.
-The metadata lookup binding passed Windows/macOS/Linux parity and the Windows
-MSI passed in run #20; lookup is not yet called by a production UI path.
+differential MCP replay. This includes the typed-float outline endpoint in the
+JVM renderer and the live Rust metadata lookup used by desktop symbol
+selection. Local Rust, Python `ctypes`, JVM, desktop app, JS, and Wasm checks
+pass. The Kotlin metadata fallback remains active when Rust is unavailable or
+errors.
+The metadata lookup endpoint and its live desktop caller passed
+Windows/macOS/Linux parity in runs #20 and #44; the Windows MSI passed in run
+#20.
 Android/iOS/JS/Wasm Kotlin targets still compile and retain their Kotlin paths;
 Rust-backed adapters for those targets are not implemented.
 
