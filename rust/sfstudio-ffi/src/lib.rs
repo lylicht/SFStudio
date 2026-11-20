@@ -441,9 +441,10 @@ pub unsafe extern "C" fn sfstudio_favorites_toggle_json(
 /// Evaluate an Apple-style symbol effect and optional replace transition as UTF-8 JSON.
 ///
 /// Input is an object with `symbol`, finite nonnegative `time`, optional `rtl`, `effect`,
-/// optional `variableValue`, and optional `transition`. Effect names use snake
-/// case (for example `variable_color` and `draw_on`); layer results include the
-/// Apple effect transform and the independent variable-rendering alpha/draw.
+/// optional `variableValue`, optional `transition`, and optional `magicReplace`.
+/// Effect names use snake case (for example `variable_color` and `draw_on`);
+/// layer results include Apple effect transforms and independent variable
+/// rendering alpha/draw. `magicReplace` returns matched layer outlines.
 /// Returns the required/written byte count, or -11 for invalid animation JSON
 /// or options. Other errors use the common buffer contract; -6 means unknown
 /// symbol. Use `output = NULL` and `output_capacity = 0` to query the size.
@@ -512,6 +513,13 @@ pub unsafe extern "C" fn sfstudio_animation_json(
             None => return INVALID_ANIMATION,
         },
     };
+    let magic_request = match object.get("magicReplace") {
+        None | Some(serde_json::Value::Null) => None,
+        Some(value) => match parse_magic_replace(value) {
+            Some(value) => Some(value),
+            None => return INVALID_ANIMATION,
+        },
+    };
 
     match catch_unwind(AssertUnwindSafe(|| {
         let catalog = sfstudio_core::vector::vector_catalog().map_err(|_| INTERNAL_ERROR)?;
@@ -563,6 +571,80 @@ pub unsafe extern "C" fn sfstudio_animation_json(
                 "in": { "scale": incoming.scale, "alpha": incoming.alpha },
             })
         });
+        let magic_replace =
+            if let Some((from, to, progress, from_weight, to_weight, from_scale, to_scale)) =
+                &magic_request
+            {
+                let old_info = catalog.find(from).ok_or(UNKNOWN_SYMBOL)?;
+                let new_info = catalog.find(to).ok_or(UNKNOWN_SYMBOL)?;
+                let old_glyph = catalog
+                    .glyph_for(old_info)
+                    .map_err(|_| INTERNAL_ERROR)?
+                    .ok_or(UNKNOWN_SYMBOL)?;
+                let new_glyph = catalog
+                    .glyph_for(new_info)
+                    .map_err(|_| INTERNAL_ERROR)?
+                    .ok_or(UNKNOWN_SYMBOL)?;
+                let medium = sfstudio_core::vector::OpticalScale::Medium;
+                let old_medium = catalog
+                    .geometry_at_scale(old_info, &old_glyph, medium)
+                    .map_err(|_| INTERNAL_ERROR)?;
+                let new_medium = catalog
+                    .geometry_at_scale(new_info, &new_glyph, medium)
+                    .map_err(|_| INTERNAL_ERROR)?;
+                let old_geometry = catalog
+                    .geometry_at_scale(old_info, &old_glyph, *from_scale)
+                    .map_err(|_| INTERNAL_ERROR)?;
+                let new_geometry = catalog
+                    .geometry_at_scale(new_info, &new_glyph, *to_scale)
+                    .map_err(|_| INTERNAL_ERROR)?;
+                let old_bounds =
+                    sfstudio_core::vector::visible_bounds(&old_glyph, &old_geometry, *from_weight)
+                        .map_err(|_| INTERNAL_ERROR)?;
+                let new_bounds =
+                    sfstudio_core::vector::visible_bounds(&new_glyph, &new_geometry, *to_weight)
+                        .map_err(|_| INTERNAL_ERROR)?;
+                let old_fit =
+                    sfstudio_core::vector::visible_bounds(&old_glyph, &old_medium, *from_weight)
+                        .map_err(|_| INTERNAL_ERROR)?;
+                let new_fit =
+                    sfstudio_core::vector::visible_bounds(&new_glyph, &new_medium, *to_weight)
+                        .map_err(|_| INTERNAL_ERROR)?;
+                let old_model =
+                    sfstudio_core::animation::AnimationSymbol::from_glyph(&old_glyph, &old_medium);
+                let new_model =
+                    sfstudio_core::animation::AnimationSymbol::from_glyph(&new_glyph, &new_medium);
+                let old_side = sfstudio_core::animation::MagicReplaceSide {
+                    symbol: &old_model,
+                    geometry: &old_geometry,
+                    weight: *from_weight,
+                    bounds: old_bounds,
+                    fit: old_fit,
+                };
+                let new_side = sfstudio_core::animation::MagicReplaceSide {
+                    symbol: &new_model,
+                    geometry: &new_geometry,
+                    weight: *to_weight,
+                    bounds: new_bounds,
+                    fit: new_fit,
+                };
+                let matched =
+                    sfstudio_core::animation::magic_replace(old_side, new_side, *progress)
+                        .map_err(|_| INTERNAL_ERROR)?;
+                Some(serde_json::json!({
+                    "from": old_info.name,
+                    "to": new_info.name,
+                    "progress": progress,
+                    "matchedLayers": matched.iter().map(|m| serde_json::json!({
+                        "oldLayer": m.old_layer,
+                        "newLayer": m.new_layer,
+                        "ops": m.ops,
+                        "points": m.points,
+                    })).collect::<Vec<_>>(),
+                }))
+            } else {
+                None
+            };
         serde_json::to_vec(&serde_json::json!({
             "symbol": symbol.name,
             "time": time,
@@ -571,6 +653,7 @@ pub unsafe extern "C" fn sfstudio_animation_json(
             "defaultRepeat": if sfstudio_core::animation::AnimationSymbol::continuous_by_default(effect) { "continuous" } else { "once" },
             "layers": layers,
             "transition": transition,
+            "magicReplace": magic_replace,
         })).map_err(|_| INTERNAL_ERROR)
     })) {
         Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
@@ -702,6 +785,54 @@ fn parse_transition(
     };
     let time = object.get("time")?.as_f64()? as f32;
     (time.is_finite() && time >= 0.0).then_some((direction, time))
+}
+
+type MagicReplaceRequest = (
+    String,
+    String,
+    f32,
+    f32,
+    f32,
+    sfstudio_core::vector::OpticalScale,
+    sfstudio_core::vector::OpticalScale,
+);
+
+fn parse_magic_replace(value: &serde_json::Value) -> Option<MagicReplaceRequest> {
+    let object = value.as_object()?;
+    let from = object.get("from")?.as_str()?.to_owned();
+    let to = object.get("to")?.as_str()?.to_owned();
+    let progress = object.get("progress")?.as_f64()? as f32;
+    if !progress.is_finite() || !(0.0..=1.0).contains(&progress) {
+        return None;
+    }
+    let weight = |key: &str| -> Option<f32> {
+        let value = object
+            .get(key)
+            .map_or(Some(400.0), serde_json::Value::as_f64)? as f32;
+        value.is_finite().then_some(value)
+    };
+    let scale = |key: &str| -> Option<sfstudio_core::vector::OpticalScale> {
+        use sfstudio_core::vector::OpticalScale;
+        match object
+            .get(key)
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("medium")
+        {
+            "small" => Some(OpticalScale::Small),
+            "medium" => Some(OpticalScale::Medium),
+            "large" => Some(OpticalScale::Large),
+            _ => None,
+        }
+    };
+    Some((
+        from,
+        to,
+        progress,
+        weight("fromWeight")?,
+        weight("toWeight")?,
+        scale("fromScale")?,
+        scale("toScale")?,
+    ))
 }
 
 #[cfg(test)]

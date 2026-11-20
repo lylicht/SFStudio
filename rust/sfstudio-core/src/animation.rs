@@ -1,6 +1,6 @@
 //! Apple-style SF Symbol effect timing and per-layer transforms.
 
-use crate::vector::{Geometry, Glyph, LayerNode};
+use crate::vector::{Bounds, Geometry, Glyph, LayerNode};
 use std::cmp::min;
 use std::f32::consts::PI;
 
@@ -122,6 +122,26 @@ pub struct AnimationLayer {
     pub root_u: f32,
     pub stroke_length: f32,
     pub group: usize,
+    pub contours: Vec<usize>,
+    pub tags: Vec<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MagicLayerMorph {
+    pub old_layer: usize,
+    pub new_layer: usize,
+    pub ops: Vec<u8>,
+    /// Interpolated screen-coordinate points in the new symbol's frame.
+    pub points: Vec<f32>,
+}
+
+#[derive(Clone, Copy)]
+pub struct MagicReplaceSide<'a> {
+    pub symbol: &'a AnimationSymbol,
+    pub geometry: &'a Geometry,
+    pub weight: f32,
+    pub bounds: Bounds,
+    pub fit: Bounds,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -553,6 +573,145 @@ pub fn draw_seconds(length: f32) -> f32 {
     (52.0 * (((-0.77 * u + 0.96) * u + 0.81) * u) + 8.0) / 60.0
 }
 
+/// Match Apple-tagged, structurally identical layers and morph their outlines.
+/// Result pairs are `(new layer index, old layer index)`, matching the Compose renderer.
+pub fn magic_replace(
+    old: MagicReplaceSide<'_>,
+    new: MagicReplaceSide<'_>,
+    progress: f32,
+) -> Result<Vec<MagicLayerMorph>, String> {
+    if !old.weight.is_finite() || !new.weight.is_finite() || !progress.is_finite() {
+        return Err("morph weights and progress must be finite".to_owned());
+    }
+    let old_contours = contour_layout(old.geometry);
+    let new_contours = contour_layout(new.geometry);
+    let mut used_old = vec![false; old.symbol.layers.len()];
+    let mut matches = Vec::new();
+    for (new_index, new_layer) in new.symbol.layers.iter().enumerate() {
+        if new_layer.erases {
+            continue;
+        }
+        for (old_index, old_layer) in old.symbol.layers.iter().enumerate() {
+            if used_old[old_index]
+                || old_layer.erases
+                || !old_layer
+                    .tags
+                    .iter()
+                    .any(|tag| new_layer.tags.contains(tag))
+                || !same_layer_signature(old_layer, new_layer, &old_contours, &new_contours)
+            {
+                continue;
+            }
+            used_old[old_index] = true;
+            matches.push((new_index, old_index));
+            break;
+        }
+    }
+
+    let old_points = crate::vector::interpolate_points(old.geometry, old.weight);
+    let new_points = crate::vector::interpolate_points(new.geometry, new.weight);
+    let old_fit_size = (old.fit.right - old.fit.left).max(old.fit.bottom - old.fit.top);
+    let new_fit_size = (new.fit.right - new.fit.left).max(new.fit.bottom - new.fit.top);
+    if old_fit_size <= 0.0
+        || new_fit_size <= 0.0
+        || !old_fit_size.is_finite()
+        || !new_fit_size.is_finite()
+    {
+        return Err("morph fit bounds must have positive dimensions".to_owned());
+    }
+    let ratio = old_fit_size / new_fit_size;
+    let old_center = (
+        (old.bounds.left + old.bounds.right) / 2.0,
+        (old.bounds.top + old.bounds.bottom) / 2.0,
+    );
+    let new_center = (
+        (new.bounds.left + new.bounds.right) / 2.0,
+        (new.bounds.top + new.bounds.bottom) / 2.0,
+    );
+    let mut output = Vec::with_capacity(matches.len());
+    for (new_index, old_index) in matches {
+        let old_layer = &old.symbol.layers[old_index];
+        let new_layer = &new.symbol.layers[new_index];
+        let mut ops = Vec::new();
+        let mut points = Vec::new();
+        for (old_contour, new_contour) in old_layer.contours.iter().zip(&new_layer.contours) {
+            let (old_ops, mut old_offset) = old_contours
+                .get(*old_contour)
+                .ok_or_else(|| "old layer references a missing contour".to_owned())?;
+            let (new_ops, mut new_offset) = new_contours
+                .get(*new_contour)
+                .ok_or_else(|| "new layer references a missing contour".to_owned())?;
+            if old_ops != new_ops {
+                return Err("matched contour structures differ".to_owned());
+            }
+            ops.extend_from_slice(new_ops);
+            for &op in new_ops {
+                let coordinate_count = match op {
+                    0 | 1 => 2,
+                    2 => 6,
+                    3 => 0,
+                    _ => return Err("invalid path operation".to_owned()),
+                };
+                for _ in 0..(coordinate_count / 2) {
+                    let x = (old_points[old_offset] - old_center.0) / ratio + new_center.0;
+                    let y = (old_points[old_offset + 1] - old_center.1) / ratio + new_center.1;
+                    points.push(x + (new_points[new_offset] - x) * progress);
+                    points.push(y + (new_points[new_offset + 1] - y) * progress);
+                    old_offset += 2;
+                    new_offset += 2;
+                }
+            }
+        }
+        output.push(MagicLayerMorph {
+            old_layer: old_index,
+            new_layer: new_index,
+            ops,
+            points,
+        });
+    }
+    Ok(output)
+}
+
+fn contour_layout(geometry: &Geometry) -> Vec<(Vec<u8>, usize)> {
+    let mut contours = Vec::new();
+    let mut start = 0;
+    let mut offset = 0;
+    let mut ops = Vec::new();
+    for &op in &geometry.ops {
+        ops.push(op);
+        offset += match op {
+            0 | 1 => 2,
+            2 => 6,
+            _ => 0,
+        };
+        if op == 3 {
+            contours.push((std::mem::take(&mut ops), start));
+            start = offset;
+        }
+    }
+    if !ops.is_empty() {
+        contours.push((ops, start));
+    }
+    contours
+}
+
+fn same_layer_signature(
+    old: &AnimationLayer,
+    new: &AnimationLayer,
+    old_contours: &[(Vec<u8>, usize)],
+    new_contours: &[(Vec<u8>, usize)],
+) -> bool {
+    old.contours.len() == new.contours.len()
+        && old
+            .contours
+            .iter()
+            .zip(&new.contours)
+            .all(|(&old_id, &new_id)| {
+                old_contours.get(old_id).map(|(ops, _)| ops)
+                    == new_contours.get(new_id).map(|(ops, _)| ops)
+            })
+}
+
 pub fn replace_seconds(direction: ReplaceDirection) -> f32 {
     if direction == ReplaceDirection::DownUp {
         0.5
@@ -741,6 +900,8 @@ fn flatten(
             root_u: node.ties.first().copied().unwrap_or(f32::NAN),
             stroke_length: length,
             group: assigned_group,
+            contours: node.contours.clone(),
+            tags: node.tags.clone(),
         });
         return;
     }
@@ -892,6 +1053,57 @@ mod tests {
             let (alpha, draw) = symbol.variable_levels(0.63);
             assert_close(alpha[index], fields[16].parse().unwrap(), row);
             assert_close(draw[index], fields[17].parse().unwrap(), row);
+        }
+    }
+
+    #[test]
+    fn magic_replace_morphs_tagged_layers_in_the_new_symbol_frame() {
+        let catalog = crate::vector::vector_catalog().unwrap();
+        let info = catalog.find("wifi").unwrap();
+        let glyph = catalog.glyph_for(info).unwrap().unwrap();
+        let geometry = catalog
+            .geometry_at_scale(info, &glyph, crate::vector::OpticalScale::Medium)
+            .unwrap();
+        let symbol = AnimationSymbol::from_glyph(&glyph, &geometry);
+        let bounds = crate::vector::visible_bounds(&glyph, &geometry, 400.0).unwrap();
+        let side = MagicReplaceSide {
+            symbol: &symbol,
+            geometry: &geometry,
+            weight: 400.0,
+            bounds,
+            fit: bounds,
+        };
+        let morphs = magic_replace(side, side, 0.5).unwrap();
+        assert!(!morphs.is_empty());
+        assert!(morphs
+            .iter()
+            .all(|m| !m.ops.is_empty() && m.points.iter().all(|p| p.is_finite())));
+        let source_points = crate::vector::interpolate_points(&geometry, 400.0);
+        let contours = contour_layout(&geometry);
+        for morph in morphs {
+            assert_eq!(morph.old_layer, morph.new_layer);
+            let mut expected_ops = Vec::new();
+            let mut expected_points = Vec::new();
+            for &contour in &symbol.layers[morph.new_layer].contours {
+                let (ops, start) = &contours[contour];
+                expected_ops.extend_from_slice(ops);
+                let count = ops
+                    .iter()
+                    .map(|op| match op {
+                        0 | 1 => 2,
+                        2 => 6,
+                        _ => 0,
+                    })
+                    .sum::<usize>();
+                expected_points.extend_from_slice(&source_points[*start..*start + count]);
+            }
+            assert_eq!(morph.ops, expected_ops);
+            assert_eq!(morph.points.len(), expected_points.len());
+            assert!(morph
+                .points
+                .iter()
+                .zip(expected_points)
+                .all(|(a, b)| (a - b).abs() < 0.0001));
         }
     }
 

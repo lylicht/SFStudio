@@ -21,10 +21,10 @@ portable logic behind the installed desktop entry points.
   source for vector path operations; visible bounds match Kotlin over ten
   symbols, all nine weights, and all three optical scales.
 - `sfstudio-core::animation`: Apple-style effect timing, per-layer transforms,
-  variable-layer staging, and replace recipes. The JSON C ABI makes frame
-  evaluation available to foreign-language callers. Rendering modes, colors,
-  renderer integration, Magic Replace morphing, and draw-rail clipping remain
-  in Kotlin.
+  variable-layer staging, replace recipes, and Magic Replace tag matching with
+  morphed outlines. The JSON C ABI makes frame evaluation available to
+  foreign-language callers. Rendering modes, colors, renderer integration,
+  and draw-rail clipping remain in Kotlin.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
 - `sfstudio-ffi`: a language-neutral C ABI for catalog search/filtering,

@@ -6,7 +6,7 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all 29 workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 30 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
 8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
@@ -32,6 +32,8 @@ Rust/KMP/package behavior in CI. GitHub Actions run
 vector/bounds baseline on Windows/macOS/Linux, JVM, Android API 37, iOS,
 JS/Wasm, packaged launchers, and MCP replay. The animation port passed the full
 cross-platform matrix in [run #25](https://github.com/lylicht/SFStudio/actions/runs/44787007184).
+The Magic Replace morph extension was added after run #25 and awaits the next
+cross-platform CI run.
 
 ## Existing work inherited from PR #7
 
@@ -48,8 +50,8 @@ cross-platform matrix in [run #25](https://github.com/lylicht/SFStudio/actions/r
 
 1. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
    one FFI mechanism is not assumed to fit every target.
-2. Expand Rust animation parity coverage, port Magic Replace matching/morphing
-   and draw-rail clipping, then keep the existing renderer as the visual
+2. Expand Rust animation and Magic Replace parity fixtures, port draw-rail
+   clipping and rendering modes, then keep the existing renderer as the visual
    reference until Rust rendering is verified.
 3. Preserve existing user data and package identities; test upgrade behavior
    before changing persistence or installers.

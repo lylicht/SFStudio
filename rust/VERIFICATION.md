@@ -87,11 +87,14 @@ Last local check: 2026-11-20, Windows x64, branch
   `ctypes`, including Appear transforms, DownUp replacement, variable layers,
   malformed input, and unknown symbols.
 - Rust effect calculations match a Kotlin-generated fixture across 16 effect
-  configurations, selected symbols, and their flattened layers. The Compose
-  renderer remains the visual reference; Magic Replace morphing and draw-rail
-  clipping are not implemented in Rust yet. [GitHub Actions run #25](https://github.com/lylicht/SFStudio/actions/runs/44787007184)
+  configurations, selected symbols, and their flattened layers. [GitHub
+  Actions run #25](https://github.com/lylicht/SFStudio/actions/runs/44787007184)
   passed the full Windows/macOS/Linux, JVM, Android, iOS, JS/Wasm, packaged
-  launcher, and MCP matrix for this code.
+  launcher, and MCP matrix for those effect frames.
+- The Magic Replace extension matches tagged layers and emits morphed path
+  operations/points. Its local Rust and Python ABI checks pass; the extension
+  postdates run #25 and awaits cross-platform CI. Draw-rail clipping is still
+  not implemented in Rust, and Compose remains the active visual renderer.
 
 ## Not yet verified
 

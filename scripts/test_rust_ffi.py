@@ -157,6 +157,17 @@ def main():
     ):
         assert animation({"symbol": "wifi", "time": 0.5, "rtl": True,
                           "effect": effect})["layers"]
+    magic = animation({"symbol": "wifi", "time": 0.5, "effect": {"type": "pulse"},
+                       "magicReplace": {"from": "wifi", "to": "wifi", "progress": 0.5}})
+    assert magic["magicReplace"]["matchedLayers"]
+    assert all(layer["ops"] and len(layer["points"]) for layer in magic["magicReplace"]["matchedLayers"])
+    paired_magic = animation({
+        "symbol": "xmark.circle.fill", "time": 0.5, "effect": {"type": "pulse"},
+        "magicReplace": {"from": "checkmark.circle.fill", "to": "xmark.circle.fill", "progress": 0.5},
+    })["magicReplace"]
+    assert paired_magic["from"] == "checkmark.circle.fill"
+    assert paired_magic["to"] == "xmark.circle.fill"
+    assert paired_magic["matchedLayers"]
 
     def filtered_search(query, category, favorites, limit):
         encoded_query = query.encode("utf-8")
@@ -235,6 +246,11 @@ def main():
         b'{"symbol":"wifi","time":-0.1,"effect":{"type":"appear"}}'
     )
     assert animation_json(negative_time, len(negative_time.value), None, 0) == -11
+    invalid_morph = ctypes.create_string_buffer(
+        b'{"symbol":"wifi","time":0,"effect":{"type":"appear"},'
+        b'"magicReplace":{"from":"wifi","to":"wifi","progress":1.1}}'
+    )
+    assert animation_json(invalid_morph, len(invalid_morph.value), None, 0) == -11
     missing_animation = ctypes.create_string_buffer(
         b'{"symbol":"missing","time":0,"effect":{"type":"appear"}}'
     )

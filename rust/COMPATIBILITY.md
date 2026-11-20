@@ -73,9 +73,10 @@ generated geometry sources at compile time. Geometry decoding now matches all
 variants. Visible bounds match Kotlin on a ten-symbol matrix of all nine
 weights and three optical scales. Apple-style effect timing, per-layer
 transforms, variable-layer staging, and replace recipes have a Rust core
-implementation and JSON C ABI, with selected Kotlin differential fixtures.
-Kotlin remains the active visual renderer; Magic Replace morphing, draw-rail
-clipping, rendering modes, broader effect fixtures, and mobile/JS/Wasm adapters
-are still outstanding. The published symbol definitions and KMP API remain
-available. Do not extract or redistribute Apple-owned symbol assets beyond the
-repository's existing permitted scope.
+implementation and JSON C ABI, along with tagged-layer Magic Replace morph
+paths. Selected Kotlin differential fixtures cover effect timing and layer
+transforms. Kotlin remains the active visual renderer; Rust renderer
+integration, draw-rail clipping, rendering modes, broader morph fixtures, and
+mobile/JS/Wasm adapters are still outstanding. The published symbol
+definitions and KMP API remain available. Do not extract or redistribute
+Apple-owned symbol assets beyond the repository's existing permitted scope.

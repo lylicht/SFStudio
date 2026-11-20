@@ -68,8 +68,11 @@ intptr_t sfstudio_glyph_json(const uint8_t *symbol_name,
  * transform and separate variableAlpha/variableDraw values. Optional
  * variableValue applies Apple's variable-layer ordering. Optional transition
  * is {"direction":"down_up","time":0.1}; directions are down_up, off_up,
- * and up_up. Returns the normal required/written JSON byte count; -11 means an
- * invalid request and -6 means unknown symbol.
+ * and up_up. Optional magicReplace is {"from":"wifi","to":"wifi",
+ * "progress":0.5}, with optional fromWeight/toWeight and fromScale/toScale
+ * (small/medium/large). It returns matchedLayers with outline path operations
+ * and morphed points. Returns the normal required/written JSON byte count;
+ * -11 means an invalid request and -6 means unknown symbol.
  */
 intptr_t sfstudio_animation_json(const uint8_t *input, size_t input_len,
                                  uint8_t *output, size_t output_capacity);
