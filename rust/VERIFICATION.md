@@ -146,12 +146,17 @@ Last local check: 2026-11-20, Windows x64, branch
   was unavailable because this Windows host has no Android SDK; iOS compilation
   and tests require macOS.
 - The JVM `SfSymbolIcon` renderer now requests one Rust animation frame batch
-  per draw and falls back to Kotlin if the native library or result is
-  unavailable. `SfAnimationRustParityTest` invokes the real C ABI and compares
-  every layer frame with Kotlin for all listed Apple effects; the full
-  `:sfsymbols:jvmTest` suite passes with the Rust path enabled, as does
-  `:app:jvmTest`. The shared `buildRustFfi` Gradle task now lives at the root so
-  both app packaging and library parity tests build the same native library.
+  per draw, including Rust-resolved sRGB layer colors and gradient stops, and
+  falls back to Kotlin if the native library or result is unavailable. The JVM
+  parity tests compare every layer frame for all listed Apple effects and
+  compare layer appearance in monochrome, hierarchical, palette, and multicolor
+  modes. Colors and gradient stops allow 0.002 float tolerance for Compose color
+  channel packing and floating-point math; wide-gamut colors use Kotlin. The
+  full `:sfsymbols:jvmTest` suite passes with the native path enabled, including
+  animated renders in all four modes, as does `:app:jvmTest`. JS and Wasm main
+  source sets compile. The shared `buildRustFfi` Gradle task now lives at the
+  root so both app packaging and library parity tests build the same native
+  library.
 - [GitHub Actions run #37](https://github.com/lylicht/SFStudio/actions/runs/44815230235)
   passed every job: Rust and FFI on Windows/macOS/Linux; JVM animation parity
   on Windows/macOS/Linux; Android, iOS, JS/Wasm, all packaged launchers, and MCP
@@ -163,10 +168,9 @@ Last local check: 2026-11-20, Windows x64, branch
   Their existing KMP targets remain buildable and use the Kotlin evaluator;
   only JVM effect-frame evaluation calls Rust today.
 - Pixel-by-pixel rendering parity, installer upgrades, user-data migration,
-  and performance baselines. Layer color calculation has cross-OS smoke
-  coverage but no Kotlin differential fixture. Draw-field API integration with
-  the active renderer is pending. Geometry and draw-field C ABIs have cross-OS
-  CI coverage, but target-specific bindings remain untested.
+  and performance baselines. Draw-field API integration with the active
+  renderer is pending. Geometry and draw-field C ABIs have cross-OS CI coverage,
+  but target-specific bindings remain untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain

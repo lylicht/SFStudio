@@ -1,9 +1,12 @@
 package com.composables.sfsymbols
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import com.sun.jna.Library
 import com.sun.jna.Native
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -23,21 +26,44 @@ internal actual fun sfRustAnimationFrames(
     time: Float,
     rtl: Boolean,
     variableValue: Float?,
-): FloatArray? = RustAnimation.frames(symbol, effect, time, rtl, variableValue)
+    mode: SfRenderingMode,
+    tint: Color,
+    palette: List<Color>,
+    gradient: Boolean,
+): FloatArray? = RustAnimation.frames(symbol, effect, time, rtl, variableValue, mode, tint, palette, gradient)
 
 private object RustAnimation {
     private val warned = AtomicBoolean()
     private val native by lazy { loadNative() }
     private val output = ThreadLocal.withInitial { ByteArray(16 * 1024) }
 
-    fun frames(symbol: SfSymbol, effect: SfSymbolEffect, time: Float, rtl: Boolean, variableValue: Float?): FloatArray? = try {
+    fun frames(
+        symbol: SfSymbol,
+        effect: SfSymbolEffect,
+        time: Float,
+        rtl: Boolean,
+        variableValue: Float?,
+        mode: SfRenderingMode,
+        tint: Color,
+        palette: List<Color>,
+        gradient: Boolean,
+    ): FloatArray? = try {
         val library = native ?: return null
+        val includeAppearance = tint.isRustRepresentable() && palette.all { it.isRustRepresentable() }
         val request = buildJsonObject {
             put("symbol", symbol.name)
             put("time", time)
             put("rtl", rtl)
             put("effect", effect.toRustJson())
             if (variableValue != null) put("variableValue", variableValue)
+            if (includeAppearance) {
+                put("rendering", buildJsonObject {
+                    put("mode", mode.toRustString())
+                    put("tint", tint.toRustRgba())
+                    put("palette", buildJsonArray { palette.forEach { add(it.toRustRgba()) } })
+                    put("gradient", gradient)
+                })
+            }
         }.toString().toByteArray(Charsets.UTF_8)
 
         var buffer = output.get()
@@ -58,10 +84,10 @@ private object RustAnimation {
         ).jsonObject["layers"]?.jsonArray ?: return null
         if (layers.size != symbol.layers.size) return null
 
-        FloatArray(layers.size * 10).also { frames ->
+        FloatArray(layers.size * FRAME_STRIDE).also { frames ->
             layers.forEachIndexed { index, item ->
                 val layer = item.jsonObject
-                val offset = index * 10
+                val offset = index * FRAME_STRIDE
                 frames[offset] = layer.number("scale") ?: return null
                 frames[offset + 1] = layer.number("dx") ?: return null
                 frames[offset + 2] = layer.number("dy") ?: return null
@@ -72,6 +98,40 @@ private object RustAnimation {
                 frames[offset + 7] = layer.nullableNumber("pivotY") ?: return null
                 frames[offset + 8] = layer.number("variableAlpha") ?: return null
                 frames[offset + 9] = layer.number("variableDraw") ?: return null
+
+                val appearance = layer["appearance"]?.jsonObject
+                if (appearance == null) {
+                    for (field in 10 until FRAME_STRIDE) frames[offset + field] = Float.NaN
+                } else {
+                    frames[offset + 14] = 1f
+                    val color = appearance["color"] ?: return null
+                    if (color == JsonNull) {
+                        for (field in 10..13) frames[offset + field] = Float.NaN
+                    } else {
+                        val channels = color.jsonArray
+                        if (channels.size != 4) return null
+                        channels.forEachIndexed { channel, value ->
+                            frames[offset + 10 + channel] = value.jsonPrimitive.content.toFloatOrNull()
+                                ?.takeIf { it.isFinite() } ?: return null
+                        }
+                    }
+                    val stops = appearance["gradient"] ?: return null
+                    if (stops == JsonNull) {
+                        frames[offset + 15] = 0f
+                    } else {
+                        val pair = stops.jsonArray
+                        if (pair.size != 2) return null
+                        frames[offset + 15] = 1f
+                        pair.forEachIndexed { stop, rgba ->
+                            val channels = rgba.jsonArray
+                            if (channels.size != 4) return null
+                            channels.forEachIndexed { channel, value ->
+                                frames[offset + 16 + stop * 4 + channel] = value.jsonPrimitive.content
+                                    .toFloatOrNull()?.takeIf { it.isFinite() } ?: return null
+                            }
+                        }
+                    }
+                }
             }
         }
     } catch (error: Exception) {
@@ -119,6 +179,26 @@ private object RustAnimation {
         }
     }
 }
+
+private const val FRAME_STRIDE = 24
+
+private fun SfRenderingMode.toRustString() = when (this) {
+    SfRenderingMode.Monochrome -> "monochrome"
+    SfRenderingMode.Hierarchical -> "hierarchical"
+    SfRenderingMode.Palette -> "palette"
+    SfRenderingMode.Multicolor -> "multicolor"
+}
+
+private fun Color.toRustRgba() = buildJsonArray {
+    add(kotlinx.serialization.json.JsonPrimitive(red))
+    add(kotlinx.serialization.json.JsonPrimitive(green))
+    add(kotlinx.serialization.json.JsonPrimitive(blue))
+    add(kotlinx.serialization.json.JsonPrimitive(alpha))
+}
+
+private fun Color.isRustRepresentable() = colorSpace == ColorSpaces.Srgb &&
+    red.isFinite() && red in 0f..1f && green.isFinite() && green in 0f..1f &&
+    blue.isFinite() && blue in 0f..1f && alpha.isFinite() && alpha in 0f..1f
 
 private fun SfSymbolEffect.toRustJson(): JsonObject = buildJsonObject {
     fun scope(value: SfEffectScope) = when (value) {

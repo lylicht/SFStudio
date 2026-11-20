@@ -19,10 +19,11 @@ through JNA, with Kotlin fallbacks.
 Kotlin still owns favorite file reads and writes.
 
 The JVM implementation of the public `SfSymbolIcon` now evaluates Apple effect
-frames through the same Rust C ABI when the native library is available. Compose
-still rasterizes paths and applies the frames; a Kotlin evaluator remains the
-fallback. Android, iOS, JS, and Wasm keep using that Kotlin evaluator until their
-Rust adapters are implemented.
+frames, layer colors, and automatic gradient stops through the same Rust C ABI
+when the native library is available and colors use sRGB. Compose still
+rasterizes paths and applies the results; wide-gamut colors and unavailable
+native libraries use Kotlin. Android, iOS, JS, and Wasm keep using the Kotlin
+evaluator until their Rust adapters are implemented.
 
 The shared catalog search and filters, filter-selection transitions, symbol
 metadata lookup, Compose code generator, ordered favorite toggle, glyph
@@ -48,9 +49,10 @@ JVM app calls search, code generation, favorite toggling, category/favorites
 filtering, filter-selection transitions, MCP client configuration, and effect
 evaluation through JNA. The JNA metadata lookup binding passed parity checks on
 Windows, macOS, and Linux in run #20. Rust animation frames match the Kotlin
-evaluator in the JVM parity test, and the existing Compose renderer suite
-passes with the native path enabled. JS and Wasm consumers still use Kotlin
-until target-specific Rust/Wasm adapters pass their tests. The vector geometry
+evaluator in the JVM parity test; sRGB appearance and gradients pass differential
+checks in all four rendering modes, and Compose render tests pass with Rust
+enabled. JS and Wasm consumers still use Kotlin until target-specific Rust/Wasm
+adapters pass their tests. The vector geometry
 and animation C ABI smoke checks passed on Windows, macOS, and Linux. Run #34
 passed the filter-selection C ABI on those operating systems and retained the
 KMP builds.
@@ -94,9 +96,11 @@ transforms, variable-layer staging, replace recipes, layer color-mode
 calculations, and automatic gradient stops have Rust core implementations and
 JSON C ABI, along with tagged-layer Magic Replace morph paths. Selected Kotlin
 differential fixtures cover effect timing and layer transforms, and the JVM
-renderer now consumes Rust frames while Compose continues to rasterize paths
-and clip geometry. Rendering color calculations have Rust unit tests and
-Windows/macOS/Linux C ABI smoke coverage, but no Kotlin differential fixture.
+renderer now consumes Rust frames, sRGB layer colors, and gradient stops while
+Compose continues to rasterize paths and clip geometry. Rendering color
+calculations have Rust unit tests, Windows/macOS/Linux C ABI smoke coverage, and
+JVM/Kotlin differential checks; wide-gamut color parity still uses the Kotlin
+fallback.
 Draw-field distance and level calculations are ported; platform path
 rasterization and clip geometry remain in Kotlin. Pixel-by-pixel Rust/Kotlin
 rendering comparison, broader morph fixtures, and mobile/JS/Wasm adapters are

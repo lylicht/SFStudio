@@ -15,8 +15,9 @@ unchanged. This page covers the second API, a real symbol engine built on `SfSym
 | Dependencies | `compose.ui` | `compose.ui` public API; JVM runtime uses JNA and kotlinx.serialization for optional Rust animation |
 
 It runs anywhere `compose.ui` does: Android Compose and Compose Multiplatform (desktop, iOS, web).
-On JVM, effect frames use the Rust evaluator when its native library is available; Android, iOS, JS,
-Wasm, and JVM installs without that library use the Kotlin evaluator.
+On JVM, effect frames and sRGB layer appearances use the Rust evaluator when its native library is
+available; Android, iOS, JS, Wasm, wide-gamut colors, and JVM installs without that library use the
+Kotlin evaluator.
 
 ## Use
 

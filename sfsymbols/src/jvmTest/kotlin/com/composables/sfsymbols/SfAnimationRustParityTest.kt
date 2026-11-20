@@ -1,6 +1,8 @@
 package com.composables.sfsymbols
 
+import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SfAnimationRustParityTest {
@@ -42,7 +44,7 @@ class SfAnimationRustParityTest {
                         levels.alpha[index], levels.draw[index],
                     )
                     expectedFrame.forEachIndexed { field, expectedValue ->
-                        val actualValue = rustFrames[index * 10 + field]
+                        val actualValue = rustFrames[index * 24 + field]
                         if (expectedValue.isNaN()) {
                             assertEquals("${case.id} layer $index field $field", true, actualValue.isNaN())
                         } else {
@@ -64,5 +66,56 @@ class SfAnimationRustParityTest {
             ?.bufferedReader()?.use { it.readText() }
             ?: error("missing Kotlin/Rust animation parity fixture")
         assertEquals(expected.replace("\r\n", "\n"), actual)
+    }
+
+    @Test
+    fun rustLayerAppearancesMatchKotlinForEveryMode() {
+        val tint = Color(0xFF1C1C1E)
+        val palette = listOf(
+            Color(0xFFFF3B30),
+            Color(0xFF007AFF),
+            Color(0xFF34C759),
+        )
+        for (name in listOf("checkmark.circle.fill", "cloud.sun.rain.fill", "wifi")) {
+            val symbol = SfSymbol[name]
+            for (mode in SfRenderingMode.values()) for (gradient in listOf(false, true)) {
+                val frames = checkNotNull(
+                    sfRustAnimationFrames(
+                        symbol, SfSymbolEffect.Breathe(), 0.7f, false, 0.63f,
+                        mode, tint, palette, gradient,
+                    ),
+                )
+                for ((index, layer) in symbol.layers.withIndex()) {
+                    val offset = index * 24
+                    assertEquals(1f, frames[offset + 14], 0f)
+                    val color = layerColor(layer, mode, tint, palette)
+                    if (color == null) {
+                        assertTrue("$name $mode layer $index should have no color", frames[offset + 13].isNaN())
+                    } else {
+                        listOf(color.red, color.green, color.blue, color.alpha).forEachIndexed { channel, value ->
+                            assertEquals("$name $mode layer $index color $channel", value, frames[offset + 10 + channel], 0.002f)
+                        }
+                    }
+
+                    val expectedStops = color?.takeIf { gradient && it.alpha > 0f }?.let(::sfAutomaticGradient)
+                    if (expectedStops == null) {
+                        assertEquals("$name $mode layer $index gradient", 0f, frames[offset + 15], 0f)
+                    } else {
+                        // Rust float math and Compose's packed color channels differ by less than one 8-bit step.
+                        assertEquals("$name $mode layer $index gradient", 1f, frames[offset + 15], 0f)
+                        listOf(expectedStops.first, expectedStops.second).forEachIndexed { stop, stopColor ->
+                            listOf(stopColor.red, stopColor.green, stopColor.blue, stopColor.alpha).forEachIndexed { channel, value ->
+                                assertEquals(
+                                    "$name $mode layer $index stop $stop channel $channel",
+                                    value,
+                                    frames[offset + 16 + stop * 4 + channel],
+                                    0.002f,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -207,7 +207,7 @@ private suspend fun runEffect(
     time.floatValue = -1f
 }
 
-private fun layerColor(layer: SfLayer, mode: SfRenderingMode, tint: Color, palette: List<Color>): Color? {
+internal fun layerColor(layer: SfLayer, mode: SfRenderingMode, tint: Color, palette: List<Color>): Color? {
     if (layer.colorName == "hidden") return null
     return when (mode) {
         SfRenderingMode.Monochrome -> if (layer.erases) null else tint
@@ -258,10 +258,17 @@ internal fun sfNamedColor(name: String?, tint: Color): Color? = when (name) {
 }
 
 /** Fills [path] with [color], or with Apple's automatic top-to-bottom gradient of it. */
-private fun DrawScope.fillPath(path: Path, color: Color, gradient: Boolean, top: Float, bottom: Float) {
+private fun DrawScope.fillPath(
+    path: Path,
+    color: Color,
+    gradient: Boolean,
+    top: Float,
+    bottom: Float,
+    rustStops: Pair<Color, Color>? = null,
+) {
     if (!gradient || color.alpha <= 0f) { drawPath(path, color); return }
-    val (a, b) = sfAutomaticGradient(color)
-    drawPath(path, Brush.verticalGradient(listOf(a, b), startY = top, endY = bottom))
+    val (a, b) = rustStops ?: sfAutomaticGradient(color)
+    drawPath(path, Brush.verticalGradient(listOf(a.copy(alpha = color.alpha), b.copy(alpha = color.alpha)), startY = top, endY = bottom))
 }
 
 private fun DrawScope.drawSymbol(
@@ -293,11 +300,11 @@ private fun DrawScope.drawSymbol(
         val fx = SfFx()
         val tt = max(0f, time)
         val rtl = layoutDirection == LayoutDirection.Rtl && !mirrored
-        val rustFrames = if (playing) sfRustAnimationFrames(sym, effect, tt, rtl, variableValue) else null
+        val rustFrames = if (playing) sfRustAnimationFrames(sym, effect, tt, rtl, variableValue, mode, tint, palette, gradient) else null
         val variable = if (rustFrames == null) variableValue?.let { sfVariableLevels(sym, it) } else null
         for (i in layers.indices) {
             fx.reset()
-            val frame = i * 10
+            val frame = i * 24
             if (rustFrames != null) {
                 fx.scale = rustFrames[frame]
                 fx.dx = rustFrames[frame + 1]
@@ -317,6 +324,7 @@ private fun DrawScope.drawSymbol(
             val px = if (fx.pivotX.isNaN()) b.center.x else b.left + fx.pivotX * b.width
             val py = if (fx.pivotY.isNaN()) b.center.y else b.top + fx.pivotY * b.height
             val pivot = Offset(px, py)
+            val hasRustAppearance = rustFrames != null && rustFrames[frame + 14].isFinite()
             withTransform({
                 translate(fx.dx * EM, fx.dy * EM)
                 if (fx.rot != 0f) rotate(fx.rot, pivot)
@@ -325,19 +333,28 @@ private fun DrawScope.drawSymbol(
                 val layer = layers[i]
                 val path = layerPath(i) ?: geo.layerPaths[i]
                 if (layer.erases) drawPath(path, Color.Black, blendMode = BlendMode.Clear)
-                val c = layerColor(layer, mode, tint, palette)
+                val c = if (hasRustAppearance) {
+                    if (rustFrames[frame + 13].isNaN()) null else Color(
+                        rustFrames[frame + 10], rustFrames[frame + 11], rustFrames[frame + 12], rustFrames[frame + 13],
+                    )
+                } else layerColor(layer, mode, tint, palette)
                 if (c != null) {
                     val col = c.copy(alpha = c.alpha * fx.alpha)
+                    val rustGradient = if (hasRustAppearance && rustFrames[frame + 15] == 1f) {
+                        Color(rustFrames[frame + 16], rustFrames[frame + 17], rustFrames[frame + 18], rustFrames[frame + 19]) to
+                            Color(rustFrames[frame + 20], rustFrames[frame + 21], rustFrames[frame + 22], rustFrames[frame + 23])
+                    } else null
+                    val useGradient = if (hasRustAppearance) rustFrames[frame + 15] == 1f else gradient
                     if (fx.draw < 0.999f) {
                         val field = if (layer.rootU.isNaN()) null else geo.drawField(i)
                         if (field != null) {
                             // the stroke is revealed by distance travelled along it from its start rail tie
                             val k = min(DRAW_LEVELS, (fx.draw * DRAW_LEVELS).toInt())
-                            if (k > 0) clipPath(field.levels[k - 1]) { fillPath(path, col, gradient, b.top, b.bottom) }
+                            if (k > 0) clipPath(field.levels[k - 1]) { fillPath(path, col, useGradient, b.top, b.bottom, rustGradient) }
                         } else {
-                            fillPath(path, col.copy(alpha = col.alpha * fx.draw), gradient, b.top, b.bottom)
+                            fillPath(path, col.copy(alpha = col.alpha * fx.draw), useGradient, b.top, b.bottom, rustGradient)
                         }
-                    } else fillPath(path, col, gradient, b.top, b.bottom)
+                    } else fillPath(path, col, useGradient, b.top, b.bottom, rustGradient)
                 }
             }
         }

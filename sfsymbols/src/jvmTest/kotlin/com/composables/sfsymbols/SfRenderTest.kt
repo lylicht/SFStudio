@@ -91,12 +91,19 @@ class SfRenderTest {
     }
 
     /** Plays [effect] and returns one measurement per requested millisecond mark. */
-    private fun play(symbol: String, effect: SfSymbolEffect, marks: List<Int>, repeat: SfEffectRepeat? = null): List<Frame> {
+    private fun play(
+        symbol: String,
+        effect: SfSymbolEffect,
+        marks: List<Int>,
+        repeat: SfEffectRepeat? = null,
+        mode: SfRenderingMode = SfRenderingMode.Monochrome,
+        gradient: Boolean = false,
+    ): List<Frame> {
         val scene = ImageComposeScene(160, 160, Density(1f)) {
             SfSymbolIcon(
                 SfSymbol[symbol],
                 modifier = Modifier.layout { m, c -> val pl = m.measure(c); layout(c.maxWidth, c.maxHeight) { pl.place(30, 40) } },
-                size = 100.dp, effect = effect, repeat = repeat,
+                size = 100.dp, effect = effect, repeat = repeat, mode = mode, gradient = gradient,
             )
         }
         try {
@@ -142,6 +149,17 @@ class SfRenderTest {
         // the checkmark is drawn from its left end: early on the right tip is still missing
         val ck = play("checkmark", SfSymbolEffect.DrawOn(), listOf(100, 1200))
         assertTrue("draw order ${ck.map { it.left to it.right }}", ck[0].right < ck[1].right - 15 && kotlin.math.abs(ck[0].left - ck[1].left) <= 6)
+    }
+
+    @Test
+    fun animatedLayersUseRustAppearancesAcrossModes() {
+        for (mode in SfRenderingMode.values()) {
+            val frame = play(
+                "cloud.sun.rain.fill", SfSymbolEffect.Breathe(), listOf(700),
+                repeat = SfEffectRepeat.Continuous, mode = mode, gradient = true,
+            ).single()
+            assertTrue("$mode animation should render ink", frame.ink > 0)
+        }
     }
 
     @Test
