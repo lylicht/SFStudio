@@ -58,11 +58,11 @@ classpath-based development launches retain the Kotlin fallback. Packaged UI
 search, category/favorites filtering and filter-selection transitions, snippet
 generation, favorite toggling, and Settings MCP configuration call the Rust C
 ABI through JNA, keeping Kotlin behavior as the development and load-failure
-fallback. The filter-selection addition passes local Rust, Python, and JVM
-checks; cross-OS CI is pending. [Run #33](https://github.com/lylicht/SFStudio/actions/runs/44803230690)
-passed the Windows/macOS/Linux Rust and C ABI jobs, JVM tests on all three
-desktop systems, Android, iOS, JS/Wasm, packaged MCP launchers, and differential
-MCP replay.
+fallback. The filter-selection C ABI and JVM ViewModel path passed all local
+checks and [run #34](https://github.com/lylicht/SFStudio/actions/runs/44805912613),
+which also passed the Windows/macOS/Linux Rust and C ABI jobs, JVM tests on all
+three desktop systems, Android, iOS, JS/Wasm, packaged MCP launchers, and
+differential MCP replay.
 
 ## Verify
 

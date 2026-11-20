@@ -91,8 +91,9 @@ Last local check: 2026-11-20, Windows x64, branch
 - Category, favorites, and show-all state transitions now come from Rust through
   the language-neutral C ABI in the desktop ViewModel. Rust/Python/JVM checks
   cover Unicode and empty categories, action reset behavior, error flags, and
-  the Kotlin empty-category fallback. The new C ABI addition awaits cross-OS
-  verification in run #34.
+  the Kotlin empty-category fallback. [Run #34](https://github.com/lylicht/SFStudio/actions/runs/44805912613)
+  passed the C ABI checks on Windows/macOS/Linux and the existing KMP/package
+  matrix.
 - MCP client configuration is generated in Rust and called by the existing
   Settings helper through JNA when the native library is available. The
   original Kotlin generator remains the native-library fallback. Local byte-

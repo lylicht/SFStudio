@@ -53,14 +53,15 @@ and Wasm targets while Rust code is introduced. Build a separate bridge for
 each target behind the existing Kotlin API only after target-specific behavior
 and rendering checks pass.
 
-**Reason:** The Rust core currently has no FFI layer, and no single bridge is
-assumed to cover all KMP targets. Removing a target or changing a public
+**Reason:** The Rust core now exposes a language-neutral C ABI, but target
+adapters are still missing for Android, iOS, JS, and Wasm. No single bridge is
+assumed to cover every KMP target. Removing a target or changing a public
 Compose signature would break downstream consumers.
 
 **Current boundary:** The published library and UI still use Kotlin. Packaged
-desktop `--mcp` uses the Rust server; classpath development launches retain
-the Kotlin implementation, with a launch fallback if the Rust process cannot
-start.
+desktop search, filtering, code generation, favorites toggling, MCP config, and
+`--mcp` use Rust through JNA or the bundled Rust server. Kotlin fallbacks remain
+available when the desktop native library or MCP process cannot load.
 
 ## 007 — Decode existing vector data in Rust before rendering cutover
 
@@ -75,3 +76,16 @@ bounds; keep Kotlin as the renderer and public KMP implementation.
 **Reason:** This ports reusable vector logic without hand-editing generated
 files or introducing a second asset catalog. Geometry parity is a necessary
 step, but it does not prove visual renderer or animation parity.
+
+## 008 — Use Apple's symbol references without changing SFStudio's identity
+
+**Decision:** Use [SFSafeSymbols](https://github.com/SFSafeSymbols/SFSafeSymbols)
+as a reference for Apple's typed symbol names and availability. Preserve
+SFStudio's catalog, `com.composables.sfsymbols` package, public Compose API,
+and release identities. Model Rust animation frames against [Apple's
+SymbolEffect API](https://developer.apple.com/documentation/symbols/symboleffect)
+while retaining every effect already exposed by SFStudio.
+
+**Reason:** SFSafeSymbols is a Swift access wrapper, while SFStudio has its own
+Kotlin Multiplatform API and rendering behavior. It informs compatibility; it
+does not replace SFStudio's public identity or supply its renderer.

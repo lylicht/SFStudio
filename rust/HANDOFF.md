@@ -50,7 +50,8 @@ configuration from Rust through JNA when the native library is available.
 Byte-exact parity and escaped path handling pass locally, and run #33 verifies
 the change across the Rust/C ABI, JVM, and packaged MCP matrix.
 The category/favorites/all filter-selection transition passes Rust, Python C
-ABI, and JVM ViewModel checks locally; run #34 is pending for this latest unit.
+ABI, and JVM ViewModel checks locally, plus Windows/macOS/Linux and KMP matrix
+coverage in [run #34](https://github.com/lylicht/SFStudio/actions/runs/44805912613).
 
 ## Existing work inherited from PR #7
 
