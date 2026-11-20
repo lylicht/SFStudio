@@ -6,7 +6,7 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all 30 workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 32 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
 8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
@@ -34,6 +34,10 @@ JS/Wasm, packaged launchers, and MCP replay. The animation port passed the full
 cross-platform matrix in [run #25](https://github.com/lylicht/SFStudio/actions/runs/44787007184).
 The Magic Replace morph extension passed the full matrix in
 [run #27](https://github.com/lylicht/SFStudio/actions/runs/44790870392).
+Layer rendering-mode colors and automatic gradient calculations are now
+available through the animation C ABI; Rust unit tests and Python `ctypes`
+smoke pass locally. Cross-platform CI and Kotlin differential coverage for
+those color calculations are still pending.
 
 ## Existing work inherited from PR #7
 
@@ -50,9 +54,10 @@ The Magic Replace morph extension passed the full matrix in
 
 1. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
    one FFI mechanism is not assumed to fit every target.
-2. Expand Rust animation and Magic Replace parity fixtures, port draw-rail
-   clipping and rendering modes, then keep the existing renderer as the visual
-   reference until Rust rendering is verified.
+2. Expand Rust animation and Magic Replace parity fixtures, add Kotlin
+   differential coverage for layer appearance, and port draw-rail clipping;
+   keep the existing renderer as the visual reference until Rust rendering is
+   verified.
 3. Preserve existing user data and package identities; test upgrade behavior
    before changing persistence or installers.
 

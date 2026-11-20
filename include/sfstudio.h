@@ -73,6 +73,9 @@ intptr_t sfstudio_glyph_json(const uint8_t *symbol_name,
  * (small/medium/large). It returns matchedLayers with outline path operations
  * and morphed points. Returns the normal required/written JSON byte count;
  * -11 means an invalid request and -6 means unknown symbol.
+ * Optional rendering is {"mode":"palette","tint":[r,g,b,a],
+ * "palette":[[r,g,b,a],...],"gradient":true}; each animation layer then
+ * includes its resolved color and optional top-to-bottom gradient stops.
  */
 intptr_t sfstudio_animation_json(const uint8_t *input, size_t input_len,
                                  uint8_t *output, size_t output_capacity);

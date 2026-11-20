@@ -7,6 +7,7 @@
 pub mod animation;
 pub mod codegen;
 pub mod favorites;
+pub mod rendering;
 pub mod vector;
 
 use std::cmp::{max, min};

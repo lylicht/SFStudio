@@ -445,6 +445,8 @@ pub unsafe extern "C" fn sfstudio_favorites_toggle_json(
 /// Effect names use snake case (for example `variable_color` and `draw_on`);
 /// layer results include Apple effect transforms and independent variable
 /// rendering alpha/draw. `magicReplace` returns matched layer outlines.
+/// Optional `rendering` accepts `mode`, an RGBA `tint`, optional RGBA
+/// `palette` entries, and `gradient`, and returns resolved layer appearances.
 /// Returns the required/written byte count, or -11 for invalid animation JSON
 /// or options. Other errors use the common buffer contract; -6 means unknown
 /// symbol. Use `output = NULL` and `output_capacity = 0` to query the size.
@@ -520,6 +522,13 @@ pub unsafe extern "C" fn sfstudio_animation_json(
             None => return INVALID_ANIMATION,
         },
     };
+    let rendering = match object.get("rendering") {
+        None | Some(serde_json::Value::Null) => None,
+        Some(value) => match parse_rendering(value) {
+            Some(value) => Some(value),
+            None => return INVALID_ANIMATION,
+        },
+    };
 
     match catch_unwind(AssertUnwindSafe(|| {
         let catalog = sfstudio_core::vector::vector_catalog().map_err(|_| INTERNAL_ERROR)?;
@@ -544,11 +553,34 @@ pub unsafe extern "C" fn sfstudio_animation_json(
             .layers
             .iter()
             .enumerate()
-            .map(|(index, _)| {
+            .map(|(index, layer)| {
                 let frame = animation
                     .apply(effect, time, index, rtl)
                     .unwrap_or_default();
-                serde_json::json!({
+                let appearance = rendering.as_ref().map(|rendering| {
+                    let color_name = layer
+                        .color_id
+                        .and_then(|color_id| catalog.colors().get(color_id))
+                        .map(String::as_str);
+                    let color = sfstudio_core::rendering::layer_color(
+                        color_name,
+                        rendering.mode,
+                        rendering.tint,
+                        &rendering.palette,
+                        layer.hierarchical,
+                        layer.erases,
+                        layer.opacity,
+                    );
+                    let gradient = color
+                        .filter(|color| rendering.gradient && color.alpha > 0.0)
+                        .map(sfstudio_core::rendering::automatic_gradient)
+                        .map(|(top, bottom)| [rgba_json(top), rgba_json(bottom)]);
+                    serde_json::json!({
+                        "color": color.map(rgba_json),
+                        "gradient": gradient,
+                    })
+                });
+                let mut result = serde_json::json!({
                     "scale": frame.scale,
                     "dx": frame.dx,
                     "dy": frame.dy,
@@ -559,7 +591,11 @@ pub unsafe extern "C" fn sfstudio_animation_json(
                     "pivotY": frame.pivot_y.is_finite().then_some(frame.pivot_y),
                     "variableAlpha": variable_alpha[index],
                     "variableDraw": variable_draw[index],
-                })
+                });
+                if let Some(appearance) = appearance {
+                    result["appearance"] = appearance;
+                }
+                result
             })
             .collect();
         let transition = transition.map(|(direction, t)| {
@@ -675,6 +711,71 @@ fn parse_scope(
         "by_layer" | "byLayer" => Some(Scope::ByLayer),
         _ => None,
     }
+}
+
+#[derive(Clone)]
+struct AnimationRendering {
+    mode: sfstudio_core::rendering::RenderingMode,
+    tint: sfstudio_core::rendering::Rgba,
+    palette: Vec<sfstudio_core::rendering::Rgba>,
+    gradient: bool,
+}
+
+fn parse_rendering(value: &serde_json::Value) -> Option<AnimationRendering> {
+    use sfstudio_core::rendering::RenderingMode;
+    let object = value.as_object()?;
+    let mode = match object.get("mode")?.as_str()? {
+        "monochrome" => RenderingMode::Monochrome,
+        "hierarchical" => RenderingMode::Hierarchical,
+        "palette" => RenderingMode::Palette,
+        "multicolor" => RenderingMode::Multicolor,
+        _ => return None,
+    };
+    let tint = parse_rgba(object.get("tint")?)?;
+    let palette = match object.get("palette") {
+        Some(value) => value
+            .as_array()?
+            .iter()
+            .map(parse_rgba)
+            .collect::<Option<Vec<_>>>()?,
+        None => Vec::new(),
+    };
+    let gradient = match object.get("gradient") {
+        Some(value) => value.as_bool()?,
+        None => false,
+    };
+    Some(AnimationRendering {
+        mode,
+        tint,
+        palette,
+        gradient,
+    })
+}
+
+fn parse_rgba(value: &serde_json::Value) -> Option<sfstudio_core::rendering::Rgba> {
+    let channels = value.as_array()?;
+    if channels.len() != 4 {
+        return None;
+    }
+    let channels: Vec<f32> = channels
+        .iter()
+        .map(|channel| {
+            channel
+                .as_f64()
+                .map(|channel| channel as f32)
+                .filter(|channel| channel.is_finite() && (0.0..=1.0).contains(channel))
+        })
+        .collect::<Option<_>>()?;
+    Some(sfstudio_core::rendering::Rgba::new(
+        channels[0],
+        channels[1],
+        channels[2],
+        channels[3],
+    ))
+}
+
+fn rgba_json(color: sfstudio_core::rendering::Rgba) -> [f32; 4] {
+    [color.red, color.green, color.blue, color.alpha]
 }
 
 fn parse_effect(value: &serde_json::Value) -> Option<sfstudio_core::animation::Effect> {

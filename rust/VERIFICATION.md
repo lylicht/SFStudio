@@ -6,8 +6,8 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 27 Rust tests
-  passed (15 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 32 Rust tests
+  passed (20 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
@@ -15,7 +15,8 @@ Last local check: 2026-11-20, Windows x64, branch
   Unicode, invalid UTF-8, null pointers, short-buffer handling, exact Compose
   snippet fixtures, favorite ordering/toggle behavior, filtered search,
   symbol metadata lookup, and glyph decoding/interpolation at medium, small,
-  and large scales, including visible bounds.
+  and large scales, including visible bounds; animation rendering modes,
+  gradient stops, and invalid color input also pass.
 - `gradlew.bat :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfVectorRustParityTest --rerun-tasks --no-daemon` —
   passed; all 8,526 Kotlin glyphs and available small/large variants match the
   committed geometry fingerprint fixture.
@@ -96,14 +97,20 @@ Last local check: 2026-11-20, Windows x64, branch
   run #27](https://github.com/lylicht/SFStudio/actions/runs/44790870392) passed
   the full cross-platform matrix. Draw-rail clipping is still not implemented
   in Rust, and Compose remains the active visual renderer.
+- Layer appearance calculations now cover monochrome, hierarchical, palette,
+  and multicolor modes, named Apple colors, layer opacity, and Apple's
+  automatic two-stop gradient. Rust unit and Python C ABI smoke checks passed
+  locally; Kotlin differential fixtures, cross-platform CI, and integration
+  with a Rust renderer remain pending.
 
 ## Not yet verified
 
 - Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API. Existing
   KMP targets remain buildable but still execute their Kotlin implementation.
-- Rust rendering and visual parity, installer upgrades, user-data migration,
-  performance baselines, and native bindings. The geometry C ABI also needs
-  cross-OS CI coverage.
+- Pixel rendering and visual parity, installer upgrades, user-data migration,
+  performance baselines, and native bindings. Layer color calculation has
+  local coverage only; it has no Kotlin differential fixture or cross-OS CI
+  result yet. The geometry C ABI also needs cross-OS CI coverage.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain

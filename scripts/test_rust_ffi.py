@@ -137,6 +137,7 @@ def main():
     assert appear["held"] is True and appear["defaultRepeat"] == "once"
     assert abs(appear["layers"][0]["alpha"] - 0.5) < 0.01
     assert abs(appear["layers"][0]["scale"] - 0.875) < 0.01
+    assert "appearance" not in appear["layers"][0]
     assert appear["transition"]["out"]["alpha"] == 0.0
     assert abs(appear["transition"]["out"]["scale"] - 0.5) < 0.01
     assert animation({"symbol": "wifi", "time": 0.5,
@@ -168,6 +169,27 @@ def main():
     assert paired_magic["from"] == "checkmark.circle.fill"
     assert paired_magic["to"] == "xmark.circle.fill"
     assert paired_magic["matchedLayers"]
+
+    multicolor = animation({
+        "symbol": "cloud.sun.fill", "time": 0.5, "effect": {"type": "pulse"},
+        "rendering": {"mode": "multicolor", "tint": [0.2, 0.4, 0.6, 0.8], "gradient": True},
+    })
+    appearances = [layer["appearance"] for layer in multicolor["layers"]]
+    assert appearances and all("color" in appearance and "gradient" in appearance for appearance in appearances)
+    assert any(appearance["gradient"] is not None for appearance in appearances)
+    palette = animation({
+        "symbol": "wifi", "time": 0.5, "effect": {"type": "pulse"},
+        "rendering": {
+            "mode": "palette", "tint": [0.1, 0.2, 0.3, 1.0],
+            "palette": [[1.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 0.5]],
+        },
+    })
+    assert all("appearance" in layer for layer in palette["layers"])
+    invalid_rendering = ctypes.create_string_buffer(
+        b'{"symbol":"wifi","time":0,"effect":{"type":"appear"},'
+        b'"rendering":{"mode":"palette","tint":[2,0,0,1]}}'
+    )
+    assert animation_json(invalid_rendering, len(invalid_rendering.value), None, 0) == -11
 
     def filtered_search(query, category, favorites, limit):
         encoded_query = query.encode("utf-8")

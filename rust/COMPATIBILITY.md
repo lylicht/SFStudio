@@ -22,8 +22,10 @@ generator, ordered favorite toggle, and glyph geometry decoder export C ABI
 entry points without exposing Rust types. The header is
 `include/sfstudio.h`; `sfstudio_glyph_json` returns raw weight masters, points
 interpolated at a requested `wght` value, and tight visible bounds at an optical
-scale. Bounds match Kotlin over ten symbols, all nine weights, and all three
-optical scales. C, C++,
+scale. `sfstudio_animation_json` evaluates Apple-style effect frames and can
+optionally resolve per-layer monochrome, hierarchical, palette, or multicolor
+appearance plus automatic gradient stops. Bounds match Kotlin over ten symbols,
+all nine weights, and all three optical scales. C, C++,
 Python, JNI/JNA, Kotlin/Native, Swift, and other runtimes with a C FFI can call
 these entry points.
 This ABI is a language-neutral integration surface, not a claim that each
@@ -72,11 +74,13 @@ generated geometry sources at compile time. Geometry decoding now matches all
 8,526 reference glyph fingerprints locally, including available optical
 variants. Visible bounds match Kotlin on a ten-symbol matrix of all nine
 weights and three optical scales. Apple-style effect timing, per-layer
-transforms, variable-layer staging, and replace recipes have a Rust core
-implementation and JSON C ABI, along with tagged-layer Magic Replace morph
-paths. Selected Kotlin differential fixtures cover effect timing and layer
-transforms. Kotlin remains the active visual renderer; Rust renderer
-integration, draw-rail clipping, rendering modes, broader morph fixtures, and
-mobile/JS/Wasm adapters are still outstanding. The published symbol
-definitions and KMP API remain available. Do not extract or redistribute
+transforms, variable-layer staging, replace recipes, layer color-mode
+calculations, and automatic gradient stops have Rust core implementations and
+JSON C ABI, along with tagged-layer Magic Replace morph paths. Selected Kotlin
+differential fixtures cover effect timing and layer transforms; rendering color
+calculations currently have Rust unit and C ABI smoke coverage, but no Kotlin
+differential fixture. Kotlin remains the active visual renderer; Rust renderer
+integration, draw-rail clipping, visual rendering parity, broader morph
+fixtures, and mobile/JS/Wasm adapters are still outstanding. The published
+symbol definitions and KMP API remain available. Do not extract or redistribute
 Apple-owned symbol assets beyond the repository's existing permitted scope.
