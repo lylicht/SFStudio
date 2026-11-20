@@ -1,0 +1,54 @@
+name: Rust migration verification
+
+on:
+  pull_request:
+    paths:
+      - "rust/**"
+      - "scripts/check_rust_mcp_parity.py"
+      - "sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"
+      - "app/src/jvmMain/resources/symbol_tags.txt"
+      - ".github/workflows/rust-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust core and MCP unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: Rust tests
+        run: cargo test --manifest-path rust/Cargo.toml --workspace
+      - name: Rust static analysis
+        run: cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings
+
+  parity:
+    name: Differential replay against Kotlin MCP
+    needs: rust
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: Build reference Kotlin MCP server
+        run: ./gradlew :app:assembleMcp --no-daemon
+      - name: Build Rust MCP server
+        run: cargo build --manifest-path rust/Cargo.toml -p sfstudio-mcp
+      - name: Differential replay
+        run: python3 scripts/check_rust_mcp_parity.py
