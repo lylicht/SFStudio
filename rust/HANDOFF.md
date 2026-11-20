@@ -40,7 +40,8 @@ smoke pass locally. [GitHub Actions run #29](https://github.com/lylicht/SFStudio
 passed the cross-platform C ABI and existing platform matrix. Kotlin
 differential coverage for those color calculations is still pending. The
 draw-field distance calculation is now in Rust and exposed through a second
-C ABI function; its Linux/Windows/macOS checks are pending for this change.
+C ABI function; Kotlin fixture parity and Linux/Windows/macOS checks passed in
+[GitHub Actions run #31](https://github.com/lylicht/SFStudio/actions/runs/44799137234).
 
 ## Existing work inherited from PR #7
 

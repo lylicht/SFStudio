@@ -110,9 +110,12 @@ Last local check: 2026-11-20, Windows x64, branch
   48-level distance field, tie search, connected components, and no-corner
   diagonal rule. A Kotlin-generated full-grid fixture for five real symbol
   layers passes exact Rust parity, along with the JVM parity test and Python C
-  ABI smoke. The platform still rasterizes the source path; Rust returns the
-  mask's reveal levels and does not create Compose Path clip geometry. Visual
-  clip comparison remains pending.
+  ABI smoke. [GitHub Actions run #31](https://github.com/lylicht/SFStudio/actions/runs/44799137234)
+  passed the Windows/macOS/Linux Rust and C ABI checks plus the existing JVM,
+  Android, iOS, JS/Wasm, packaged desktop, and MCP jobs. The platform still
+  rasterizes the source path; Rust returns the mask's reveal levels and does
+  not create Compose Path clip geometry. Visual clip comparison remains
+  pending.
 
 ## Not yet verified
 
@@ -121,8 +124,9 @@ Last local check: 2026-11-20, Windows x64, branch
 - Pixel rendering and visual parity, installer upgrades, user-data migration,
   performance baselines, and native bindings. Layer color calculation has
   cross-OS smoke coverage but no Kotlin differential fixture. Draw-field API
-  integration and cross-OS checks are pending. The geometry C ABI has cross-OS
-  CI coverage, but target-specific bindings remain untested.
+  integration with the active renderer is pending. The geometry and
+  draw-field C ABIs have cross-OS CI coverage, but target-specific bindings
+  remain untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain
