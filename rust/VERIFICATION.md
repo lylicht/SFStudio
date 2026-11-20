@@ -152,6 +152,10 @@ Last local check: 2026-11-20, Windows x64, branch
   `:sfsymbols:jvmTest` suite passes with the Rust path enabled, as does
   `:app:jvmTest`. The shared `buildRustFfi` Gradle task now lives at the root so
   both app packaging and library parity tests build the same native library.
+- [GitHub Actions run #37](https://github.com/lylicht/SFStudio/actions/runs/44815230235)
+  passed every job: Rust and FFI on Windows/macOS/Linux; JVM animation parity
+  on Windows/macOS/Linux; Android, iOS, JS/Wasm, all packaged launchers, and MCP
+  differential replay.
 
 ## Not yet verified
 
