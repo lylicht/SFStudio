@@ -6,12 +6,14 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 8 Rust tests
-  passed (5 core, including two shared snippet fixtures, and 3 MCP).
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 11 Rust tests
+  passed (8 core, including snippet and favorites fixtures, and 3 MCP).
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `gradlew.bat :app:jvmTest :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
 - The `CatalogViewModelTest` snippet cases match the Rust fixtures exactly,
   including import order, colors, mode, background wrapper, and final newline.
+- `PinnedSymbolsCompatibilityTest` reads both the legacy Kotlin JSON fixture
+  and the Rust-written JSON fixture with the existing Kotlin set serializer.
 - `gradlew.bat :app:assembleMcp --no-daemon` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-mcp` — passed.
 - `python scripts/check_rust_mcp_parity.py` — 92/92 Kotlin and Rust MCP

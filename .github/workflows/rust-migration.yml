@@ -124,7 +124,7 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: gradle
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
       - name: Install Android API 37
         run: sdkmanager "platforms;android-37"
       - name: Android library compilation

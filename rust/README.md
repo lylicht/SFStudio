@@ -9,6 +9,8 @@ and its published Compose Multiplatform library remain unchanged.
   originally in `app/src/jvmMain/kotlin/com/sfsymbols/data/FuzzySearch.kt`.
 - `sfstudio-core::codegen`: Compose snippet generation ported against shared
   Kotlin/Rust golden fixtures; the current desktop caller stays Kotlin.
+- `sfstudio-core::favorites`: ordered favorite state and JSON codec compatible
+  with the existing Kotlin array format; the Kotlin file store stays active.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
 - The Rust catalog is **read directly at compile time from the existing Kotlin

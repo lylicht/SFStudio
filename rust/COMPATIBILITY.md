@@ -12,6 +12,8 @@ dualtone vectors.
 The desktop application is Kotlin/Compose on JVM. The installed app remains
 the default MCP endpoint and continues to use the existing favorite file at
 `~/.sf-symbols-catalog/pins.json`.
+The Rust favorites module currently handles ordered state and JSON only; it
+does not read or write this file.
 
 ## Compatibility rules
 

@@ -6,13 +6,14 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all eight workspace tests, Clippy, both Gradle JVM
+On Windows x64, Rust fmt, all eleven workspace tests, Clippy, both Gradle JVM
 test tasks, JS/Wasm compilation, MCP assembly, Rust MCP build, and all 92
-Kotlin/Rust differential MCP responses passed. Compose snippet output is
-covered by two shared Kotlin/Rust fixtures. See [VERIFICATION.md](VERIFICATION.md).
+Kotlin/Rust differential MCP responses passed. Compose snippets and favorites
+JSON have shared Kotlin/Rust fixtures. See [VERIFICATION.md](VERIFICATION.md).
 
-The current changes fix Rust formatting, add an opt-in system Node/Yarn setup
-for the repository's strict Gradle settings, and add Rust/KMP platform CI.
+The branch ports Compose snippet generation and favorites JSON handling,
+fixes Rust formatting, adds an opt-in system Node/Yarn setup for the
+repository's strict Gradle settings, and adds Rust/KMP platform CI.
 Cross-OS Rust and Android/iOS target CI still need a GitHub run before results
 can be recorded.
 

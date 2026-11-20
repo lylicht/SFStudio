@@ -5,6 +5,7 @@
 //! Run scripts/check_rust_mcp_parity.py to compare against the original JVM server.
 
 pub mod codegen;
+pub mod favorites;
 
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
