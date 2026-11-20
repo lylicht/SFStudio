@@ -24,7 +24,11 @@ def main():
         resource = "native/sfstudio-mcp.exe" if launcher.suffix == ".exe" else "native/sfstudio-mcp"
         app_jars = [
             jar
-            for directory in (launcher.parent / "app", launcher.parent.parent / "app")
+            for directory in (
+                launcher.parent / "app",
+                launcher.parent.parent / "app",
+                launcher.parent.parent / "lib" / "app",
+            )
             if directory.is_dir()
             for jar in directory.glob("app-jvm*.jar")
         ]
