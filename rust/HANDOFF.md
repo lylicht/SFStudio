@@ -32,10 +32,10 @@ JS/Wasm; and packaged Rust MCP launchers on Windows/macOS/Linux.
 
 ## Next unblocked migration work
 
-1. Add one target-specific Rust bridge behind the existing JVM/KMP API and
-   verify it through the public Kotlin API while retaining Kotlin fallback.
-2. Evaluate JNI/Android, C ABI/iOS, and Wasm/JS bridges separately; one FFI
-   mechanism is not assumed to fit every target.
+1. Wire the new language-neutral search C ABI behind one existing Kotlin API
+   and verify it through that public API while retaining the Kotlin fallback.
+2. Evaluate JNI/Android, Kotlin/Native/iOS, and Wasm/JS adapters separately;
+   one FFI mechanism is not assumed to fit every target.
 3. Port favorites persistence, settings, app state, vector decoding, and
    render semantics with
    parity fixtures before any UI or library cutover.

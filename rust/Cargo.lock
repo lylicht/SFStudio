@@ -82,6 +82,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "sfstudio-ffi"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sfstudio-core",
+]
+
+[[package]]
 name = "sfstudio-mcp"
 version = "0.1.0"
 dependencies = [

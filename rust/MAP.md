@@ -7,6 +7,7 @@ that must remain available to existing Kotlin Multiplatform consumers.
 | --- | --- | --- | --- |
 | Symbol names, categories, restricted flags, aliases | KMP catalog and JVM tag file; Rust reads those same sources at compile time | `sfstudio-core` | `PORTED`; catalog count and basic lookup tests pass; Rust builds on Windows/macOS/Linux |
 | Fuzzy query ranking | `FuzzySearch.kt` remains the desktop reference | `sfstudio-core` | `PORTED`; 99 MCP response cases match locally, broader UI-query parity pending |
+| Cross-language search entry point | Existing Rust search had no stable foreign-language ABI | `sfstudio-ffi` C ABI + `include/sfstudio.h` | `IN_PROGRESS`; Windows/macOS/Linux build and Python `ctypes` smoke; Kotlin/Native, JNI, Swift, JS and Wasm adapters remain pending |
 | MCP server | Kotlin `McpServer.kt` remains the development fallback | `sfstudio-mcp`; packaged `--mcp` launcher delegates to it | `VERIFIED`; 99 Kotlin/Rust response cases match locally; packaged smoke passes on Windows, macOS, and Linux |
 | Favorites model and JSON codec | `PinnedSymbols.kt` remains the active disk reader/writer at `~/.sf-symbols-catalog/pins.json` | `sfstudio-core::favorites` | `IN_PROGRESS`; ordered set semantics and Kotlin/Rust JSON fixtures pass; Rust disk adapter and integration pending |
 | Compose snippet generation | `ComposeSnippet.kt` remains the active desktop path | `sfstudio-core::codegen` | `PORTED`; Kotlin and Rust match shared byte-for-byte fixtures for both background and plain variants; runtime bridge pending |

@@ -6,9 +6,12 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 11 Rust tests
-  passed (8 core, including snippet and favorites fixtures, and 3 MCP).
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 13 Rust tests
+  passed (8 core, 2 C ABI, and 3 MCP).
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
+- `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
+  Windows x64; Python `ctypes` smoke passed, including sizing calls, typo search,
+  Unicode, invalid UTF-8, null pointers, and short-buffer handling.
 - `gradlew.bat :app:jvmTest :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
 - The `CatalogViewModelTest` snippet cases match the Rust fixtures exactly,
   including import order, colors, mode, background wrapper, and final newline.
@@ -37,6 +40,8 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Not yet verified
 
 - Rust FFI bindings and their per-platform public API integration tests.
+- C ABI build and Python `ctypes` smoke on macOS and Linux (covered by the next
+  branch CI run); C ABI integration with Kotlin, Swift, JS, and Wasm callers.
 - UI and vector-rendering parity, installer upgrades, user-data migration,
   performance baselines, and native bindings.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.

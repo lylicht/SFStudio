@@ -14,6 +14,10 @@ portable logic behind the installed desktop entry points.
   with the existing Kotlin array format; the Kotlin file store stays active.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
+- `sfstudio-ffi`: a language-neutral C ABI for Rust catalog search; its header
+  and UTF-8 JSON buffer contract are in `include/sfstudio.h`. Python `ctypes`
+  smoke checks run on Windows, macOS, and Linux. Kotlin public APIs remain
+  unchanged and do not call the ABI yet.
 - The Rust catalog is **read directly at compile time from the existing Kotlin
   catalog data and alias tags**. This is deliberately temporary: no parallel
   icon catalog is maintained. The embedded source is not parsed at runtime.
@@ -29,6 +33,8 @@ From the repository root, with a Rust toolchain installed:
 cargo test --manifest-path rust/Cargo.toml --workspace
 cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings
 cargo build --manifest-path rust/Cargo.toml -p sfstudio-mcp
+cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi
+python3 scripts/test_rust_ffi.py
 ./gradlew :app:assembleMcp
 python3 scripts/check_rust_mcp_parity.py
 python3 scripts/test_mcp.py --rust-binary rust/target/debug/sfstudio-mcp

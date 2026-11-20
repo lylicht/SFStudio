@@ -7,7 +7,9 @@ on:
   pull_request:
     paths:
       - "rust/**"
+      - "include/sfstudio.h"
       - "scripts/check_rust_mcp_parity.py"
+      - "scripts/test_rust_ffi.py"
       - "scripts/test_mcp.py"
       - "scripts/mcp.*"
       - "sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"
@@ -49,6 +51,14 @@ jobs:
         run: cargo test --manifest-path rust/Cargo.toml --workspace
       - name: Rust static analysis
         run: cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings
+      - name: Build language-neutral C ABI
+        run: cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi
+      - name: Exercise C ABI from Python (Windows)
+        if: runner.os == 'Windows'
+        run: python scripts/test_rust_ffi.py
+      - name: Exercise C ABI from Python (Unix)
+        if: runner.os != 'Windows'
+        run: python3 scripts/test_rust_ffi.py
 
   parity:
     name: Differential replay against Kotlin MCP
