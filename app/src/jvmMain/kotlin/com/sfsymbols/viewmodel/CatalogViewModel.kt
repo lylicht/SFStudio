@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import com.sfsymbols.data.FuzzySearch
 import com.sfsymbols.data.PinnedSymbols
+import com.sfsymbols.data.RustCatalogSearch
 import com.composables.sfsymbols.SfSymbolMetadata
 import com.composables.sfsymbols.SfSymbolsCatalog
 import com.sfsymbols.data.SymbolMode
@@ -105,6 +106,26 @@ public class CatalogViewModel(
     private fun recomputeFiltered() {
         val q = query.trim()
         val cat = selectedCategory
+        if (cat != null || onlyPinned) {
+            val rustResults = try {
+                RustCatalogSearch.searchFiltered(
+                    q,
+                    cat,
+                    if (onlyPinned) pinnedIds else null,
+                    if (q.isEmpty()) allSymbols.size else 300,
+                )
+            } catch (error: Exception) {
+                RustCatalogSearch.reportFailure(error)
+                null
+            } catch (error: LinkageError) {
+                RustCatalogSearch.reportFailure(error)
+                null
+            }
+            if (rustResults != null) {
+                filteredSymbols = rustResults
+                return
+            }
+        }
         val base = when {
             onlyPinned -> allSymbols.filter { it.appleName in pinnedIds }
             else -> allSymbols

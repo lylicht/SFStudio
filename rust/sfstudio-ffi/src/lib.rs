@@ -1,5 +1,6 @@
-//! C ABI for calling SFStudio's shared Rust search and code generation from other languages.
+//! C ABI for calling SFStudio's shared Rust catalog, code generation, and favorites from other languages.
 
+use std::collections::HashSet;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 const UNKNOWN_SYMBOL: isize = -6;
@@ -72,6 +73,72 @@ pub unsafe extern "C" fn sfstudio_search_json(
     match catch_unwind(AssertUnwindSafe(|| {
         let names: Vec<_> = sfstudio_core::catalog()
             .search(query_text, limit)
+            .iter()
+            .map(|symbol| symbol.apple_name.as_str())
+            .collect();
+        serde_json::to_vec(&names).map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
+/// Search the catalog while applying an optional category and favorites filter.
+///
+/// An empty category disables category filtering. `favorites_only` uses zero
+/// for false and nonzero for true; when true, `favorites_json` must be a JSON
+/// array of strings. The return value and buffer protocol match
+/// `sfstudio_search_json`; -8 indicates invalid favorites JSON.
+///
+/// # Safety
+/// Each nonzero input length must describe readable bytes. If `output_capacity`
+/// is nonzero, `output` must point to that many writable bytes. The input and
+/// output buffers may overlap because the result is created before writing.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_search_filtered_json(
+    query: *const u8,
+    query_len: usize,
+    category: *const u8,
+    category_len: usize,
+    favorites_json: *const u8,
+    favorites_json_len: usize,
+    favorites_only: i32,
+    limit: usize,
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    let query = match unsafe { read_utf8(query, query_len) } {
+        Ok(query) => query,
+        Err(code) => return code,
+    };
+    let category = match unsafe { read_utf8(category, category_len) } {
+        Ok(category) => category,
+        Err(code) => return code,
+    };
+    let favorites_json = match unsafe { read_utf8(favorites_json, favorites_json_len) } {
+        Ok(json) => json,
+        Err(code) => return code,
+    };
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let favorites = if favorites_only != 0 {
+            let parsed = sfstudio_core::favorites::Favorites::from_json(favorites_json)
+                .map_err(|_| INVALID_FAVORITES_JSON)?;
+            Some(parsed.as_slice().iter().cloned().collect::<HashSet<_>>())
+        } else {
+            None
+        };
+        let names: Vec<_> = sfstudio_core::catalog()
+            .search_filtered(
+                query,
+                (!category.is_empty()).then_some(category),
+                favorites.as_ref(),
+                limit,
+            )
             .iter()
             .map(|symbol| symbol.apple_name.as_str())
             .collect();
@@ -223,6 +290,60 @@ mod tests {
             r#"["0.circle.fill","0.circle","0.square.fill"]"#
         );
         assert_eq!(search("🐈".as_bytes(), 5).unwrap(), "[]");
+    }
+
+    #[test]
+    fn filtered_search_returns_only_matching_favorites_and_category() {
+        let symbol = sfstudio_core::catalog().find("heart.fill").unwrap();
+        let category = symbol.categories.first().unwrap();
+        let favorites = br#"["heart.fill","star"]"#;
+        let expected: Vec<_> = sfstudio_core::catalog()
+            .search_filtered(
+                "",
+                Some(category),
+                Some(&HashSet::from(["heart.fill".to_owned(), "star".to_owned()])),
+                10,
+            )
+            .iter()
+            .map(|symbol| symbol.apple_name.clone())
+            .collect();
+        let mut output = [0; 64];
+        // SAFETY: Input slices are valid and output has enough capacity.
+        let written = unsafe {
+            sfstudio_search_filtered_json(
+                std::ptr::null(),
+                0,
+                category.as_bytes().as_ptr(),
+                category.len(),
+                favorites.as_ptr(),
+                favorites.len(),
+                1,
+                10,
+                output.as_mut_ptr(),
+                output.len(),
+            )
+        };
+        assert!(written > 0);
+        let actual: Vec<String> = serde_json::from_slice(&output[..written as usize]).unwrap();
+        assert_eq!(actual, expected);
+        // SAFETY: Inputs are valid; output is a size query.
+        assert_eq!(
+            unsafe {
+                sfstudio_search_filtered_json(
+                    std::ptr::null(),
+                    0,
+                    std::ptr::null(),
+                    0,
+                    b"{broken".as_ptr(),
+                    7,
+                    1,
+                    10,
+                    std::ptr::null_mut(),
+                    0,
+                )
+            },
+            INVALID_FAVORITES_JSON
+        );
     }
 
     #[test]

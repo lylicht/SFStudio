@@ -6,20 +6,20 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 17 Rust tests
-  passed (8 core, 6 C ABI, and 3 MCP).
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 19 Rust tests
+  passed (9 core, 7 C ABI, and 3 MCP).
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
   Windows x64; Python `ctypes` smoke passed, including sizing calls, typo search,
   Unicode, invalid UTF-8, null pointers, short-buffer handling, exact Compose
-  snippet fixtures, and favorite ordering/toggle behavior.
+  snippet fixtures, favorite ordering/toggle behavior, and filtered search.
 - `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
 - `gradlew.bat :app:jvmTest --no-daemon` — passed with the Rust search library
-  loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries
-  and both Compose snippet variants matched exactly. Rust favorite toggles also
-  matched Kotlin set ordering and removal behavior.
+  loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries,
+  both Compose snippet variants, favorite ordering/removal, and filtered
+  category/favorites results matched Kotlin references.
 - `gradlew.bat :app:packageMsi --no-daemon` — Windows MSI build passed with the
-  Rust search DLL and MCP executable in `app-jvm.jar`.
+  Rust FFI DLL and MCP executable in `app-jvm.jar`.
 - The `CatalogViewModelTest` snippet cases match the Rust fixtures exactly,
   including import order, colors, mode, background wrapper, and final newline.
 - `PinnedSymbolsCompatibilityTest` reads both the legacy Kotlin JSON fixture
@@ -48,12 +48,16 @@ Last local check: 2026-11-20, Windows x64, branch
 - [GitHub Actions run #14](https://github.com/lylicht/SFStudio/actions/runs/44758827641)
   — JNA-backed Rust search passed 37-query Kotlin parity on Windows/macOS/Linux;
   all existing Kotlin targets and packaged MCP checks passed.
+- [GitHub Actions run #16](https://github.com/lylicht/SFStudio/actions/runs/44762564449)
+  — C ABI search, codegen, and favorites passed Windows/macOS/Linux smoke tests;
+  JVM search/snippet/favorites tests passed on Windows/macOS/Linux; Android,
+  iOS, JS/Wasm, and packaged MCP jobs passed.
 
 ## Not yet verified
 
 - Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API.
-- macOS/Linux JNA runtime integration for Compose snippet generation and
-  favorite toggling (search integration passed run #14; newer adapters await CI).
+- Cross-OS category/favorites filtered-search binding (local Kotlin/Rust parity
+  passes; run #16 predates this adapter).
 - UI and vector-rendering parity, installer upgrades, user-data migration,
   performance baselines, and native bindings.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.

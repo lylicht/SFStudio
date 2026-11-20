@@ -17,16 +17,17 @@ Kotlin. Packaged desktop search, snippet generation, and favorite toggling call
 the Rust C ABI through JNA, with Kotlin fallbacks. Kotlin still owns favorite
 file reads and writes.
 
-The shared catalog search, Compose code generator, and ordered favorite toggle
-export C ABI entry points without exposing Rust types. The header is
+The shared catalog search and filters, Compose code generator, and ordered
+favorite toggle export C ABI entry points without exposing Rust types. The header is
 `include/sfstudio.h`. C, C++, Python, JNI/JNA, Kotlin/Native, Swift, and other
 runtimes with a C FFI can call them.
 This ABI is a language-neutral integration surface, not a claim that each
 language or platform already has a packaged adapter or complete app binding.
 The published KMP API does not call this ABI yet; its Android, iOS, JS, and
 Wasm implementations remain active. The desktop JVM app calls search, code
-generation, and favorite toggling through JNA. JS and Wasm consumers still use
-Kotlin until target-specific Rust/Wasm adapters pass their tests.
+generation, and favorite toggling through JNA on Windows, macOS, and Linux;
+category/favorites filtering is being integrated. JS and Wasm consumers still
+use Kotlin until target-specific Rust/Wasm adapters pass their tests.
 
 ## Compatibility rules
 
@@ -47,7 +48,7 @@ Kotlin until target-specific Rust/Wasm adapters pass their tests.
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `NOT_STARTED`; keep the Kotlin path |
-| JVM / desktop | Kotlin Multiplatform + Compose; packaged search and `--mcp` use Rust | `IN_PROGRESS`; JNA search integration is tested on Windows; published KMP API, UI state, and rendering remain Kotlin |
+| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, snippets, favorites, and `--mcp` use Rust | `IN_PROGRESS`; JNA search/snippet/favorite paths passed Windows/macOS/Linux; filtered search awaits cross-OS checks, while published KMP APIs, UI state, and rendering remain Kotlin |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `NOT_STARTED`; evaluate a narrow C ABI / generated Swift bridge |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
 | Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |

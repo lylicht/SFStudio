@@ -21,6 +21,21 @@ intptr_t sfstudio_search_json(const uint8_t *query, size_t query_len,
                               size_t output_capacity);
 
 /*
+ * Search with optional exact category and favorites filters. Empty category
+ * disables category filtering. favorites_only is zero/false or nonzero/true;
+ * when true, favorites_json must contain a JSON string array. Error -8 means
+ * invalid favorites JSON. Uses the same UTF-8 output buffer contract above.
+ */
+intptr_t sfstudio_search_filtered_json(const uint8_t *query, size_t query_len,
+                                       const uint8_t *category,
+                                       size_t category_len,
+                                       const uint8_t *favorites_json,
+                                       size_t favorites_json_len,
+                                       int32_t favorites_only, size_t limit,
+                                       uint8_t *output,
+                                       size_t output_capacity);
+
+/*
  * Returns raw UTF-8 Kotlin source for the snippet, using the same required-size
  * buffer contract. Mode: 0 dualtone, 1 monochrome. Boolean arguments use
  * zero/nonzero. Negative errors: -1 invalid symbol pointer, -2 invalid UTF-8,

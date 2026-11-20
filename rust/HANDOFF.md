@@ -6,17 +6,17 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all seventeen workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all nineteen workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. All 99 Kotlin/Rust MCP differential
 responses match, including malformed JSON, invalid IDs and batches, and
 notifications. See [VERIFICATION.md](VERIFICATION.md).
 
 The Rust C ABI is loaded by packaged JVM search, Compose snippet generation,
-and favorite toggling through JNA. Search parity passed on Windows/macOS/Linux
-in Actions run #14. Windows `:app:jvmTest` matched both snippet variants and
-favorite ordering/removal against Kotlin; the Windows MSI build includes the
-shared library. Cross-OS verification of the newer adapters is pending.
+and favorite toggling through JNA. Search parity passed in run #14; snippet and
+favorites parity passed Windows/macOS/Linux in run #16. The Windows MSI includes
+the shared library. The new category/favorites filtered-search adapter passes
+local Rust/Kotlin parity; cross-OS verification is pending.
 
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge
@@ -38,8 +38,8 @@ JS/Wasm; and packaged Rust MCP launchers on Windows/macOS/Linux.
 
 ## Next unblocked migration work
 
-1. Verify the new JNA snippet and favorite adapters on Windows/macOS/Linux;
-   search already passed run #14. Keep Kotlin fallbacks for development and
+1. Verify JNA filtered search on Windows/macOS/Linux; search, snippets, and
+   favorites passed runs #14 and #16. Keep Kotlin fallback for development and
    library-load failures.
 2. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
    one FFI mechanism is not assumed to fit every target.

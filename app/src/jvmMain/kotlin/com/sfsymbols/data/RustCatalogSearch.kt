@@ -4,6 +4,8 @@ import com.composables.sfsymbols.SfSymbolMetadata
 import com.composables.sfsymbols.SfSymbolsCatalog
 import com.sun.jna.Library
 import com.sun.jna.Native
+import kotlinx.serialization.builtins.SetSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
@@ -15,6 +17,19 @@ internal interface NativeSearch : Library {
     fun sfstudio_search_json(
         query: ByteArray?,
         queryLength: Long,
+        limit: Long,
+        output: ByteArray?,
+        outputCapacity: Long,
+    ): Long
+
+    fun sfstudio_search_filtered_json(
+        query: ByteArray?,
+        queryLength: Long,
+        category: ByteArray?,
+        categoryLength: Long,
+        favoritesJson: ByteArray?,
+        favoritesJsonLength: Long,
+        favoritesOnly: Int,
         limit: Long,
         output: ByteArray?,
         outputCapacity: Long,
@@ -68,11 +83,58 @@ internal object RustCatalogSearch {
             output.size.toLong(),
         )
         check(written == required) { "Rust search wrote $written bytes; expected $required" }
-        return Json.parseToJsonElement(output.decodeToString()).jsonArray.map { item ->
+        return decodeSymbols(output)
+    }
+
+    fun searchFiltered(
+        query: String,
+        category: String?,
+        favorites: Set<String>?,
+        limit: Int,
+    ): List<SfSymbolMetadata>? {
+        val library = native ?: return null
+        val queryBytes = query.toByteArray(Charsets.UTF_8)
+        val categoryBytes = category?.toByteArray(Charsets.UTF_8) ?: ByteArray(0)
+        val favoritesBytes = favorites?.let {
+            Json.encodeToString(SetSerializer(String.serializer()), it).toByteArray(Charsets.UTF_8)
+        }
+        val required = library.sfstudio_search_filtered_json(
+            queryBytes,
+            queryBytes.size.toLong(),
+            categoryBytes,
+            categoryBytes.size.toLong(),
+            favoritesBytes,
+            favoritesBytes?.size?.toLong() ?: 0,
+            if (favorites == null) 0 else 1,
+            limit.toLong(),
+            null,
+            0,
+        )
+        check(required >= 0) { "Rust filtered search sizing failed with code $required" }
+        check(required <= Int.MAX_VALUE) { "Rust filtered search result is too large for the JVM" }
+
+        val output = ByteArray(required.toInt())
+        val written = library.sfstudio_search_filtered_json(
+            queryBytes,
+            queryBytes.size.toLong(),
+            categoryBytes,
+            categoryBytes.size.toLong(),
+            favoritesBytes,
+            favoritesBytes?.size?.toLong() ?: 0,
+            if (favorites == null) 0 else 1,
+            limit.toLong(),
+            output,
+            output.size.toLong(),
+        )
+        check(written == required) { "Rust filtered search wrote $written bytes; expected $required" }
+        return decodeSymbols(output)
+    }
+
+    private fun decodeSymbols(output: ByteArray): List<SfSymbolMetadata> =
+        Json.parseToJsonElement(output.decodeToString()).jsonArray.map { item ->
             val name = item.jsonPrimitive.content
             checkNotNull(symbolsByAppleName[name]) { "Rust search returned unknown symbol '$name'" }
         }
-    }
 
     fun composeSnippet(
         symbol: SfSymbolMetadata,

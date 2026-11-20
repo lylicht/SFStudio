@@ -1,4 +1,4 @@
-//! SFStudio's platform-neutral symbol search, ported from FuzzySearch.kt.
+//! SFStudio's platform-neutral catalog, search, and filtering core.
 //!
 //! The catalog and aliases are embedded from their existing Kotlin source files.
 //! That keeps the 7,007 symbols in one authoritative location during migration.
@@ -114,9 +114,31 @@ impl Catalog {
     /// Search results are ordered identically to the original Kotlin algorithm:
     /// descending score, fewest name segments, shortest name, alphabetical name.
     pub fn search(&self, query: &str, limit: usize) -> Vec<&Symbol> {
+        self.search_filtered(query, None, None, limit)
+    }
+
+    /// Search with the same ranking while restricting results to a category
+    /// and/or an ordered favorites set.
+    pub fn search_filtered(
+        &self,
+        query: &str,
+        category: Option<&str>,
+        favorites: Option<&HashSet<String>>,
+        limit: usize,
+    ) -> Vec<&Symbol> {
+        let matches_filters = |symbol: &Symbol| {
+            category.map_or(true, |category| {
+                symbol.categories.iter().any(|value| value == category)
+            }) && favorites.map_or(true, |favorites| favorites.contains(&symbol.apple_name))
+        };
         let q = query.trim().to_lowercase();
         if q.is_empty() {
-            return self.symbols.iter().take(limit).collect();
+            return self
+                .symbols
+                .iter()
+                .filter(|symbol| matches_filters(symbol))
+                .take(limit)
+                .collect();
         }
 
         let mut tokens = split_words(&q);
@@ -133,6 +155,9 @@ impl Catalog {
             .iter()
             .enumerate()
             .filter_map(|(i, symbol)| {
+                if !matches_filters(symbol) {
+                    return None;
+                }
                 let value = self.score(symbol, &tokens, &q);
                 (value > 0).then_some((value, i))
             })
@@ -492,6 +517,50 @@ mod tests {
                 "query={query}"
             );
         }
+    }
+
+    #[test]
+    fn filtered_search_preserves_the_unfiltered_order_within_each_subset() {
+        let index = catalog();
+        let category = index
+            .find("heart.fill")
+            .unwrap()
+            .categories
+            .first()
+            .unwrap();
+        let favorites = HashSet::from([
+            "heart.fill".to_owned(),
+            "heart.circle".to_owned(),
+            "heart.circle.fill".to_owned(),
+            "star.fill".to_owned(),
+        ]);
+
+        let expected_category: Vec<_> = index
+            .search("heart", index.all().len())
+            .into_iter()
+            .filter(|symbol| symbol.categories.contains(category))
+            .take(20)
+            .map(|symbol| symbol.apple_name.as_str())
+            .collect();
+        let actual_category: Vec<_> = index
+            .search_filtered("heart", Some(category), None, 20)
+            .into_iter()
+            .map(|symbol| symbol.apple_name.as_str())
+            .collect();
+        assert_eq!(actual_category, expected_category);
+
+        let expected_favorites: Vec<_> = index
+            .search("heart", index.all().len())
+            .into_iter()
+            .filter(|symbol| favorites.contains(&symbol.apple_name))
+            .map(|symbol| symbol.apple_name.as_str())
+            .collect();
+        let actual_favorites: Vec<_> = index
+            .search_filtered("heart", None, Some(&favorites), 20)
+            .into_iter()
+            .map(|symbol| symbol.apple_name.as_str())
+            .collect();
+        assert_eq!(actual_favorites, expected_favorites);
     }
 
     #[test]
