@@ -23,6 +23,14 @@ def requests():
     yield {"jsonrpc": "2.0", "method": "notifications/initialized"}
     yield {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
     yield {"jsonrpc": "2.0", "id": 3, "method": "ping"}
+    yield {"jsonrpc": "2.0", "method": "unknown-notification", "params": []}
+
+    # JSON-RPC requires one error for an invalid batch value; both servers keep
+    # the Kotlin implementation's existing behavior for these requests.
+    yield []
+    yield [{"jsonrpc": "2.0", "id": 99, "method": "ping"}]
+    for invalid_id in (None, True, 1.5, {}):
+        yield {"jsonrpc": "2.0", "id": invalid_id, "method": "ping"}
 
     queries = [
         "home", "house", "phone", "garbage", "logout", "ai", "cog",
@@ -109,7 +117,7 @@ def main():
         parser.error("Run cargo build --manifest-path rust/Cargo.toml -p sfstudio-mcp first")
 
     messages = list(requests())
-    payload = "".join(json.dumps(m, ensure_ascii=False) + "\n" for m in messages)
+    payload = "{broken\n" + "".join(json.dumps(m, ensure_ascii=False) + "\n" for m in messages)
     original = run_server(
         [args.java, "-Djava.awt.headless=true", "-cp",
          str(kotlin_lib / "*"), "com.sfsymbols.MainKt", "--mcp"], payload)

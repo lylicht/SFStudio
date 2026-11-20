@@ -95,10 +95,20 @@ def main():
         assert responses[7]["error"]["code"] == -32601
         assert responses[8]["error"]["code"] == -32602
         assert responses[9]["result"] == {}
+        send({"jsonrpc": "2.0", "id": True, "method": "ping"})
+        assert receive(None)["error"]["code"] == -32600
+        send({"jsonrpc": "2.0", "id": 10, "method": "ping", "params": []})
+        assert receive(10)["error"]["code"] == -32602
+        process.stdin.write("{broken\n")
+        process.stdin.flush()
+        assert receive(None)["error"]["code"] == -32700
+        send({"jsonrpc": "2.0", "id": 11, "method": "tools/call", "params": {
+            "name": "search_symbols", "arguments": {"query": "naïve 🐈", "limit": 1}}})
+        assert receive(11)["result"]["content"]
         process.stdin.close()
         assert process.wait(timeout=20) == 0, process.stderr.read()
         assert replies.empty(), "Unexpected stdout or notification response"
-        print("MCP smoke test passed: handshake, tools, pipelined requests, categories, errors, ping, and clean EOF.")
+        print("MCP smoke test passed: handshake, tools, pipelining, Unicode, invalid requests, errors, stdout purity, and clean EOF.")
     finally:
         if process.poll() is None:
             process.kill()

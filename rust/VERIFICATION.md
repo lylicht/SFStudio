@@ -18,13 +18,15 @@ Last local check: 2026-11-20, Windows x64, branch
 - `gradlew.bat :app:packageMsi --no-daemon` — Windows MSI build passed; the
   packaged app image launcher passed the Rust MCP stdio smoke test.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-mcp` — passed.
-- `python scripts/check_rust_mcp_parity.py` — 92/92 Kotlin and Rust MCP
-  responses matched.
+- `python scripts/check_rust_mcp_parity.py` — 99/99 Kotlin and Rust MCP
+  responses matched, including malformed JSON, invalid IDs/batches, and
+  notification behavior.
 - `python scripts/test_mcp.py` — Kotlin `--mcp` stdio smoke test passed.
 - `python scripts/test_mcp.py --rust-binary rust/target/debug/sfstudio-mcp.exe`
   — Rust server through the existing `--mcp` launcher passed.
 - `python scripts/test_mcp.py --launcher app/build/compose/binaries/main/app/SFStudio/SFStudio.exe`
-  — packaged Windows Rust MCP entrypoint passed.
+  — packaged Windows Rust MCP entrypoint passed, including Unicode and
+  malformed-request checks.
 - `gradlew.bat :sfsymbols:jsNodeTest :sfsymbols:wasmJsNodeTest --no-daemon -PsfstudioUseSystemWebTools=true`
   — JS and Wasm source compilation passed; both test tasks reported `NO-SOURCE`.
 
@@ -32,9 +34,10 @@ Last local check: 2026-11-20, Windows x64, branch
 
 - Linux/macOS packaged `--mcp` entrypoint smoke tests.
 - Rust FFI bindings and their per-platform public API integration tests.
-- Android API 37 preview install/compile job; the latest run passed iOS and
-  Rust CI on Windows, macOS, and Linux, but Android setup still failed before
-  Gradle compilation.
+- Android API 37 preview install/compile job; the latest run failed before
+  Gradle compilation because the SDK package identifier was missing `.0`.
+  The workflow now requests `platforms;android-37.0`; this remains unverified
+  until the next CI run.
 - UI and vector-rendering parity, installer upgrades, user-data migration,
   and native bindings.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.

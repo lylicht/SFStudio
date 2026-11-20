@@ -161,7 +161,7 @@ jobs:
           cache: gradle
       - uses: android-actions/setup-android@v4
       - name: Install Android API 37 preview
-        run: sdkmanager --channel=3 "platforms;android-37"
+        run: sdkmanager --channel=3 "platforms;android-37.0"
       - name: Android library compilation
         run: ./gradlew :sfsymbols:compileAndroidMain --no-daemon
 

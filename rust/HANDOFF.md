@@ -8,8 +8,9 @@ Kotlin/Compose implementation and all public KMP targets remain active.
 
 On Windows x64, Rust fmt, all eleven workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
-tests against both Kotlin and Rust passed. All 92 Kotlin/Rust MCP differential
-responses match. See [VERIFICATION.md](VERIFICATION.md).
+tests against both Kotlin and Rust passed. All 99 Kotlin/Rust MCP differential
+responses match, including malformed JSON, invalid IDs and batches, and
+notifications. See [VERIFICATION.md](VERIFICATION.md).
 
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, fixes Rust formatting,
@@ -31,14 +32,15 @@ workflow now requests the preview channel and is awaiting another run.
 
 ## Next unblocked migration work
 
-1. Rerun Android compile with preview SDK channel and verify Linux/macOS
-   packaged `--mcp` stdio entrypoints.
-2. Expand MCP replay for invalid JSON-RPC IDs and batch messages.
-3. Add the Rust core behind the existing JVM/KMP compatibility API, then
+1. Verify the running CI build, including Android preview SDK and Linux/macOS
+   packaged `--mcp` stdio entrypoints. Android's preview SDK package uses the
+   `platforms;android-37.0` identifier; the latest run still used `android-37`
+   and failed before compilation, so that package name has been corrected.
+2. Add the Rust core behind the existing JVM/KMP compatibility API, then
    evaluate JNI/Android, C ABI/iOS, and Wasm/JS bridges separately.
-4. Port preferences, app state, vector decoding, and render semantics with
+3. Port preferences, app state, vector decoding, and render semantics with
    parity fixtures before any UI or library cutover.
-5. Capture visual/interaction baselines and test installer upgrades while
+4. Capture visual/interaction baselines and test installer upgrades while
    preserving package identities and user data.
 
 ## References
