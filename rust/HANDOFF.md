@@ -26,10 +26,12 @@ Rust-backed adapters for those targets are not implemented.
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge
 coverage and a Rust vector data decoder, and checks Rust/KMP/package behavior
-in CI. The vector decoder's latest checks are local; GitHub Actions run
-[#11](https://github.com/lylicht/SFStudio/actions/runs/44750825015) passed
-Rust on Windows/macOS/Linux; JVM on Windows/macOS/Linux; Android API 37; iOS;
-JS/Wasm; and packaged Rust MCP launchers on Windows/macOS/Linux.
+in CI. GitHub Actions run
+[#22](https://github.com/lylicht/SFStudio/actions/runs/44775446369) passed
+Rust on Windows/macOS/Linux; JVM on Linux/macOS; Android API 37; iOS; JS/Wasm;
+and packaged Rust MCP launchers on Windows/macOS/Linux. Its Windows JVM job
+found a CRLF-only fingerprint fixture comparison failure; the comparison now
+normalizes line endings, and the corrected cross-platform run is pending.
 
 ## Existing work inherited from PR #7
 

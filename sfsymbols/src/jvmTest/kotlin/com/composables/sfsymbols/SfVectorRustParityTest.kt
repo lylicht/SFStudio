@@ -21,7 +21,7 @@ class SfVectorRustParityTest {
             ?.bufferedReader()
             ?.use { it.readText() }
             ?: error("missing Rust vector parity fingerprints")
-        assertEquals(expected, actual)
+        assertEquals(expected.replace("\r\n", "\n"), actual)
     }
 }
 

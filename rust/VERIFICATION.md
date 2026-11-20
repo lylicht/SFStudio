@@ -67,6 +67,12 @@ Last local check: 2026-11-20, Windows x64, branch
 - The vector decoder and weight-aware glyph C ABI passed the local Rust,
   Kotlin parity, Clippy, and Python checks above. Run #20 predates this code;
   cross-OS CI results for the vector work are pending.
+- [GitHub Actions run #22](https://github.com/lylicht/SFStudio/actions/runs/44775446369)
+  passed Rust and Kotlin checks on macOS/Linux, Rust and FFI checks on Windows,
+  Android, iOS, JS/Wasm, and packaged MCP jobs. Its Windows JVM job exposed
+  CRLF line endings in the fingerprint fixture; the test now normalizes them,
+  and the failure was reproduced locally with a CRLF fixture. The corrected
+  full cross-platform run is pending.
 
 ## Not yet verified
 
