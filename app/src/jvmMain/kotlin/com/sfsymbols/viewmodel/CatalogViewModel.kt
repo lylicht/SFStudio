@@ -175,8 +175,7 @@ public class CatalogViewModel(
     }
 
     public fun toggleFavorite(meta: SfSymbolMetadata) {
-        val next = if (meta.appleName in pinnedIds) pinnedIds - meta.appleName
-        else pinnedIds + meta.appleName
+        val next = PinnedSymbols.toggle(pinnedIds, meta.appleName)
         pinnedIds = next
         PinnedSymbols.save(next)
         recomputeFiltered()

@@ -12,11 +12,13 @@ portable logic behind the installed desktop entry points.
   Kotlin/Rust golden fixtures and exposed through the C ABI; the packaged JVM
   caller uses Rust through JNA with a Kotlin fallback.
 - `sfstudio-core::favorites`: ordered favorite state and JSON codec compatible
-  with the existing Kotlin array format; the Kotlin file store stays active.
+  with the existing Kotlin array format; packaged JVM toggles use the C ABI,
+  while Kotlin retains ownership of the favorite file.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
-- `sfstudio-ffi`: a language-neutral C ABI for Rust catalog search; its header
-  and UTF-8 JSON buffer contract are in `include/sfstudio.h`. Python `ctypes`
+- `sfstudio-ffi`: a language-neutral C ABI for catalog search, Compose code
+  generation, and favorite toggling; its header and UTF-8 buffer contract are
+  in `include/sfstudio.h`. Python `ctypes`
   smoke checks run on Windows, macOS, and Linux. The packaged JVM UI calls it
   through JNA; published KMP callers remain unchanged.
 - The Rust catalog is **read directly at compile time from the existing Kotlin
@@ -25,8 +27,8 @@ portable logic behind the installed desktop entry points.
 
 Packaged `--mcp` launches delegate to the Rust executable after parity checks;
 classpath-based development launches retain the Kotlin fallback. Packaged UI
-search calls the Rust C ABI through JNA, keeping the Kotlin algorithm as the
-development and load-failure fallback.
+search, snippet generation, and favorite toggling call the Rust C ABI through
+JNA, keeping Kotlin behavior as the development and load-failure fallback.
 
 ## Verify
 

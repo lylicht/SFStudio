@@ -34,6 +34,10 @@ def main():
                                 ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
                                 ctypes.c_void_p, ctypes.c_size_t]
     compose_snippet.restype = ctypes.c_ssize_t
+    toggle_favorites = library.sfstudio_favorites_toggle_json
+    toggle_favorites.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
+                                 ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
+    toggle_favorites.restype = ctypes.c_ssize_t
 
     def search(query, limit):
         encoded = query.encode("utf-8")
@@ -83,7 +87,29 @@ def main():
         golden_dir / "compose-snippet-dualtone-plain.kt.txt"
     ).read_text(encoding="utf-8")
 
-    print("Rust C ABI search and codegen smoke test passed (Python ctypes)")
+    def toggle(json_text, name):
+        encoded_json = json_text.encode("utf-8")
+        encoded_name = name.encode("utf-8")
+        json_buffer = ctypes.create_string_buffer(encoded_json)
+        name_buffer = ctypes.create_string_buffer(encoded_name)
+        required = toggle_favorites(
+            json_buffer, len(encoded_json), name_buffer, len(encoded_name), None, 0,
+        )
+        assert required >= 0, f"favorites sizing call failed: {required}"
+        output = ctypes.create_string_buffer(required)
+        written = toggle_favorites(
+            json_buffer, len(encoded_json), name_buffer, len(encoded_name), output, required,
+        )
+        assert written == required
+        return json.loads(output.raw[:written])
+
+    assert toggle('["heart.fill","star"]', "gear") == ["heart.fill", "star", "gear"]
+    assert toggle('["heart.fill","star"]', "heart.fill") == ["star"]
+    broken_json = ctypes.create_string_buffer(b"{broken")
+    assert toggle_favorites(broken_json, 7, ctypes.create_string_buffer(b"gear"), 4,
+                            None, 0) == -8
+
+    print("Rust C ABI search, codegen, and favorites smoke test passed (Python ctypes)")
 
 
 if __name__ == "__main__":

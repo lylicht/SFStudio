@@ -31,6 +31,15 @@ internal interface NativeSearch : Library {
         output: ByteArray?,
         outputCapacity: Long,
     ): Long
+
+    fun sfstudio_favorites_toggle_json(
+        favoritesJson: ByteArray?,
+        favoritesJsonLength: Long,
+        symbolName: ByteArray?,
+        symbolNameLength: Long,
+        output: ByteArray?,
+        outputCapacity: Long,
+    ): Long
 }
 
 internal object RustCatalogSearch {
@@ -105,6 +114,34 @@ internal object RustCatalogSearch {
             output.size.toLong(),
         )
         check(written == required) { "Rust snippet wrote $written bytes; expected $required" }
+        return output.decodeToString()
+    }
+
+    fun toggleFavorites(favoritesJson: String, appleName: String): String? {
+        val library = native ?: return null
+        val json = favoritesJson.toByteArray(Charsets.UTF_8)
+        val name = appleName.toByteArray(Charsets.UTF_8)
+        val required = library.sfstudio_favorites_toggle_json(
+            json,
+            json.size.toLong(),
+            name,
+            name.size.toLong(),
+            null,
+            0,
+        )
+        check(required >= 0) { "Rust favorites toggle failed with code $required" }
+        check(required <= Int.MAX_VALUE) { "Rust favorites result is too large for the JVM" }
+
+        val output = ByteArray(required.toInt())
+        val written = library.sfstudio_favorites_toggle_json(
+            json,
+            json.size.toLong(),
+            name,
+            name.size.toLong(),
+            output,
+            output.size.toLong(),
+        )
+        check(written == required) { "Rust favorites wrote $written bytes; expected $required" }
         return output.decodeToString()
     }
 

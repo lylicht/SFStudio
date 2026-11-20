@@ -4,6 +4,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 const UNKNOWN_SYMBOL: isize = -6;
 const INVALID_MODE: isize = -7;
+const INVALID_FAVORITES_JSON: isize = -8;
 const INVALID_QUERY: isize = -1;
 const INVALID_UTF8: isize = -2;
 const INVALID_OUTPUT: isize = -3;
@@ -135,6 +136,53 @@ pub unsafe extern "C" fn sfstudio_compose_snippet(
         .into_bytes())
     })) {
         Ok(Ok(snippet)) => unsafe { write_bytes(output, output_capacity, &snippet) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
+/// Toggle a favorite in a JSON array while preserving its order.
+///
+/// The return value is the required/written UTF-8 byte count, or a negative
+/// error: -1 invalid input pointer, -2 invalid UTF-8, -3 invalid output pointer,
+/// -4 internal panic/serialization failure, -5 result too large, -8 invalid
+/// favorites JSON. Use `output = NULL` and `output_capacity = 0` to query size.
+///
+/// # Safety
+/// Each nonzero input length must describe readable bytes. If `output_capacity`
+/// is nonzero, `output` must point to that many writable bytes. The buffers may
+/// overlap because the function owns its inputs' result before writing output.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_favorites_toggle_json(
+    favorites_json: *const u8,
+    favorites_json_len: usize,
+    symbol_name: *const u8,
+    symbol_name_len: usize,
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    let favorites_json = match unsafe { read_utf8(favorites_json, favorites_json_len) } {
+        Ok(json) => json,
+        Err(code) => return code,
+    };
+    let symbol_name = match unsafe { read_utf8(symbol_name, symbol_name_len) } {
+        Ok(name) => name,
+        Err(code) => return code,
+    };
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let mut favorites = sfstudio_core::favorites::Favorites::from_json(favorites_json)
+            .map_err(|_| INVALID_FAVORITES_JSON)?;
+        favorites.toggle(symbol_name);
+        favorites
+            .to_json()
+            .map(String::into_bytes)
+            .map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
         Ok(Err(code)) => code,
         Err(_) => INTERNAL_ERROR,
     }
@@ -292,6 +340,58 @@ mod tests {
                     0
                 ),
                 INVALID_MODE
+            );
+        }
+    }
+
+    #[test]
+    fn toggles_favorites_without_changing_order_or_json_contract() {
+        let input = br#"["heart.fill","star"]"#;
+        let name = b"gear";
+        // SAFETY: Inputs and output satisfy their declared lengths.
+        unsafe {
+            let required = sfstudio_favorites_toggle_json(
+                input.as_ptr(),
+                input.len(),
+                name.as_ptr(),
+                name.len(),
+                std::ptr::null_mut(),
+                0,
+            );
+            assert!(required > 0);
+            let mut output = vec![0; required as usize];
+            assert_eq!(
+                sfstudio_favorites_toggle_json(
+                    input.as_ptr(),
+                    input.len(),
+                    name.as_ptr(),
+                    name.len(),
+                    output.as_mut_ptr(),
+                    output.len(),
+                ),
+                required
+            );
+            assert_eq!(
+                String::from_utf8(output).unwrap(),
+                "[\n  \"heart.fill\",\n  \"star\",\n  \"gear\"\n]"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_malformed_favorites_json() {
+        // SAFETY: Both inputs are valid static byte slices; output is a size query.
+        unsafe {
+            assert_eq!(
+                sfstudio_favorites_toggle_json(
+                    b"{broken".as_ptr(),
+                    7,
+                    b"gear".as_ptr(),
+                    4,
+                    std::ptr::null_mut(),
+                    0,
+                ),
+                INVALID_FAVORITES_JSON
             );
         }
     }

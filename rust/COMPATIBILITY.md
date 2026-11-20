@@ -13,20 +13,20 @@ The desktop application is Kotlin/Compose on JVM. The installed app remains
 the default MCP endpoint and continues to use the existing favorite file at
 `~/.sf-symbols-catalog/pins.json`. Packaged `--mcp` invocations delegate to
 the bundled Rust MCP process; development classpath launches fall back to
-Kotlin. Packaged desktop fuzzy search calls the Rust C ABI through JNA, with
-the Kotlin implementation retained as its fallback and reference.
-The Rust favorites module currently handles ordered state and JSON only; it
-does not read or write this file.
+Kotlin. Packaged desktop search, snippet generation, and favorite toggling call
+the Rust C ABI through JNA, with Kotlin fallbacks. Kotlin still owns favorite
+file reads and writes.
 
-The shared catalog search and Compose code generator export C ABI entry points
-without exposing Rust types. The header is `include/sfstudio.h`. C, C++, Python,
-JNI/JNA, Kotlin/Native, Swift, and other runtimes with a C FFI can call them.
+The shared catalog search, Compose code generator, and ordered favorite toggle
+export C ABI entry points without exposing Rust types. The header is
+`include/sfstudio.h`. C, C++, Python, JNI/JNA, Kotlin/Native, Swift, and other
+runtimes with a C FFI can call them.
 This ABI is a language-neutral integration surface, not a claim that each
 language or platform already has a packaged adapter or complete app binding.
 The published KMP API does not call this ABI yet; its Android, iOS, JS, and
-Wasm implementations remain active. The desktop JVM app calls search and code
-generation through JNA. JS and Wasm consumers still use Kotlin until
-target-specific Rust/Wasm adapters pass their tests.
+Wasm implementations remain active. The desktop JVM app calls search, code
+generation, and favorite toggling through JNA. JS and Wasm consumers still use
+Kotlin until target-specific Rust/Wasm adapters pass their tests.
 
 ## Compatibility rules
 

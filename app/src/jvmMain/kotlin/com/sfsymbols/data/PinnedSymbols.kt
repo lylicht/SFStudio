@@ -12,6 +12,7 @@ import java.io.File
 public object PinnedSymbols {
 
     private val json = Json { prettyPrint = true }
+    private val serializer = SetSerializer(String.serializer())
 
     private fun stateDir(): File =
         File(System.getProperty("user.home"), ".sf-symbols-catalog").apply { mkdirs() }
@@ -29,7 +30,21 @@ public object PinnedSymbols {
 
     public fun save(pinned: Set<String>) {
         runCatching {
-            pinsFile().writeText(json.encodeToString(SetSerializer(String.serializer()), pinned))
+            pinsFile().writeText(json.encodeToString(serializer, pinned))
         }
+    }
+
+    public fun toggle(pinned: Set<String>, appleName: String): Set<String> {
+        val currentJson = json.encodeToString(serializer, pinned)
+        try {
+            RustCatalogSearch.toggleFavorites(currentJson, appleName)?.let {
+                return json.decodeFromString(serializer, it)
+            }
+        } catch (error: Exception) {
+            RustCatalogSearch.reportFailure(error)
+        } catch (error: LinkageError) {
+            RustCatalogSearch.reportFailure(error)
+        }
+        return if (appleName in pinned) pinned - appleName else pinned + appleName
     }
 }

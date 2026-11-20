@@ -6,17 +6,17 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all fifteen workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all seventeen workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. All 99 Kotlin/Rust MCP differential
 responses match, including malformed JSON, invalid IDs and batches, and
 notifications. See [VERIFICATION.md](VERIFICATION.md).
 
-The Rust C ABI is loaded by packaged JVM search and Compose snippet generation
-through JNA. Search parity passed on Windows/macOS/Linux in Actions run #14.
-Windows `:app:jvmTest` also matched both snippet variants against Kotlin, and
-the Windows MSI build includes the shared library. Cross-OS verification of
-snippet generation is pending.
+The Rust C ABI is loaded by packaged JVM search, Compose snippet generation,
+and favorite toggling through JNA. Search parity passed on Windows/macOS/Linux
+in Actions run #14. Windows `:app:jvmTest` matched both snippet variants and
+favorite ordering/removal against Kotlin; the Windows MSI build includes the
+shared library. Cross-OS verification of the newer adapters is pending.
 
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge
@@ -38,9 +38,9 @@ JS/Wasm; and packaged Rust MCP launchers on Windows/macOS/Linux.
 
 ## Next unblocked migration work
 
-1. Verify packaged JNA search and snippet adapters on macOS and Linux; keep the
-   Kotlin fallback for development and library-load failures. Search passed
-   run #14; the current change adds snippet generation for the next matrix run.
+1. Verify the new JNA snippet and favorite adapters on Windows/macOS/Linux;
+   search already passed run #14. Keep Kotlin fallbacks for development and
+   library-load failures.
 2. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
    one FFI mechanism is not assumed to fit every target.
 3. Port favorites persistence, settings, app state, vector decoding, and

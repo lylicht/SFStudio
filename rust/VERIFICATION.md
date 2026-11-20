@@ -6,17 +6,18 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 15 Rust tests
-  passed (8 core, 4 C ABI, and 3 MCP).
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 17 Rust tests
+  passed (8 core, 6 C ABI, and 3 MCP).
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
   Windows x64; Python `ctypes` smoke passed, including sizing calls, typo search,
-  Unicode, invalid UTF-8, null pointers, short-buffer handling, and exact Compose
-  snippet fixtures.
+  Unicode, invalid UTF-8, null pointers, short-buffer handling, exact Compose
+  snippet fixtures, and favorite ordering/toggle behavior.
 - `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
 - `gradlew.bat :app:jvmTest --no-daemon` — passed with the Rust search library
   loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries
-  and both Compose snippet variants matched exactly.
+  and both Compose snippet variants matched exactly. Rust favorite toggles also
+  matched Kotlin set ordering and removal behavior.
 - `gradlew.bat :app:packageMsi --no-daemon` — Windows MSI build passed with the
   Rust search DLL and MCP executable in `app-jvm.jar`.
 - The `CatalogViewModelTest` snippet cases match the Rust fixtures exactly,
@@ -51,8 +52,8 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Not yet verified
 
 - Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API.
-- macOS/Linux JNA runtime integration for Compose snippet generation (the
-  search integration passed run #14; snippet integration is in the next run).
+- macOS/Linux JNA runtime integration for Compose snippet generation and
+  favorite toggling (search integration passed run #14; newer adapters await CI).
 - UI and vector-rendering parity, installer upgrades, user-data migration,
   performance baselines, and native bindings.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.

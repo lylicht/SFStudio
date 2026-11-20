@@ -33,6 +33,17 @@ intptr_t sfstudio_compose_snippet(const uint8_t *symbol_name, size_t symbol_len,
                                   int32_t background_enabled, uint8_t *output,
                                   size_t output_capacity);
 
+/*
+ * Toggle a name in a JSON array of favorites, preserving order. Negative errors:
+ * -1 invalid input pointer, -2 invalid UTF-8, -3 invalid output pointer,
+ * -4 internal failure, -5 result too large, -8 invalid favorites JSON.
+ */
+intptr_t sfstudio_favorites_toggle_json(const uint8_t *favorites_json,
+                                        size_t favorites_json_len,
+                                        const uint8_t *symbol_name,
+                                        size_t symbol_name_len, uint8_t *output,
+                                        size_t output_capacity);
+
 #ifdef __cplusplus
 }
 #endif
