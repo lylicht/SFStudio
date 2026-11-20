@@ -18,14 +18,14 @@ filter-selection transitions, and MCP client configuration call the Rust C ABI
 through JNA, with Kotlin fallbacks.
 Kotlin still owns favorite file reads and writes.
 
-The JVM implementation of the public `SfSymbolIcon` now obtains weighted
-outline points, evaluates Apple effect frames and Draw On/Off reveal levels
-through the Rust C ABI when the native library is available. It also requests
-Rust-resolved layer colors and automatic gradient stops when colors use sRGB.
-Compose still constructs and rasterizes paths; wide-gamut colors use Kotlin
-color resolution, and unavailable native libraries use the Kotlin
-implementation. Android, iOS, JS, and Wasm keep using Kotlin until their Rust
-adapters are implemented.
+The JVM implementation of the public `SfSymbolIcon` obtains weighted outline
+points, Apple effect frames, and Draw On/Off reveal levels through the Rust C
+ABI when the native library is available. It also requests Rust-resolved layer
+colors and automatic gradient stops for sRGB colors. Android uses a private
+JNI bridge for weighted outline points and falls back to Kotlin if the native
+library or result is unavailable. Android effect frames, appearance, and
+Draw On/Off levels, plus iOS, JS, and Wasm, still use Kotlin. Compose continues
+to construct and rasterize paths; wide-gamut colors use Kotlin.
 
 The shared catalog search and filters, filter-selection transitions, symbol
 metadata lookup, Compose code generator, ordered favorite toggle, glyph
@@ -47,8 +47,9 @@ these entry points.
 This ABI is a language-neutral integration surface, not a claim that each
 language or platform already has a packaged adapter or complete app binding.
 The JVM `SfSymbolIcon` calls the animation and draw-field endpoints when its
-native library is available; Android, iOS, JS, and Wasm retain the Kotlin
-evaluator. The desktop JVM app calls search, code generation, favorite toggling,
+native library is available; Android calls the glyph-points endpoint through
+JNI, while its animation and draw-field behavior and the iOS, JS, and Wasm
+targets retain the Kotlin evaluator. The desktop JVM app calls search, code generation, favorite toggling,
 category/favorites filtering, filter-selection transitions, MCP client
 configuration, and effect evaluation through JNA. The JNA metadata lookup
 binding passed parity checks on Windows, macOS, and Linux in run #20. Rust
@@ -79,7 +80,7 @@ retained the KMP builds.
 
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
-| Android | Kotlin Multiplatform + Compose | `NOT_STARTED`; keep the Kotlin path |
+| Android | Kotlin Multiplatform + Compose | `IN_PROGRESS`; weighted outline points use Rust through JNI with Kotlin fallback; the packaged AAR contains `arm64-v8a`, `armeabi-v7a`, `x86`, and `x86_64` libraries; exact renderer parity passes on an API 36.1 x86_64 emulator; animations, appearance, and draw-field rendering remain Kotlin |
 | JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, glyph points, animation frames, draw-field levels, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; Rust glyph points pass exact Kotlin parity across representative symbols, all nine weights, and three optical scales; Apple animation frames and draw-field levels pass native/Kotlin parity and the Compose suite; Compose still constructs paths and rasterizes symbol shapes |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `NOT_STARTED`; evaluate a narrow C ABI / generated Swift bridge |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
@@ -100,8 +101,10 @@ transforms, variable-layer staging, replace recipes, layer color-mode
 calculations, and automatic gradient stops have Rust core implementations and
 JSON C ABI, along with tagged-layer Magic Replace morph paths. The Rust
 `sfstudio_glyph_points` C ABI supplies weighted, optical-scale screen
-coordinates, which the JVM `SfSymbol.points()` implementation now uses with
-exact Kotlin parity across representative symbols, weights, and scales.
+coordinates, which the JVM and Android `SfSymbol.points()` implementations
+now use with exact Kotlin parity across ten representative symbols, all nine
+weights, and all three optical scales. Android packages four ABI variants and
+retains its Kotlin fallback when JNI is unavailable.
 Selected Kotlin differential fixtures cover effect timing and layer
 transforms, and the JVM renderer consumes Rust points, frames, sRGB layer
 colors, and gradient stops while Compose continues to build/rasterize paths
@@ -111,8 +114,9 @@ JVM/Kotlin differential checks; wide-gamut color parity still uses the Kotlin
 fallback.
 Draw-field distance and level calculations are ported and the JVM renderer
 uses the Rust C ABI for cached reveal levels; platform path rasterization and
-Compose clip geometry remain in Kotlin. Pixel-by-pixel Rust/Kotlin rendering
-comparison, broader morph fixtures, and mobile/JS/Wasm adapters are outstanding.
+Compose clip geometry remain in Kotlin. Android animation, appearance, and
+draw-field adapters, pixel-by-pixel Rust/Kotlin rendering comparison, broader
+morph fixtures, and iOS/JS/Wasm adapters are outstanding.
 The published symbol definitions and KMP API remain available. Do not extract
 or redistribute Apple-owned symbol assets beyond the repository's existing
 permitted scope.

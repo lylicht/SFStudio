@@ -53,10 +53,11 @@ and Wasm targets while Rust code is introduced. Build a separate bridge for
 each target behind the existing Kotlin API only after target-specific behavior
 and rendering checks pass.
 
-**Reason:** The Rust core now exposes a language-neutral C ABI, but target
-adapters are still missing for Android, iOS, JS, and Wasm. No single bridge is
-assumed to cover every KMP target. Removing a target or changing a public
-Compose signature would break downstream consumers.
+**Reason:** The Rust core now exposes a language-neutral C ABI, but its
+adapters are target-specific. Android's weighted outline-point bridge is
+verified; iOS, JS, Wasm, and the remaining Android renderer operations still
+need adapters and parity gates. Removing a target or changing a public Compose
+signature would break downstream consumers.
 
 **Current boundary:** The published library and UI still use Kotlin. Packaged
 desktop search, filtering, code generation, favorites toggling, MCP config, and
@@ -140,3 +141,17 @@ compare a Rust symbol tile, inspector, header, and effect preview in light and
 dark themes. Check keyboard and screen-reader behavior and preserve the
 Rust-computed Apple effect frames. Treat the framework choice and Slint
 attribution as unresolved until that probe is measured.
+
+## 012 — Bind Android glyph interpolation through JNI
+
+**Decision:** Keep the existing common `SfSymbol.points()` API and Kotlin
+fallback. On Android, package the Rust `sfstudio-ffi` library for all four
+standard Android ABIs and call its typed glyph-points C ABI through one private
+JNI method. Publish an R8 keep rule for the JNI class.
+
+**Reason:** Android cannot use the JVM JNA adapter. JNI lets the existing
+renderer use verified Rust point interpolation without exposing Rust details
+through the public KMP API or porting unrelated animation behavior. The device
+test compares exact point arrays against Kotlin for ten symbols, all nine
+weights, and all three optical scales. Device runtime verification currently
+covers x86_64; the other ABIs are built and packaged but not device-tested.

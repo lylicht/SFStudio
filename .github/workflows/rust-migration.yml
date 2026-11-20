@@ -16,6 +16,7 @@ on:
       - "app/src/jvmMain/resources/symbol_tags.txt"
       - "app/src/**"
       - "sfsymbols/src/**"
+      - "buildSrc/**"
       - "app/build.gradle.kts"
       - "sfsymbols/build.gradle.kts"
       - "settings.gradle.kts"
@@ -164,20 +165,34 @@ jobs:
         run: ./gradlew :sfsymbols:jsNodeTest :sfsymbols:wasmJsNodeTest --no-daemon -PsfstudioUseSystemWebTools=true
 
   kmp-android:
-    name: Existing Android target
+    name: Android target and Rust JNI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
           cache: gradle
       - uses: android-actions/setup-android@v4
-      - name: Install Android API 37 preview
-        run: sdkmanager --channel=3 "platforms;android-37.0"
-      - name: Android library compilation
-        run: ./gradlew :sfsymbols:compileAndroidMain --no-daemon
+      - name: Install Android API 37 and NDK
+        run: sdkmanager --channel=3 "platforms;android-37.0" "ndk;28.2.13676358"
+      - name: Select Android NDK
+        run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --version 4.1.2 --locked
+      - name: Android Kotlin compilation and Rust ABI packaging
+        run: ./gradlew :sfsymbols:compileAndroidMain :sfsymbols:assembleAndroidMain --no-daemon
+      - name: Exercise Rust JNI on Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          script: ./gradlew :sfsymbols:connectedAndroidDeviceTest --no-daemon
 
   kmp-ios:
     name: Existing iOS targets

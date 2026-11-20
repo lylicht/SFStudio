@@ -349,6 +349,45 @@ pub unsafe extern "C" fn sfstudio_glyph_points(
     }
 }
 
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "system" fn Java_com_composables_sfsymbols_RustGlyphPoints_glyphPoints<'local>(
+    mut env: jni::JNIEnv<'local>,
+    _receiver: jni::objects::JObject<'local>,
+    name: jni::objects::JString<'local>,
+    scale: jni::sys::jint,
+    weight: jni::sys::jfloat,
+) -> jni::sys::jfloatArray {
+    use jni::objects::JFloatArray;
+    use std::ptr;
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let name: String = env.get_string(&name).ok()?.into();
+        let required = unsafe {
+            sfstudio_glyph_points(name.as_ptr(), name.len(), scale, weight, ptr::null_mut(), 0)
+        };
+        let mut points = vec![0.0; usize::try_from(required).ok()?];
+        let written = unsafe {
+            sfstudio_glyph_points(
+                name.as_ptr(),
+                name.len(),
+                scale,
+                weight,
+                points.as_mut_ptr(),
+                points.len(),
+            )
+        };
+        if written != required {
+            return None;
+        }
+        let array: JFloatArray = env.new_float_array(points.len().try_into().ok()?).ok()?;
+        env.set_float_array_region(&array, 0, &points).ok()?;
+        Some(array.into_raw())
+    }));
+
+    result.ok().flatten().unwrap_or(ptr::null_mut())
+}
+
 /// Search the catalog while applying an optional category and favorites filter.
 ///
 /// An empty category disables category filtering. `favorites_only` uses zero

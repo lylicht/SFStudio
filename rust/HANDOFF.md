@@ -30,8 +30,19 @@ errors.
 The metadata lookup endpoint and its live desktop caller passed
 Windows/macOS/Linux parity in runs #20 and #44; the Windows MSI passed in run
 #20.
-Android/iOS/JS/Wasm Kotlin targets still compile and retain their Kotlin paths;
-Rust-backed adapters for those targets are not implemented.
+Android/iOS/JS/Wasm Kotlin targets still compile and retain their compatibility
+paths. Android weighted glyph outline points now use a Rust JNI adapter;
+Android effects, appearance, and draw-field rendering, plus iOS, JS, and Wasm,
+remain Kotlin-backed.
+
+The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
+`arm64-v8a`, `x86`, and `x86_64`. The local AAR contains all four libraries
+and the consumer R8 keep rule. Its Android device parity test passed on the
+local Android 16 / API 36.1 x86_64 emulator for ten symbols across all nine
+weights and all three optical scales. The corresponding GitHub Actions gate
+is configured and awaits its first run after push.
+Building the Android target now requires Android NDK `28.2.13676358` and
+`cargo-ndk` `4.1.2`; CI installs both before assembling the KMP AAR.
 
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge
@@ -72,10 +83,10 @@ coverage in [run #34](https://github.com/lylicht/SFStudio/actions/runs/448059126
 
 ## Next unblocked migration work
 
-1. Bring the Rust outline-point path to Android through a small JNI adapter and
-   package per-ABI native libraries; keep the current Kotlin fallback until
-   Android parity and packaging tests pass. Evaluate Kotlin/Native and
-   JS/Wasm bindings independently.
+1. Extend the verified Android JNI path to animation frames, appearance, and
+   draw-field levels behind the same Kotlin fallback, then test each behavior
+   through the public renderer. Evaluate Kotlin/Native and JS/Wasm bindings
+   independently.
 2. Continue porting the shared vector renderer, including path/clip generation
    and pixel-level comparison, while preserving Compose as the public UI until
    a Rust-native frontend meets the existing screenshot and interaction gates.

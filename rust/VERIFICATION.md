@@ -205,14 +205,23 @@ Last local check: 2026-11-20, Windows x64, branch
   passed after wiring Rust-interpolated outline points into the JVM renderer:
   Rust/C ABI, JVM, Android, iOS, JS/Wasm, packaged launchers, and Kotlin/Rust
   MCP differential checks passed across their Windows/macOS/Linux matrix.
+- Android weighted outline points now use a private Rust JNI adapter with the
+  existing Kotlin fallback. Local Rust builds produced `libsfstudio_ffi.so`
+  for `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64`; the assembled AAR
+  contains all four and the consumer R8 keep rule. The Android device parity
+  test passed on an Android 16 / API 36.1 x86_64 emulator, comparing the Rust
+  and Kotlin renderers across ten symbols, all nine weights, and all three
+  optical scales. Android effect frames, appearance, and draw-field behavior
+  remain on Kotlin. The same emulator gate is configured in CI; its first run
+  is pending.
 
 ## Not yet verified
 
-- Android, Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API.
-  The JVM renderer consumes Rust outline points, effect frames, appearance,
-  gradients, and draw-field reveal levels; the other library targets retain
-  Kotlin implementations. JS and Wasm compilation passed locally; Android and
-  iOS compile checks require their respective SDK/host CI jobs.
+- Remaining Android, Kotlin/Native, Swift, JS, and Wasm bindings for the shared
+  Rust API. Android weighted outline points are JNI-backed and pass on x86_64;
+  Android effects, appearance, and draw-field reveal levels still use Kotlin.
+  JVM consumes Rust points, effect frames, appearance, gradients, and draw-field
+  reveal levels. JS and Wasm compilation passed locally; iOS requires macOS CI.
 - Pixel-by-pixel rendering parity, installer upgrades, user-data migration,
   and performance baselines. Kotlin still rasterizes the source paths and
   constructs Compose clip geometry; geometry and draw-field C ABIs have
@@ -220,6 +229,7 @@ Last local check: 2026-11-20, Windows x64, branch
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain
-buildable. Local JVM parity verifies that the public effect renderer uses Rust
-frames when the native library is available; the broader public KMP behavior is
-still Kotlin-backed on other targets.
+buildable. Local JVM parity verifies the public desktop renderer uses Rust
+frames when the native library is available, and the Android emulator test
+verifies Rust outline points through the existing KMP renderer. Other Android
+rendering behavior and the remaining KMP targets continue to use Kotlin.

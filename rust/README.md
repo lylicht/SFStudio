@@ -29,7 +29,9 @@ portable logic behind the installed desktop entry points.
   source for vector path operations; visible bounds match Kotlin over ten
   symbols, all nine weights, and all three optical scales. A direct `f32`
   buffer C ABI now supplies weight-interpolated points to the JVM symbol
-  renderer, with exact parity across that same weight/scale matrix.
+  renderer, with exact parity across that same weight/scale matrix. Android
+  uses the same endpoint through JNI; its exact parity test passes for ten
+  symbols across all nine weights and three optical scales.
 - `sfstudio-core::animation`: Apple-style effect timing, per-layer transforms,
   variable-layer staging, replace recipes, and Magic Replace tag matching with
   morphed outlines. Rust covers all effect types in SFStudio's current public
@@ -47,7 +49,8 @@ portable logic behind the installed desktop entry points.
   in `include/sfstudio.h`. Python `ctypes`
   smoke checks for search, filtering,
   codegen, and favorites passed on Windows, macOS, and Linux in run #17. The
-  packaged JVM UI calls it through JNA; published KMP callers remain unchanged.
+  packaged JVM UI calls it through JNA; Android outline interpolation calls it
+  through JNI. The published KMP API remains unchanged.
   The JVM metadata lookup binding passed parity checks on Windows, macOS, and
   Linux in run #20; it is not yet called by a production UI path.
 - The Rust catalog and vector data are **read directly at compile time from
@@ -126,6 +129,7 @@ and [VERIFICATION.md](VERIFICATION.md) for current checks and unverified work.
 - Preserve MCP tool names, parameters, error codes and JSON-RPC behavior.
 - Keep Kotlin UI and symbol rendering operational until a native replacement
   passes visually reviewed per-OS tests; no UI rewrite is attempted here.
-- The C ABI is callable from languages with C FFI support. Android, iOS,
-  JavaScript, and Wasm still need target-specific adapters before their public
-  APIs use Rust.
+- The C ABI is callable from languages with C FFI support. Android weighted
+  outline points now use JNI behind the existing public API; Android effects,
+  appearance, and draw-field operations, plus iOS, JavaScript, and Wasm, still
+  need target-specific adapters before using those Rust operations.

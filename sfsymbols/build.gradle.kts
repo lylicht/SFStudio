@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.testing.Test
+import com.sfstudio.build.BuildRustAndroidFfi
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -35,6 +36,15 @@ kotlin {
         namespace = "com.composables.sfsymbols"
         compileSdk = 37
         minSdk = 21
+        withDeviceTest {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            execution = "HOST"
+        }
+        androidResources.enable = true
+        optimization.consumerKeepRules.apply {
+            publish = true
+            file("consumer-proguard-rules.pro")
+        }
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
@@ -79,6 +89,33 @@ kotlin {
             }
             implementation("org.jetbrains.skiko:skiko-awt-runtime-$skikoOs:0.150.1")
         }
+
+        getByName("androidDeviceTest") {
+            dependencies {
+                implementation("androidx.test:runner:1.7.0")
+                implementation("androidx.test.ext:junit:1.3.0")
+            }
+        }
+    }
+}
+
+val buildRustAndroidFfi = tasks.register<BuildRustAndroidFfi>("buildRustAndroidFfi") {
+    outputDirectory.set(layout.buildDirectory.dir("generated/android/jniLibs"))
+    repositoryDirectory.set(rootProject.layout.projectDirectory)
+    rustInputs.from(
+        rootProject.fileTree("rust") {
+            include("**/*.rs", "**/*.toml")
+            exclude("target/**")
+        },
+        rootProject.file("rust/Cargo.lock"),
+        rootProject.file("sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"),
+        rootProject.file("app/src/jvmMain/resources/symbol_tags.txt"),
+    )
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.jniLibs?.addGeneratedSourceDirectory(buildRustAndroidFfi) { it.outputDirectory }
     }
 }
 
