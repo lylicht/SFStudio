@@ -2,6 +2,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.bundling.Jar
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -12,6 +13,13 @@ plugins {
 val windowsHost = System.getProperty("os.name").startsWith("Windows", ignoreCase = true)
 val rustMcpName = "sfstudio-mcp" + if (windowsHost) ".exe" else ""
 val rustMcpBinary = rootProject.file("rust/target/release/$rustMcpName")
+val rustFfiName = when {
+    windowsHost -> "sfstudio_ffi.dll"
+    System.getProperty("os.name").contains("mac", ignoreCase = true) -> "libsfstudio_ffi.dylib"
+    else -> "libsfstudio_ffi.so"
+}
+val rustFfiBinary = rootProject.file("rust/target/release/$rustFfiName")
+val rustFfiResources = layout.buildDirectory.dir("rust-ffi-resources")
 val buildRustMcp by tasks.registering(Exec::class) {
     group = "build"
     description = "Build the native Rust MCP server for this platform"
@@ -30,6 +38,26 @@ val stageRustMcp by tasks.registering(Copy::class) {
     dependsOn(buildRustMcp)
     from(rustMcpBinary)
     into(layout.buildDirectory.dir("rust-mcp-resources"))
+}
+
+val buildRustFfi by tasks.registering(Exec::class) {
+    group = "build"
+    description = "Build the shared Rust catalog-search library for this platform"
+    workingDir(rootProject.projectDir)
+    commandLine("cargo", "build", "--manifest-path", "rust/Cargo.toml", "-p", "sfstudio-ffi", "--release")
+    inputs.files(
+        fileTree(rootProject.file("rust")) { include("**/*.rs", "**/*.toml") },
+        rootProject.file("rust/Cargo.lock"),
+        rootProject.file("sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"),
+        rootProject.file("app/src/jvmMain/resources/symbol_tags.txt"),
+    )
+    outputs.file(rustFfiBinary)
+}
+
+val stageRustFfi by tasks.registering(Copy::class) {
+    dependsOn(buildRustFfi)
+    from(rustFfiBinary)
+    into(rustFfiResources.map { it.dir("native") })
 }
 
 // A standalone stdio launcher needs the complete runtime classpath. The normal
@@ -60,6 +88,7 @@ kotlin {
                 implementation(compose.desktop.currentOs)
                 implementation(compose.material3)
                 implementation(project(":sfsymbols"))
+                implementation(libs.jna)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.compose.macos.ui)
@@ -74,8 +103,18 @@ kotlin {
     }
 }
 
+tasks.named<Test>("jvmTest") {
+    dependsOn(stageRustFfi)
+    if (Runtime.version().feature() >= 24) {
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
+    }
+}
+
+kotlin.sourceSets.getByName("jvmMain").resources.srcDir(rustFfiResources)
+tasks.named("jvmProcessResources") { dependsOn(stageRustFfi) }
+
 tasks.named<Jar>("jvmJar") {
-    dependsOn(stageRustMcp)
+    dependsOn(stageRustMcp, stageRustFfi)
     from(stageRustMcp) { into("native") }
 }
 
@@ -83,6 +122,9 @@ compose.desktop {
     application {
         mainClass = "com.sfsymbols.MainKt"
         javaHome = System.getProperty("java.home")
+        if (Runtime.version().feature() >= 24) {
+            jvmArgs += "--enable-native-access=ALL-UNNAMED"
+        }
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

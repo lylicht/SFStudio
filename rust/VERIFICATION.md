@@ -12,14 +12,18 @@ Last local check: 2026-11-20, Windows x64, branch
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
   Windows x64; Python `ctypes` smoke passed, including sizing calls, typo search,
   Unicode, invalid UTF-8, null pointers, and short-buffer handling.
-- `gradlew.bat :app:jvmTest :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
+- `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
+- `gradlew.bat :app:jvmTest --no-daemon` — passed with the Rust search library
+  loaded and extracted from JVM resources; all 37 Rust-versus-Kotlin search
+  fixtures matched exactly.
+- `gradlew.bat :app:packageMsi --no-daemon` — Windows MSI build passed with the
+  Rust search DLL and MCP executable in `app-jvm.jar`.
 - The `CatalogViewModelTest` snippet cases match the Rust fixtures exactly,
   including import order, colors, mode, background wrapper, and final newline.
 - `PinnedSymbolsCompatibilityTest` reads both the legacy Kotlin JSON fixture
   and the Rust-written JSON fixture with the existing Kotlin set serializer.
 - `gradlew.bat :app:assembleMcp --no-daemon` — passed.
-- `gradlew.bat :app:packageMsi --no-daemon` — Windows MSI build passed; the
-  packaged app image launcher passed the Rust MCP stdio smoke test.
+- The packaged app image launcher passed the Rust MCP stdio smoke test.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-mcp` — passed.
 - `python scripts/check_rust_mcp_parity.py` — 99/99 Kotlin and Rust MCP
   responses matched, including malformed JSON, invalid IDs/batches, and
@@ -36,12 +40,15 @@ Last local check: 2026-11-20, Windows x64, branch
 - [GitHub Actions run #11](https://github.com/lylicht/SFStudio/actions/runs/44750825015)
   — all jobs passed: Rust and JVM across Windows/macOS/Linux; Android API 37;
   iOS; JS/Wasm; and packaged MCP stdio smoke on Windows/macOS/Linux.
+- [GitHub Actions run #13](https://github.com/lylicht/SFStudio/actions/runs/44754758733)
+  — C ABI builds and Python `ctypes` smoke passed on Windows/macOS/Linux; all
+  existing Kotlin targets and MCP differential replay passed.
 
 ## Not yet verified
 
-- Rust FFI bindings and their per-platform public API integration tests.
-- C ABI build and Python `ctypes` smoke on macOS and Linux (covered by the next
-  branch CI run); C ABI integration with Kotlin, Swift, JS, and Wasm callers.
+- Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API.
+- macOS/Linux JNA runtime integration for the desktop UI (covered by the next
+  branch CI run).
 - UI and vector-rendering parity, installer upgrades, user-data migration,
   performance baselines, and native bindings.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.

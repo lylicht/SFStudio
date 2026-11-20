@@ -5,6 +5,7 @@ composeMultiplatform = "1.12.1"
 kotlinxSerializationJson = "1.9.0"
 kotlinxCoroutinesCore = "1.10.2"
 compose-macos-ui = "1.1.0"
+jna = "5.19.1"
 
 [libraries]
 compose-ui = { group = "org.jetbrains.compose.ui", name = "ui", version.ref = "composeMultiplatform" }
@@ -12,6 +13,7 @@ compose-ui-graphics = { group = "org.jetbrains.compose.ui", name = "ui-graphics"
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
 compose-macos-ui = { group = "dev.nucleusframework", name = "compose-macos-ui", version.ref = "compose-macos-ui" }
+jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

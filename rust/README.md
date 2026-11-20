@@ -16,14 +16,16 @@ portable logic behind the installed desktop entry points.
   providing the existing `search_symbols` and `get_symbol` tools.
 - `sfstudio-ffi`: a language-neutral C ABI for Rust catalog search; its header
   and UTF-8 JSON buffer contract are in `include/sfstudio.h`. Python `ctypes`
-  smoke checks run on Windows, macOS, and Linux. Kotlin public APIs remain
-  unchanged and do not call the ABI yet.
+  smoke checks run on Windows, macOS, and Linux. The packaged JVM UI calls it
+  through JNA; published KMP callers remain unchanged.
 - The Rust catalog is **read directly at compile time from the existing Kotlin
   catalog data and alias tags**. This is deliberately temporary: no parallel
   icon catalog is maintained. The embedded source is not parsed at runtime.
 
 Packaged `--mcp` launches delegate to the Rust executable after parity checks;
-classpath-based development launches retain the Kotlin fallback.
+classpath-based development launches retain the Kotlin fallback. Packaged UI
+search calls the Rust C ABI through JNA, keeping the Kotlin algorithm as the
+development and load-failure fallback.
 
 ## Verify
 

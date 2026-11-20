@@ -12,6 +12,11 @@ tests against both Kotlin and Rust passed. All 99 Kotlin/Rust MCP differential
 responses match, including malformed JSON, invalid IDs and batches, and
 notifications. See [VERIFICATION.md](VERIFICATION.md).
 
+The Rust C ABI is now loaded by the packaged JVM fuzzy-search path through JNA.
+Windows `:app:jvmTest` verified 37-query ranking parity against the Kotlin
+reference, and the Windows MSI build passed with the shared library packaged.
+Cross-OS verification of this JNA integration is pending.
+
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge
 coverage, and checks Rust/KMP/package behavior in CI. GitHub Actions run
@@ -32,9 +37,9 @@ JS/Wasm; and packaged Rust MCP launchers on Windows/macOS/Linux.
 
 ## Next unblocked migration work
 
-1. Wire the new language-neutral search C ABI behind one existing Kotlin API
-   and verify it through that public API while retaining the Kotlin fallback.
-2. Evaluate JNI/Android, Kotlin/Native/iOS, and Wasm/JS adapters separately;
+1. Verify the packaged JNA search adapter on macOS and Linux; keep the Kotlin
+   fallback for development and library-load failures.
+2. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
    one FFI mechanism is not assumed to fit every target.
 3. Port favorites persistence, settings, app state, vector decoding, and
    render semantics with

@@ -15,6 +15,38 @@ import kotlin.math.min
  * matches, with a bounded Levenshtein edit-distance fallback for typos.
  */
 public object FuzzySearch {
+    private const val CACHE_LIMIT = 256
+    private val cache = LinkedHashMap<String, List<SfSymbolMetadata>>(64, 0.75f, true)
+
+    public fun search(query: String, limit: Int = 200): List<SfSymbolMetadata> {
+        if (limit < 0) return SfSymbolsCatalog.all.take(limit)
+        if (limit == 0) return emptyList()
+        val q = query.trim().lowercase()
+        if (q.isEmpty()) return SfSymbolsCatalog.all.take(limit)
+        synchronized(cache) { cache[q] }?.let { return it.take(limit) }
+
+        val results = try {
+            RustCatalogSearch.search(q, SfSymbolsCatalog.all.size)
+                ?: KotlinFuzzySearch.search(q, SfSymbolsCatalog.all.size)
+        } catch (error: Exception) {
+            RustCatalogSearch.reportFailure(error)
+            KotlinFuzzySearch.search(q, SfSymbolsCatalog.all.size)
+        } catch (error: LinkageError) {
+            RustCatalogSearch.reportFailure(error)
+            KotlinFuzzySearch.search(q, SfSymbolsCatalog.all.size)
+        }
+        synchronized(cache) {
+            if (cache.size >= CACHE_LIMIT) cache.clear()
+            cache[q] = results
+        }
+        return results.take(limit)
+    }
+
+    internal fun boundedDistance(a: String, b: String, maxDist: Int): Int =
+        KotlinFuzzySearch.boundedDistance(a, b, maxDist)
+}
+
+internal object KotlinFuzzySearch {
 
     private data class Indexed(
         val apple: String,

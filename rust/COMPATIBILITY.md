@@ -13,17 +13,18 @@ The desktop application is Kotlin/Compose on JVM. The installed app remains
 the default MCP endpoint and continues to use the existing favorite file at
 `~/.sf-symbols-catalog/pins.json`. Packaged `--mcp` invocations delegate to
 the bundled Rust MCP process; development classpath launches fall back to
-Kotlin.
+Kotlin. Packaged desktop fuzzy search calls the Rust C ABI through JNA, with
+the Kotlin implementation retained as its fallback and reference.
 The Rust favorites module currently handles ordered state and JSON only; it
 does not read or write this file.
 
 The shared catalog search also exports a small C ABI (`sfstudio_search_json`)
 that returns ranked Apple symbol names as UTF-8 JSON. C, C++, Python, JNI/JNA,
 Kotlin/Native, Swift, and other runtimes with a C FFI can call it without
-depending on Rust types. The header is `include/sfstudio.h`. The Kotlin app and
-published KMP API do not call this ABI yet; existing implementations remain
-active. JS and Wasm consumers still use their current Kotlin paths until a
-target-specific Rust/Wasm adapter is added and tested.
+depending on Rust types. The header is `include/sfstudio.h`. The published KMP
+API does not call this ABI yet; its Android, iOS, JS, and Wasm implementations
+remain active. The desktop JVM app calls it through JNA. JS and Wasm consumers
+still use Kotlin until target-specific Rust/Wasm adapters pass their tests.
 
 ## Compatibility rules
 
@@ -44,7 +45,7 @@ target-specific Rust/Wasm adapter is added and tested.
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `NOT_STARTED`; keep the Kotlin path |
-| JVM / desktop | Kotlin Multiplatform + Compose; packaged `--mcp` uses Rust | `IN_PROGRESS`; published KMP API and GUI logic remain Kotlin |
+| JVM / desktop | Kotlin Multiplatform + Compose; packaged search and `--mcp` use Rust | `IN_PROGRESS`; JNA search integration is tested on Windows; published KMP API, UI state, and rendering remain Kotlin |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `NOT_STARTED`; evaluate a narrow C ABI / generated Swift bridge |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
 | Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |
