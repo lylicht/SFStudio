@@ -87,8 +87,24 @@ public sealed class SfSymbolEffect {
     ) : SfSymbolEffect()
 
     public class Breathe(public val pulsing: Boolean = false) : SfSymbolEffect()
-    public class DrawOn(public val scope: SfEffectScope = SfEffectScope.WholeSymbol) : SfSymbolEffect()
-    public class DrawOff(public val scope: SfEffectScope = SfEffectScope.WholeSymbol) : SfSymbolEffect()
+    public class DrawOn private constructor(
+        public val scope: SfEffectScope,
+        public val individually: Boolean,
+        @Suppress("UNUSED_PARAMETER") marker: Unit,
+    ) : SfSymbolEffect() {
+        public constructor(scope: SfEffectScope = SfEffectScope.WholeSymbol) : this(scope, false, Unit)
+        public constructor(individually: Boolean) : this(SfEffectScope.WholeSymbol, individually, Unit)
+        public constructor(scope: SfEffectScope, individually: Boolean) : this(scope, individually, Unit)
+    }
+    public class DrawOff private constructor(
+        public val scope: SfEffectScope,
+        public val individually: Boolean,
+        @Suppress("UNUSED_PARAMETER") marker: Unit,
+    ) : SfSymbolEffect() {
+        public constructor(scope: SfEffectScope = SfEffectScope.WholeSymbol) : this(scope, false, Unit)
+        public constructor(individually: Boolean) : this(SfEffectScope.WholeSymbol, individually, Unit)
+        public constructor(scope: SfEffectScope, individually: Boolean) : this(scope, individually, Unit)
+    }
 }
 
 /** Per-layer result of evaluating an effect at one instant. Offsets are in em (the symbol's point size), as in Apple's recipes. */
@@ -254,6 +270,20 @@ private fun drawStart(symbol: SfSymbol, group: Int, off: Boolean): Float =
 
 private fun layerStep(maxStep: Float, budget: Float, groups: Int): Float = min(maxStep, budget / groups)
 
+private fun drawByLayerStart(symbol: SfSymbol, group: Int): Float =
+    group * layerStep(0.05f, 0.15f, symbol.groupCount)
+
+private fun drawDuration(symbol: SfSymbol, scope: SfEffectScope, individually: Boolean, off: Boolean): Float {
+    val stroked = symbol.layers.filter { !it.rootU.isNaN() }
+    return when {
+        individually -> drawStart(symbol, symbol.groupCount, off)
+        scope == SfEffectScope.ByLayer -> (0 until symbol.groupCount).maxOfOrNull { group ->
+            drawByLayerStart(symbol, group) + groupDrawSeconds(symbol, group, off)
+        } ?: 0f
+        else -> max(0.25f, stroked.maxOfOrNull { drawSeconds(it.strokeLength) } ?: 0f)
+    }
+}
+
 /** Per-layer alpha / draw fractions for a variable value (0..1), e.g. the lit bars of wifi. */
 internal class SfVariableLevels(val alpha: FloatArray, val draw: FloatArray)
 
@@ -298,14 +328,8 @@ internal fun effectDuration(e: SfSymbolEffect, symbol: SfSymbol): Float = when (
     is SfSymbolEffect.Wiggle -> if (e.continuous) WIGGLE_LOOP else 5 * WIGGLE_SEG
     is SfSymbolEffect.Rotate -> 2.0f
     is SfSymbolEffect.Breathe -> 3.0f
-    is SfSymbolEffect.DrawOn, is SfSymbolEffect.DrawOff -> {
-        val stroked = symbol.layers.filter { !it.rootU.isNaN() }
-        val off = e is SfSymbolEffect.DrawOff
-        val byLayer = (e as? SfSymbolEffect.DrawOn)?.scope == SfEffectScope.ByLayer ||
-            (e as? SfSymbolEffect.DrawOff)?.scope == SfEffectScope.ByLayer
-        if (byLayer) drawStart(symbol, symbol.groupCount, off)
-        else max(0.25f, stroked.maxOfOrNull { drawSeconds(it.strokeLength) } ?: 0f)
-    }
+    is SfSymbolEffect.DrawOn -> drawDuration(symbol, e.scope, e.individually, off = false)
+    is SfSymbolEffect.DrawOff -> drawDuration(symbol, e.scope, e.individually, off = true)
 }
 
 /** Evaluates [e] at time [t] (seconds) for layer [i] of [symbol] into [fx]. */
@@ -428,13 +452,21 @@ internal fun applyEffect(e: SfSymbolEffect, t: Float, i: Int, symbol: SfSymbol, 
             else segment(EASE, 0.3f, 1f, 1.5f, 1.5f, tt)
         }
         is SfSymbolEffect.DrawOn -> {
-            val d = if (e.scope == SfEffectScope.ByLayer) drawStart(symbol, gi, false) else 0f
+            val d = when {
+                e.individually -> drawStart(symbol, gi, false)
+                e.scope == SfEffectScope.ByLayer -> drawByLayerStart(symbol, gi)
+                else -> 0f
+            }
             if (layers[i].rootU.isNaN()) {            // no stroke: scales and fades in like Appear
                 val p = EASE.ease((t - d) / 0.25f); fx.alpha = p; fx.scale = 0.75f + 0.25f * p
             } else fx.draw = DRAW_ON.ease((t - d) / drawSeconds(layers[i].strokeLength))
         }
         is SfSymbolEffect.DrawOff -> {
-            val d = if (e.scope == SfEffectScope.ByLayer) drawStart(symbol, gi, true) else 0f
+            val d = when {
+                e.individually -> drawStart(symbol, gi, true)
+                e.scope == SfEffectScope.ByLayer -> drawByLayerStart(symbol, gi)
+                else -> 0f
+            }
             if (layers[i].rootU.isNaN()) {            // no stroke: scales and fades out like Disappear
                 val p = EASE.ease((t - d) / 0.1667f); fx.alpha = 1f - p; fx.scale = 1f - 0.25f * p
             } else fx.draw = 1f - DRAW_OFF.ease((t - d) / drawSeconds(layers[i].strokeLength))

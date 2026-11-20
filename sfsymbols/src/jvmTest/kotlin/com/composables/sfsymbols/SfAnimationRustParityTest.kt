@@ -24,6 +24,7 @@ class SfAnimationRustParityTest {
             Case("heart.fill", "breathe", SfSymbolEffect.Breathe(), 0.7f),
             Case("heart.fill", "breathe_pulsing", SfSymbolEffect.Breathe(pulsing = true), 2.2f),
             Case("checkmark", "draw_on_layer", SfSymbolEffect.DrawOn(SfEffectScope.ByLayer), 0.2f),
+            Case("wifi", "draw_on_individually", SfSymbolEffect.DrawOn(individually = true), 0.06f),
             Case("checkmark", "draw_off", SfSymbolEffect.DrawOff(), 0.2f),
         )
         val actual = buildString {

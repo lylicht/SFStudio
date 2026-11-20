@@ -446,6 +446,7 @@ pub unsafe extern "C" fn sfstudio_favorites_toggle_json(
 /// Input is an object with `symbol`, finite nonnegative `time`, optional `rtl`, `effect`,
 /// optional `variableValue`, optional `transition`, and optional `magicReplace`.
 /// Effect names use snake case (for example `variable_color` and `draw_on`);
+/// Draw On/Off also accept `individually: true` to serialize motion groups;
 /// layer results include Apple effect transforms and independent variable
 /// rendering alpha/draw. `magicReplace` returns matched layer outlines.
 /// Optional `rendering` accepts `mode`, an RGBA `tint`, optional RGBA
@@ -1093,8 +1094,14 @@ fn parse_effect(value: &serde_json::Value) -> Option<sfstudio_core::animation::E
         "breathe" => Effect::Breathe {
             pulsing: boolean("pulsing", false)?,
         },
-        "draw_on" => Effect::DrawOn { scope: scope()? },
-        "draw_off" => Effect::DrawOff { scope: scope()? },
+        "draw_on" => Effect::DrawOn {
+            scope: scope()?,
+            individually: boolean("individually", false)?,
+        },
+        "draw_off" => Effect::DrawOff {
+            scope: scope()?,
+            individually: boolean("individually", false)?,
+        },
         _ => return None,
     })
 }

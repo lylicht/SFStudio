@@ -169,6 +169,7 @@ def main():
          "continuous": True},
         {"type": "breathe", "pulsing": True},
         {"type": "draw_on", "scope": "by_layer"},
+        {"type": "draw_on", "scope": "by_layer", "individually": True},
         {"type": "draw_off"},
     ):
         assert animation({"symbol": "wifi", "time": 0.5, "rtl": True,

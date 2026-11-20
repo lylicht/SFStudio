@@ -65,9 +65,11 @@ pub enum Effect {
     },
     DrawOn {
         scope: Scope,
+        individually: bool,
     },
     DrawOff {
         scope: Scope,
+        individually: bool,
     },
 }
 
@@ -246,8 +248,14 @@ impl AnimationSymbol {
             }
             Effect::Rotate { .. } => 2.0,
             Effect::Breathe { .. } => 3.0,
-            Effect::DrawOn { scope } => self.draw_duration(scope, false),
-            Effect::DrawOff { scope } => self.draw_duration(scope, true),
+            Effect::DrawOn {
+                scope,
+                individually,
+            } => self.draw_duration(scope, individually, false),
+            Effect::DrawOff {
+                scope,
+                individually,
+            } => self.draw_duration(scope, individually, true),
         }
     }
 
@@ -452,12 +460,11 @@ impl AnimationSymbol {
                     };
                 }
             }
-            Effect::DrawOn { scope } => {
-                let delay = if scope == Scope::ByLayer {
-                    self.draw_start(layer.group, false)
-                } else {
-                    0.0
-                };
+            Effect::DrawOn {
+                scope,
+                individually,
+            } => {
+                let delay = self.draw_layer_start(scope, individually, layer.group, false);
                 if layer.root_u.is_nan() {
                     let p = EASE.ease((time - delay) / 0.25);
                     fx.alpha = p;
@@ -466,12 +473,11 @@ impl AnimationSymbol {
                     fx.draw = DRAW_ON.ease((time - delay) / draw_seconds(layer.stroke_length));
                 }
             }
-            Effect::DrawOff { scope } => {
-                let delay = if scope == Scope::ByLayer {
-                    self.draw_start(layer.group, true)
-                } else {
-                    0.0
-                };
+            Effect::DrawOff {
+                scope,
+                individually,
+            } => {
+                let delay = self.draw_layer_start(scope, individually, layer.group, true);
                 if layer.root_u.is_nan() {
                     let p = EASE.ease((time - delay) / 0.1667);
                     fx.alpha = 1.0 - p;
@@ -521,6 +527,24 @@ impl AnimationSymbol {
         (0..group).map(|g| self.group_draw_seconds(g, off)).sum()
     }
 
+    fn draw_layer_start(&self, scope: Scope, individually: bool, group: usize, off: bool) -> f32 {
+        if individually {
+            self.draw_start(group, off)
+        } else if scope == Scope::ByLayer {
+            group as f32 * layer_step(0.05, 0.15, self.group_count())
+        } else {
+            0.0
+        }
+    }
+
+    fn group_count(&self) -> usize {
+        self.layers
+            .iter()
+            .map(|layer| layer.group)
+            .max()
+            .map_or(0, |g| g + 1)
+    }
+
     fn group_draw_seconds(&self, group: usize, off: bool) -> f32 {
         self.layers
             .iter()
@@ -539,15 +563,16 @@ impl AnimationSymbol {
             .fold(0.0, f32::max)
     }
 
-    fn draw_duration(&self, scope: Scope, off: bool) -> f32 {
-        if scope == Scope::ByLayer {
-            let count = self
-                .layers
-                .iter()
-                .map(|l| l.group)
-                .max()
-                .map_or(0, |g| g + 1);
-            self.draw_start(count, off)
+    fn draw_duration(&self, scope: Scope, individually: bool, off: bool) -> f32 {
+        if individually {
+            self.draw_start(self.group_count(), off)
+        } else if scope == Scope::ByLayer {
+            (0..self.group_count())
+                .map(|group| {
+                    group as f32 * layer_step(0.05, 0.15, self.group_count())
+                        + self.group_draw_seconds(group, off)
+                })
+                .fold(0.0, f32::max)
         } else {
             (self
                 .layers
@@ -942,6 +967,92 @@ mod tests {
     }
 
     #[test]
+    fn draw_playback_modes_stagger_or_serialize_motion_groups() {
+        let layer = |group, stroke_length| AnimationLayer {
+            can_pulse: false,
+            can_rotate: false,
+            auto_variable: false,
+            variable_draw: false,
+            hierarchical: 0,
+            erases: false,
+            color_id: None,
+            opacity: 1.0,
+            root_u: 0.0,
+            stroke_length,
+            group,
+            contours: Vec::new(),
+            tags: Vec::new(),
+        };
+        let symbol = AnimationSymbol {
+            layers: vec![layer(0, 100.0), layer(1, 100.0)],
+            back_to_front: true,
+            wiggle: 0,
+            wiggle_angle: 0,
+            rotation: 0,
+            anchors: Vec::new(),
+        };
+        let time = layer_step(0.05, 0.15, symbol.group_count()) + 0.01;
+        let by_layer = symbol
+            .apply(
+                Effect::DrawOn {
+                    scope: Scope::ByLayer,
+                    individually: false,
+                },
+                time,
+                1,
+                false,
+            )
+            .unwrap();
+        let individually = symbol
+            .apply(
+                Effect::DrawOn {
+                    scope: Scope::WholeSymbol,
+                    individually: true,
+                },
+                time,
+                1,
+                false,
+            )
+            .unwrap();
+        assert!(by_layer.draw > 0.0);
+        assert_eq!(individually.draw, 0.0);
+        assert!(
+            symbol.duration(Effect::DrawOn {
+                scope: Scope::WholeSymbol,
+                individually: true
+            }) > symbol.duration(Effect::DrawOn {
+                scope: Scope::ByLayer,
+                individually: false
+            })
+        );
+
+        let by_layer_off = symbol
+            .apply(
+                Effect::DrawOff {
+                    scope: Scope::ByLayer,
+                    individually: false,
+                },
+                time,
+                1,
+                false,
+            )
+            .unwrap();
+        let individually_off = symbol
+            .apply(
+                Effect::DrawOff {
+                    scope: Scope::WholeSymbol,
+                    individually: true,
+                },
+                time,
+                1,
+                false,
+            )
+            .unwrap();
+        assert!(by_layer_off.draw < 1.0);
+        assert_eq!(individually_off.draw, 1.0);
+    }
+
+    #[test]
     fn effect_frames_match_the_kotlin_reference_fixture() {
         let catalog = crate::vector::vector_catalog().expect("embedded SF Symbols decode");
         for row in
@@ -1016,9 +1127,15 @@ mod tests {
                 "breathe_pulsing" => Effect::Breathe { pulsing: true },
                 "draw_on_layer" => Effect::DrawOn {
                     scope: Scope::ByLayer,
+                    individually: false,
+                },
+                "draw_on_individually" => Effect::DrawOn {
+                    scope: Scope::WholeSymbol,
+                    individually: true,
                 },
                 "draw_off" => Effect::DrawOff {
                     scope: Scope::WholeSymbol,
+                    individually: false,
                 },
                 id => panic!("unknown Kotlin animation fixture effect: {id}"),
             };

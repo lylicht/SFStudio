@@ -26,7 +26,8 @@ exposing Rust types. The header is
 interpolated at a requested `wght` value, and tight visible bounds at an optical
 scale. `sfstudio_animation_json` evaluates Apple-style effect frames and can
 optionally resolve per-layer monochrome, hierarchical, palette, or multicolor
-appearance plus automatic gradient stops. `sfstudio_draw_field_json` accepts a
+appearance plus automatic gradient stops, including Draw On/Off By Layer and
+Individually scheduling. `sfstudio_draw_field_json` accepts a
 platform-rasterized 112x112 layer mask and returns the 48-step rail-guided
 reveal level for each pixel. `sfstudio_mcp_client_config_json` builds the JSON
 shown in desktop Settings. Bounds match Kotlin over ten symbols, all nine

@@ -85,9 +85,10 @@ SfSymbol.search("planner")   // searches Apple's search + enhanced keyword sets
 | `Wiggle(direction, continuous)` | `null` = the symbol's own preferred direction (left/right/up/down/clockwise/… or a custom angle) |
 | `Rotate(direction, scope)` | rotates the rotatable layers (whole symbol otherwise) around Apple's rotation anchor |
 | `Breathe(pulsing)` | continuous scale (+ fade) |
-| `DrawOn(scope)` / `DrawOff(scope)` | strokes grow outward from the stroke's start point; layers without a stroke fade |
+| `DrawOn(scope, individually)` / `DrawOff(scope, individually)` | strokes follow their guide points; choose whole-symbol, staggered-by-layer, or sequential individual motion groups |
 
-`SfEffectScope.ByLayer` staggers layers 80 ms apart.
+`SfEffectScope.ByLayer` staggers supported layer groups. Draw On/Off also accept
+`individually = true`, which waits for one motion group to finish before starting the next.
 
 ```kotlin
 var taps by remember { mutableStateOf(0) }
@@ -133,7 +134,8 @@ This is a static monochrome vector (no layers or animation).
   stroke's length), its easing curves and its draw-rail data: each stroke is revealed by distance travelled through
   the shape from the rail's start tie, so it follows corners and curves (wifi arcs open from the centre, a
   checkmark runs left to the corner and on to the tip). Layers without a stroke scale and fade like
-  Appear/Disappear. `ByLayer` draws the layers one after another.
+  Appear/Disappear. `WholeSymbol` starts all groups together, `ByLayer` staggers group starts, and
+  `individually = true` waits for each motion group to finish before starting the next, matching Apple's SF Symbols 7 playback modes.
 - **Replace / MagicReplace** use Apple's replace recipes (`replaceDirection`): `DownUp` shrinks the old symbol to 0.5x
   over 0.25 s (curve 0.75, 0, 0.8, 1) and then grows the new one 0.5x to 1x over 0.25 s (curve 0.2, 0, 0.25, 1);
   `OffUp` removes the old symbol at once and grows/fades the new one in over 0.25 s; `UpUp` grows the old symbol to

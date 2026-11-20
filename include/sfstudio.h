@@ -63,6 +63,8 @@ intptr_t sfstudio_glyph_json(const uint8_t *symbol_name,
  * UTF-8 JSON request. `time` and transition `time` are finite, nonnegative
  * seconds. Request: {"symbol":"wifi","time":0.4,
  * "effect":{"type":"bounce","direction":"up","scope":"by_layer"}}.
+ * Draw On/Off additionally accept "individually":true to run one motion
+ * group at a time; "scope":"by_layer" staggers the group start times.
  * Effect types: appear, disappear, bounce, pulse, variable_color, scale,
  * wiggle, rotate, breathe, draw_on, draw_off. Each result layer contains its
  * transform and separate variableAlpha/variableDraw values. Optional

@@ -152,6 +152,37 @@ class SfRenderTest {
         assertTrue(drawSeconds(100f) in 0.2f..0.8f)
     }
 
+    @Test
+    fun drawPlaybackModesMatchAppleLayerScheduling() {
+        val symbol = SfSymbol.all.first { candidate ->
+            candidate.groupCount > 1 && candidate.layers.any { it.group == 1 && !it.rootU.isNaN() }
+        }
+        val layerIndex = symbol.layers.indexOfFirst { it.group == 1 && !it.rootU.isNaN() }
+        val stagger = minOf(0.05f, 0.15f / symbol.groupCount)
+        val time = stagger + 0.01f
+        val byLayer = SfFx().also {
+            applyEffect(SfSymbolEffect.DrawOn(SfEffectScope.ByLayer), time, layerIndex, symbol, it)
+        }
+        val individually = SfFx().also {
+            applyEffect(SfSymbolEffect.DrawOn(individually = true), time, layerIndex, symbol, it)
+        }
+        assertTrue("By Layer should stagger the next group", byLayer.draw > 0f)
+        assertEquals("Individually waits for the prior group", 0f, individually.draw, 0f)
+        assertTrue(
+            "Individually includes each prior group in its duration",
+            effectDuration(SfSymbolEffect.DrawOn(individually = true), symbol) >
+                effectDuration(SfSymbolEffect.DrawOn(SfEffectScope.ByLayer), symbol),
+        )
+        val byLayerOff = SfFx().also {
+            applyEffect(SfSymbolEffect.DrawOff(SfEffectScope.ByLayer), time, layerIndex, symbol, it)
+        }
+        val individuallyOff = SfFx().also {
+            applyEffect(SfSymbolEffect.DrawOff(individually = true), time, layerIndex, symbol, it)
+        }
+        assertTrue("Draw Off should stagger the next group", byLayerOff.draw < 1f)
+        assertEquals("Individually waits before erasing the next group", 1f, individuallyOff.draw, 0f)
+    }
+
 
     @Test
     fun metadataFromApple() {

@@ -137,6 +137,14 @@ Last local check: 2026-11-20, Windows x64, branch
   rasterizes the source path; Rust returns the mask's reveal levels and does
   not create Compose Path clip geometry. Visual clip comparison remains
   pending.
+- SF Symbols 7 Draw On/Off playback now distinguishes staggered `ByLayer` from
+  `individually = true`, which waits for each motion group to finish. Kotlin
+  frames match the Rust reference fixture; Rust unit tests cover both Draw On
+  and Draw Off scheduling, and the Python C ABI smoke covers the additive JSON
+  option. Local `cargo fmt`, workspace tests, Clippy, full `:sfsymbols:jvmTest`,
+  the desktop `:app:jvmTest`, and JS/Wasm compilation pass. Android compilation
+  was unavailable because this Windows host has no Android SDK; iOS compilation
+  and tests require macOS.
 
 ## Not yet verified
 
