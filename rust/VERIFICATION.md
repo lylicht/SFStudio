@@ -48,6 +48,7 @@ Last local check: 2026-11-20, Windows x64, branch
   and the Rust-written JSON fixture with the existing Kotlin set serializer.
 - `gradlew.bat :app:assembleMcp --no-daemon` — passed.
 - `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon -PsfstudioUseSystemWebTools=true` — passed after routing JVM outline interpolation through Rust; this ran the complete Compose library and desktop app test suites.
+- `gradlew.bat :app:compileKotlinJvm --no-daemon -PsfstudioUseSystemWebTools=true` — passed after reserving the Windows/Linux title-bar control area in the desktop header. [GitHub Actions run #43](https://github.com/lylicht/SFStudio/actions/runs/44832295245) passed.
 - `gradlew.bat :sfsymbols:compileKotlinJs :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true` — passed with JS and Wasm retaining Kotlin geometry.
 - `python scripts/test_rust_ffi.py` — passed the typed-float glyph points endpoint through Python `ctypes`, including interpolation parity against the JSON endpoint and short-buffer behavior.
 - The packaged app image launcher passed the Rust MCP stdio smoke test.

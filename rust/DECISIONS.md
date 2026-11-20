@@ -113,3 +113,30 @@ extra FFI lookup per result.
 
 **Reason:** This makes Rust metadata authoritative in the detail view without
 changing the public KMP metadata type, the search C ABI, or fallback behavior.
+
+## 011 — Gate desktop UI selection on measured parity
+
+**Decision:** Keep Compose as the production desktop UI while evaluating Rust
+frontends. Slint is the lead candidate for an isolated fidelity probe; do not
+add it to the production app or cut over until its visual, interaction,
+accessibility, and license requirements are checked against the live app.
+
+**Evidence:** Slint's Winit backend targets Windows, macOS, and Linux/X11/
+Wayland, and its [path element](https://docs.slint.dev/latest/docs/slint/reference/elements/path/)
+accepts SVG path commands and even-odd fills. Its desktop AccessKit
+integration is documented as always enabled. Its royalty-free app license
+requires either the AboutSlint widget or a public attribution badge. egui/eframe
+offers custom 2D painting and documents native AccessKit APIs for Windows/macOS;
+Iced Canvas supports cubic paths, while the 0.15 accessibility work remains a
+draft. Sources: [Slint Winit docs](https://docs.slint.dev/latest/docs/slint/guide/backends-and-renderers/backend_winit/),
+[Slint accessibility and license notes](https://slint.dev/blog/slint-1.1-released),
+[Slint license terms](https://slint.dev/terms-and-conditions),
+[egui README](https://docs.rs/crate/egui/latest/source/README.md),
+[Iced Canvas docs](https://docs.rs/iced/latest/iced/widget/canvas/index.html),
+and [Iced 0.15 milestone](https://github.com/iced-rs/iced/milestone/26).
+
+**Next gate:** Capture a saved reference at 1280×820 and minimum size, then
+compare a Rust symbol tile, inspector, header, and effect preview in light and
+dark themes. Check keyboard and screen-reader behavior and preserve the
+Rust-computed Apple effect frames. Treat the framework choice and Slint
+attribution as unresolved until that probe is measured.
