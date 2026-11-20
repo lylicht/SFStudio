@@ -6,8 +6,8 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 24 Rust tests
-  passed (12 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 27 Rust tests
+  passed (15 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
@@ -15,10 +15,13 @@ Last local check: 2026-11-20, Windows x64, branch
   Unicode, invalid UTF-8, null pointers, short-buffer handling, exact Compose
   snippet fixtures, favorite ordering/toggle behavior, filtered search,
   symbol metadata lookup, and glyph decoding/interpolation at medium, small,
-  and large scales.
+  and large scales, including visible bounds.
 - `gradlew.bat :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfVectorRustParityTest --rerun-tasks --no-daemon` —
   passed; all 8,526 Kotlin glyphs and available small/large variants match the
   committed geometry fingerprint fixture.
+- `gradlew.bat :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfVectorRustParityTest.rustVisibleBoundsMatchKotlinAcrossWeightsAndOpticalScales --no-daemon` —
+  passed; Rust and Kotlin bounds match for ten symbols across all nine weights
+  and three optical scales.
 - `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
 - `gradlew.bat :app:jvmTest --no-daemon` — passed with the Rust search library
   loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries,
@@ -72,7 +75,11 @@ Last local check: 2026-11-20, Windows x64, branch
   Android, iOS, JS/Wasm, and packaged MCP jobs. Its Windows JVM job exposed
   CRLF line endings in the fingerprint fixture; the test now normalizes them,
   and the failure was reproduced locally with a CRLF fixture. The corrected
-  full cross-platform run is pending.
+  run #23 has passed Rust on Windows/macOS/Linux, JVM on Windows/Linux,
+  Android, JS/Wasm, and Windows/Linux packaged launchers; remaining macOS/iOS
+  jobs are queued.
+- The new visible-bounds matrix is verified locally; cross-OS CI for this
+  latest geometry addition is pending.
 
 ## Not yet verified
 

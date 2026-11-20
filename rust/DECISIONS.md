@@ -66,9 +66,11 @@ start.
 
 **Decision:** Extract the repository's existing generated geometry blobs at
 Rust build time, decode their raw-DEFLATE blocks in `sfstudio-core`, and verify
-all glyph masters and optical variants against Kotlin fingerprints. Expose
-decoded geometry through the existing C ABI, including weight-interpolated
-points; keep Kotlin as the rendering and public KMP implementation.
+all glyph masters and optical variants against Kotlin fingerprints. Port tight
+visible bounds with cubic extrema and erase-layer rules, and verify them across
+all weights and optical scales for representative symbols. Expose decoded
+geometry through the existing C ABI, including weight-interpolated points and
+bounds; keep Kotlin as the renderer and public KMP implementation.
 
 **Reason:** This ports reusable vector logic without hand-editing generated
 files or introducing a second asset catalog. Geometry parity is a necessary

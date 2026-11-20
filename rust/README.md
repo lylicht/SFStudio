@@ -18,8 +18,9 @@ portable logic behind the installed desktop entry points.
 - `sfstudio-core::vector`: compile-time extraction and Rust decoding of the
   generated glyph geometry, layer trees, and optical variants. Exact Kotlin
   geometry fingerprints match for all 8,526 glyphs locally. This is the data
-  and path-op layer; rendering modes, bounds, color selection/tinting, effects,
-  and animations are not yet ported.
+  path-op layer, and tight visible bounds. The bounds match Kotlin over ten
+  symbols, all nine weights, and all three optical scales. Rendering modes,
+  color selection/tinting, effects, and animations are not yet ported.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
 - `sfstudio-ffi`: a language-neutral C ABI for catalog search/filtering,

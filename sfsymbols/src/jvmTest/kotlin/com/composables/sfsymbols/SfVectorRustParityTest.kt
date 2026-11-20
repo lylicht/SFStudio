@@ -23,6 +23,39 @@ class SfVectorRustParityTest {
             ?: error("missing Rust vector parity fingerprints")
         assertEquals(expected.replace("\r\n", "\n"), actual)
     }
+
+    @Test
+    fun rustVisibleBoundsMatchKotlinAcrossWeightsAndOpticalScales() {
+        val names = listOf(
+            "0.circle",
+            "arrow.up.right",
+            "cloud.sun.rain.fill",
+            "figure.run",
+            "gearshape.2",
+            "heart.fill",
+            "person.crop.circle.badge.checkmark",
+            "person.crop.circle.fill",
+            "square.dashed",
+            "wifi",
+        )
+        val actual = buildString {
+            for (name in names) {
+                val symbol = SfSymbol.named(name) ?: error("unknown SF Symbol $name")
+                for (weight in SfWeight.values()) for (scale in SfScale.values()) {
+                    append(name).append('|')
+                        .append(weight.wght).append('|')
+                        .append(scale.name.lowercase()).append('|')
+                        .append(boundsHash(symbol.bounds(weight, scale)))
+                        .append('\n')
+                }
+            }
+        }
+        val expected = javaClass.getResourceAsStream("/sf-vector-bounds.txt")
+            ?.bufferedReader()
+            ?.use { it.readText() }
+            ?: error("missing Rust vector bounds fixture")
+        assertEquals(expected.replace("\r\n", "\n"), actual)
+    }
 }
 
 private class Fingerprint {
@@ -58,6 +91,13 @@ private fun geometryHash(glyph: SfGlyph): String = Fingerprint().apply {
     floats(glyph.reg)
     floats(glyph.lo)
     floats(glyph.hi)
+}.hex()
+
+private fun boundsHash(bounds: androidx.compose.ui.geometry.Rect): String = Fingerprint().apply {
+    float(bounds.left)
+    float(bounds.top)
+    float(bounds.right)
+    float(bounds.bottom)
 }.hex()
 
 private fun glyphHash(glyph: SfGlyph): String = Fingerprint().apply {

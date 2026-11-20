@@ -4,7 +4,7 @@
 //! build artifacts; no symbol data is checked in a second time.
 
 use flate2::read::DeflateDecoder;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::Read;
 use std::ops::Range;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -30,6 +30,25 @@ pub struct Geometry {
     pub regular: Vec<f32>,
     pub light: Vec<f32>,
     pub heavy: Vec<f32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Bounds {
+    pub left: f32,
+    pub top: f32,
+    pub right: f32,
+    pub bottom: f32,
+}
+
+impl Bounds {
+    fn empty() -> Self {
+        Self {
+            left: f32::MAX,
+            top: f32::MAX,
+            right: -f32::MAX,
+            bottom: -f32::MAX,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -365,6 +384,123 @@ pub fn interpolate_points(geometry: &Geometry, weight: f32) -> Vec<f32> {
             }
         })
         .collect()
+}
+
+/// Calculates tight visible bounds in screen coordinates, preserving Kotlin's
+/// cubic-extrema and erase-layer rules.
+pub fn visible_bounds(glyph: &Glyph, geometry: &Geometry, weight: f32) -> Result<Bounds, String> {
+    if !weight.is_finite() {
+        return Err("weight must be finite".to_owned());
+    }
+    if geometry.regular.len() != geometry.light.len()
+        || geometry.regular.len() != geometry.heavy.len()
+    {
+        return Err("geometry weight masters have different lengths".to_owned());
+    }
+    let expected = geometry.ops.iter().try_fold(0usize, |count, op| {
+        count.checked_add(match op {
+            0 | 1 => 2,
+            2 => 6,
+            3 => 0,
+            _ => return None,
+        })
+    });
+    if expected != Some(geometry.regular.len()) {
+        return Err("path operations do not match geometry coordinates".to_owned());
+    }
+
+    let points = interpolate_points(geometry, weight);
+    if points.iter().any(|point| !point.is_finite()) {
+        return Err("weight interpolation produced a non-finite coordinate".to_owned());
+    }
+    let mut drawn = HashSet::new();
+    collect_drawn_contours(&glyph.tree, &mut drawn);
+    let all = drawn.is_empty();
+    let mut contour = 0usize;
+    let mut skip = !all && !drawn.contains(&contour);
+    let mut bounds = Bounds::empty();
+    let mut offset = 0usize;
+    let mut current = (0.0f32, 0.0f32);
+
+    for op in &geometry.ops {
+        match op {
+            0 | 1 => {
+                let x = points[offset];
+                let y = points[offset + 1];
+                include(&mut bounds, x, y, skip);
+                current = (x, y);
+                offset += 2;
+            }
+            2 => {
+                let p1 = (points[offset], points[offset + 1]);
+                let p2 = (points[offset + 2], points[offset + 3]);
+                let p3 = (points[offset + 4], points[offset + 5]);
+                include(&mut bounds, p3.0, p3.1, skip);
+                cubic_axis(current.0, p1.0, p2.0, p3.0, |x| {
+                    include(&mut bounds, x, current.1, skip)
+                });
+                cubic_axis(current.1, p1.1, p2.1, p3.1, |y| {
+                    include(&mut bounds, current.0, y, skip)
+                });
+                current = p3;
+                offset += 6;
+            }
+            _ => {
+                contour += 1;
+                skip = !all && !drawn.contains(&contour);
+            }
+        }
+    }
+    Ok(bounds)
+}
+
+fn collect_drawn_contours(nodes: &[LayerNode], drawn: &mut HashSet<usize>) {
+    for node in nodes {
+        if node.children.is_empty() {
+            if !node.mono_erase {
+                drawn.extend(node.contours.iter().copied());
+            }
+        } else {
+            collect_drawn_contours(&node.children, drawn);
+        }
+    }
+}
+
+fn include(bounds: &mut Bounds, x: f32, y: f32, skip: bool) {
+    if !skip {
+        bounds.left = bounds.left.min(x);
+        bounds.top = bounds.top.min(y);
+        bounds.right = bounds.right.max(x);
+        bounds.bottom = bounds.bottom.max(y);
+    }
+}
+
+fn cubic_axis(p0: f32, p1: f32, p2: f32, p3: f32, mut include: impl FnMut(f32)) {
+    let a = -p0 + 3.0 * p1 - 3.0 * p2 + p3;
+    let b = 2.0 * (p0 - 2.0 * p1 + p2);
+    let c = p1 - p0;
+    let at = |t: f32| {
+        let u = 1.0 - t;
+        u * u * u * p0 + 3.0 * u * u * t * p1 + 3.0 * u * t * t * p2 + t * t * t * p3
+    };
+    if a.abs() < 1e-6 {
+        if b.abs() > 1e-9 {
+            let t = -c / b;
+            if t > 0.0 && t < 1.0 {
+                include(at(t));
+            }
+        }
+    } else {
+        let discriminant = b * b - 4.0 * a * c;
+        if discriminant >= 0.0 {
+            let root = discriminant.sqrt();
+            for t in [(-b + root) / (2.0 * a), (-b - root) / (2.0 * a)] {
+                if t > 0.0 && t < 1.0 {
+                    include(at(t));
+                }
+            }
+        }
+    }
 }
 
 fn legacy_name(name: &str) -> String {
@@ -818,6 +954,48 @@ mod tests {
     }
 
     #[test]
+    fn visible_bounds_match_kotlin_across_weights_and_optical_scales() {
+        let catalog = vector_catalog().expect("embedded vector sources are valid");
+        let references =
+            include_str!("../../../sfsymbols/src/jvmTest/resources/sf-vector-bounds.txt");
+        for reference in references.lines() {
+            let fields: Vec<_> = reference.split('|').collect();
+            assert_eq!(fields.len(), 4, "malformed bounds fingerprint: {reference}");
+            let symbol = catalog
+                .find(fields[0])
+                .unwrap_or_else(|| panic!("unknown bounds symbol {}", fields[0]));
+            let glyph = catalog
+                .glyph_for(symbol)
+                .expect("Kotlin glyph data decodes")
+                .expect("Kotlin symbol has a glyph");
+            let scale = match fields[2] {
+                "small" => OpticalScale::Small,
+                "medium" => OpticalScale::Medium,
+                "large" => OpticalScale::Large,
+                scale => panic!("unknown optical scale {scale}"),
+            };
+            let geometry = catalog
+                .geometry_at_scale(symbol, &glyph, scale)
+                .expect("Kotlin optical geometry decodes");
+            let weight: f32 = fields[1].parse().expect("valid Kotlin weight");
+            let bounds = visible_bounds(&glyph, &geometry, weight)
+                .unwrap_or_else(|error| panic!("{} bounds: {error}", symbol.name));
+            let mut fingerprint = Fingerprint::default();
+            for value in [bounds.left, bounds.top, bounds.right, bounds.bottom] {
+                fingerprint.int(value.to_bits() as i32);
+            }
+            assert_eq!(
+                fields[3],
+                fingerprint.hex(),
+                "{} {} {} bounds differ",
+                symbol.name,
+                weight,
+                fields[2]
+            );
+        }
+    }
+
+    #[test]
     fn lookup_accepts_apple_names_aliases_and_legacy_names() {
         let catalog = vector_catalog().expect("embedded vector sources are valid");
         assert_eq!(catalog.find("heart.fill").unwrap().name, "heart.fill");
@@ -836,5 +1014,111 @@ mod tests {
         assert_eq!(interpolate_points(&geometry, 400.0), vec![10.0, -20.0]);
         assert_eq!(interpolate_points(&geometry, 1000.0), vec![22.0, -44.0]);
         assert_eq!(interpolate_points(&geometry, 1.0), vec![2.0, -4.0]);
+    }
+
+    fn layer(contours: Vec<usize>, mono_erase: bool) -> LayerNode {
+        LayerNode {
+            is_group: false,
+            can_pulse: false,
+            can_rotate: false,
+            clear_behind: false,
+            animate_together: false,
+            variable_draw: false,
+            auto_variable: false,
+            mono_erase,
+            shape_erase: false,
+            hierarchical: 0,
+            color_id: None,
+            opacity: 1.0,
+            ties: Vec::new(),
+            contours,
+            tags: Vec::new(),
+            children: Vec::new(),
+        }
+    }
+
+    fn make_glyph(tree: Vec<LayerNode>) -> Glyph {
+        Glyph {
+            geometry: Geometry {
+                ops: Vec::new(),
+                regular: Vec::new(),
+                light: Vec::new(),
+                heavy: Vec::new(),
+            },
+            layers_exact: true,
+            back_to_front: false,
+            gapless: false,
+            default_variable_rendering: 0,
+            wiggle: 0,
+            wiggle_angle: 0,
+            rotation: 0,
+            anchors: Vec::new(),
+            tree,
+        }
+    }
+
+    #[test]
+    fn bounds_use_true_cubic_extrema_instead_of_control_points() {
+        let glyph = make_glyph(vec![layer(vec![0], false)]);
+        let geometry = Geometry {
+            ops: vec![0, 2, 3],
+            regular: vec![0.0, 0.0, 0.0, 100.0, 100.0, 100.0, 100.0, 0.0],
+            light: vec![0.0, 0.0, 0.0, 100.0, 100.0, 100.0, 100.0, 0.0],
+            heavy: vec![0.0, 0.0, 0.0, 100.0, 100.0, 100.0, 100.0, 0.0],
+        };
+        assert_eq!(
+            visible_bounds(&glyph, &geometry, 400.0).unwrap(),
+            Bounds {
+                left: 0.0,
+                top: -75.0,
+                right: 100.0,
+                bottom: 0.0,
+            }
+        );
+        assert!(visible_bounds(&glyph, &geometry, f32::NAN).is_err());
+        let explosive = Geometry {
+            ops: vec![0],
+            regular: vec![1e30, 1e30],
+            light: vec![0.0, 0.0],
+            heavy: vec![0.0, 0.0],
+        };
+        assert!(visible_bounds(&glyph, &explosive, 1e38).is_err());
+    }
+
+    #[test]
+    fn bounds_ignore_erase_only_contours_and_fall_back_when_no_drawn_layer_exists() {
+        let geometry = Geometry {
+            ops: vec![0, 1, 1, 3, 0, 1, 1, 3],
+            regular: vec![
+                0.0, 0.0, 100.0, 100.0, 100.0, 0.0, 4.0, 5.0, 10.0, 12.0, 8.0, 7.0,
+            ],
+            light: vec![
+                0.0, 0.0, 100.0, 100.0, 100.0, 0.0, 4.0, 5.0, 10.0, 12.0, 8.0, 7.0,
+            ],
+            heavy: vec![
+                0.0, 0.0, 100.0, 100.0, 100.0, 0.0, 4.0, 5.0, 10.0, 12.0, 8.0, 7.0,
+            ],
+        };
+        let glyph = make_glyph(vec![layer(vec![0], true), layer(vec![1], false)]);
+        assert_eq!(
+            visible_bounds(&glyph, &geometry, 400.0).unwrap(),
+            Bounds {
+                left: 4.0,
+                top: -12.0,
+                right: 10.0,
+                bottom: -5.0,
+            }
+        );
+
+        let erased = make_glyph(vec![layer(vec![0], true)]);
+        assert_eq!(
+            visible_bounds(&erased, &geometry, 400.0).unwrap(),
+            Bounds {
+                left: 0.0,
+                top: -100.0,
+                right: 100.0,
+                bottom: 0.0,
+            }
+        );
     }
 }

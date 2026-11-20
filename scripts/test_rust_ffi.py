@@ -100,6 +100,8 @@ def main():
     assert medium_glyph["weight"] == 400.0
     assert medium_glyph["geometry"]["ops"]
     assert len(medium_glyph["geometry"]["points"]) == len(medium_glyph["geometry"]["regular"])
+    assert medium_glyph["bounds"]["left"] < medium_glyph["bounds"]["right"]
+    assert medium_glyph["bounds"]["top"] < medium_glyph["bounds"]["bottom"]
     assert black_glyph["weight"] == 1000.0
     assert all(
         abs(point - master * (-1 if index % 2 else 1)) < 1e-3

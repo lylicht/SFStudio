@@ -6,11 +6,12 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all 24 workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 27 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
 8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
-returns weight-interpolated points and passes Python `ctypes` smoke locally.
+returns weight-interpolated points and tight visible bounds. Bounds match
+Kotlin across ten symbols, all nine weights, and all three optical scales.
 All 99 Kotlin/Rust MCP differential responses match, including malformed JSON,
 invalid IDs and batches, and notifications. See
 [VERIFICATION.md](VERIFICATION.md).
@@ -25,13 +26,13 @@ Rust-backed adapters for those targets are not implemented.
 
 The branch ports Compose snippet generation and favorites JSON handling,
 bundles the Rust MCP executable in desktop packages, adds MCP protocol edge
-coverage and a Rust vector data decoder, and checks Rust/KMP/package behavior
-in CI. GitHub Actions run
+coverage and a Rust vector decoder/bounds implementation, and checks
+Rust/KMP/package behavior in CI. GitHub Actions run
 [#22](https://github.com/lylicht/SFStudio/actions/runs/44775446369) passed
-Rust on Windows/macOS/Linux; JVM on Linux/macOS; Android API 37; iOS; JS/Wasm;
-and packaged Rust MCP launchers on Windows/macOS/Linux. Its Windows JVM job
-found a CRLF-only fingerprint fixture comparison failure; the comparison now
-normalizes line endings, and the corrected cross-platform run is pending.
+Rust on Windows/macOS/Linux; JVM on Windows/Linux; Android API 37; JS/Wasm; and
+packaged Rust MCP launchers on Windows/Linux. Its Windows JVM job found a
+CRLF-only fingerprint fixture comparison failure; the test now normalizes line
+endings. Run #23 is validating that fix, with macOS and iOS jobs still queued.
 
 ## Existing work inherited from PR #7
 

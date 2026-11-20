@@ -20,8 +20,10 @@ file reads and writes.
 The shared catalog search and filters, symbol metadata lookup, Compose code
 generator, ordered favorite toggle, and glyph geometry decoder export C ABI
 entry points without exposing Rust types. The header is
-`include/sfstudio.h`; `sfstudio_glyph_json` returns raw weight masters and
-points interpolated at a requested `wght` value and optical scale. C, C++,
+`include/sfstudio.h`; `sfstudio_glyph_json` returns raw weight masters, points
+interpolated at a requested `wght` value, and tight visible bounds at an optical
+scale. Bounds match Kotlin over ten symbols, all nine weights, and all three
+optical scales. C, C++,
 Python, JNI/JNA, Kotlin/Native, Swift, and other runtimes with a C FFI can call
 these entry points.
 This ABI is a language-neutral integration surface, not a claim that each
@@ -68,7 +70,8 @@ Kotlin implementation can be retired.
 The Rust catalog and vector decoder read existing Kotlin catalog, alias, and
 generated geometry sources at compile time. Geometry decoding now matches all
 8,526 reference glyph fingerprints locally, including available optical
-variants; it does not yet port the renderer, drawing modes, bounds, effects, or
-animations. The published 7,007 symbol definitions and their KMP API remain
+variants. Visible bounds match Kotlin on a ten-symbol matrix of all nine
+weights and three optical scales. Path rendering, drawing modes, effects, and
+animations remain unported. The published 7,007 symbol definitions and their KMP API remain
 available. Do not extract or redistribute Apple-owned symbol assets beyond
 the repository's existing permitted scope.

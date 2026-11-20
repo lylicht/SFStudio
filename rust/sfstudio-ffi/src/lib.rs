@@ -167,10 +167,10 @@ fn layer_json(
 /// Decode one symbol's weighted vector masters, layers, and optical-size outline.
 ///
 /// `scale` is 0 for medium, 1 for small, and 2 for large. `weight` is the
-/// variable font's `wght` axis value. The JSON includes raw masters and points
-/// interpolated at that weight in screen coordinates (y points down). -6 means
-/// unknown symbol, -9 means an invalid scale, and -10 means a non-finite weight.
-/// Other errors use the common C ABI codes.
+/// variable font's `wght` axis value. The JSON includes raw masters, points
+/// interpolated at that weight in screen coordinates (y points down), and tight
+/// visible bounds. -6 means unknown symbol, -9 means an invalid scale, and -10
+/// means a non-finite weight. Other errors use the common C ABI codes.
 ///
 /// # Safety
 /// For nonzero `symbol_name_len`, `symbol_name` must point to that many readable
@@ -213,6 +213,8 @@ pub unsafe extern "C" fn sfstudio_glyph_json(
         let geometry = catalog
             .geometry_at_scale(symbol, &glyph, scale)
             .map_err(|_| INTERNAL_ERROR)?;
+        let bounds = sfstudio_core::vector::visible_bounds(&glyph, &geometry, weight)
+            .map_err(|_| INTERNAL_ERROR)?;
         let scale_name = match scale {
             sfstudio_core::vector::OpticalScale::Medium => "medium",
             sfstudio_core::vector::OpticalScale::Small => "small",
@@ -233,6 +235,12 @@ pub unsafe extern "C" fn sfstudio_glyph_json(
             "scale": scale_name,
             "weight": weight,
             "usedOpticalVariant": used_optical_variant,
+            "bounds": {
+                "left": bounds.left,
+                "top": bounds.top,
+                "right": bounds.right,
+                "bottom": bounds.bottom,
+            },
             "geometry": {
                 "ops": geometry.ops,
                 "points": sfstudio_core::vector::interpolate_points(&geometry, weight),
@@ -531,6 +539,14 @@ mod tests {
             medium["geometry"]["heavy"].as_array().unwrap().len()
         );
         assert_eq!(medium["weight"], 400.0);
+        assert!(
+            medium["bounds"]["left"].as_f64().unwrap()
+                < medium["bounds"]["right"].as_f64().unwrap()
+        );
+        assert!(
+            medium["bounds"]["top"].as_f64().unwrap()
+                < medium["bounds"]["bottom"].as_f64().unwrap()
+        );
         assert_eq!(
             medium["geometry"]["points"].as_array().unwrap().len(),
             medium["geometry"]["regular"].as_array().unwrap().len()
