@@ -38,18 +38,18 @@ class CatalogViewModelTest {
         vm.updateIconColor(Color(0x80E0245E))
         vm.updateBackground(Color(0xFFDCE9D3))
         vm.copyCodeSnippet(heart)
-        val code = copied.last()
-        assertContains(code, "import com.composables.sfsymbols.monochrome.SFHeartFill")
-        assertContains(code, "@Composable\nfun SFHeartFillIcon")
-        assertContains(code, "imageVector = SfSymbols.Monochrome.SFHeartFill")
-        assertContains(code, "tint = Color(0x80E0245E)")
-        assertContains(code, ".background(Color(0xFFDCE9D3))")
-        assertContains(code, "contentDescription = \"heart.fill\"")
+        assertEquals(
+            javaClass.getResource("/compose-snippet-monochrome-background.kt.txt")!!.readText().replace("\r\n", "\n"),
+            copied.last(),
+        )
         vm.updateTintIcon(false)
+        vm.updateMode(SymbolMode.Dualtone)
         vm.updateBackground(null)
         vm.copyCodeSnippet(heart)
-        assertContains(copied.last(), "tint = Color.Unspecified")
-        assertFalse("Box(" in copied.last())
+        assertEquals(
+            javaClass.getResource("/compose-snippet-dualtone-plain.kt.txt")!!.readText().replace("\r\n", "\n"),
+            copied.last(),
+        )
     }
 
     @Test fun `clipboard failures do not report success`() {

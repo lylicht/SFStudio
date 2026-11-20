@@ -1,17 +1,22 @@
 # Migration status
 
+This table tracks the Rust implementation separately from compatibility code
+that must remain available to existing Kotlin Multiplatform consumers.
+
 | Area | Current implementation | Rust target | State / required gate |
 | --- | --- | --- | --- |
-| Symbol metadata + aliases | Kotlin catalog + text tags | `sfstudio-core` | Initial port; unit tests and JVM parity required |
-| Fuzzy query ranking | `FuzzySearch.kt` | `sfstudio-core` | Initial port; differential replay required |
-| Headless MCP server | `McpServer.kt` | `sfstudio-mcp` | Initial port; differential replay required |
-| Favorites persistence | `PinnedSymbols.kt` | shared Rust core | Not started; filesystem format and backups |
-| Snippet generation | `ComposeSnippet.kt` | shared Rust core | Not started; byte-for-byte snippet tests |
-| UI state | `CatalogViewModel.kt` | Rust shared state / bindings | Not started; test UI state invariants |
-| Compose desktop UI | `app/.../ui/` | Native Rust UI (TBD) | Not started; pixel and interaction parity |
-| Symbol vector rendering | `sfsymbols/` generated classes | Rust renderer/data | Not started; 7,007 symbol asset parity |
-| Compose KMP public API | `sfsymbols/` | Stable-compatible bindings | Not started; Android/JVM/iOS/JS/Wasm compatibility |
-| Installers and releases | Gradle Compose packaging | Multi-OS Rust packaging | Not started; preserve installer IDs |
-| Overall cutover | JVM app | Rust app | BLOCKED until all gates pass |
+| Symbol names, categories, restricted flags, aliases | KMP catalog and JVM tag file; Rust reads those same sources at compile time | `sfstudio-core` | `PORTED`; catalog count and basic lookup tests pass, target matrix pending |
+| Fuzzy query ranking | `FuzzySearch.kt` remains the desktop reference | `sfstudio-core` | `PORTED`; 92 MCP response cases match locally, broader UI-query parity pending |
+| MCP server | Kotlin `McpServer.kt` remains installed default | `sfstudio-mcp` | `PORTED`; 92 Kotlin/Rust response cases match locally; app `--mcp` cutover pending |
+| Favorites persistence | `PinnedSymbols.kt`, `~/.sf-symbols-catalog/pins.json` | shared Rust core | `NOT_STARTED`; preserve format and user directory |
+| Compose snippet generation | `ComposeSnippet.kt` remains the active desktop path | `sfstudio-core::codegen` | `PORTED`; Kotlin and Rust match shared byte-for-byte fixtures for both background and plain variants; runtime bridge pending |
+| UI state and filtering | `CatalogViewModel.kt` | Rust state API and per-target adapters | `NOT_STARTED`; verify state transitions and all consumers |
+| Desktop UI | Kotlin/Compose | Rust-native UI if parity gates pass | `RETAINED_FOR_COMPATIBILITY`; visual and interaction baselines required |
+| Vector rendering and symbol effects | KMP generated sources and renderer | Rust renderer/data | `NOT_STARTED`; keep authoritative assets and licensing limits |
+| Published KMP API | `com.composables.sfsymbols` Kotlin API | Rust-backed adapters by target where feasible | `RETAINED_FOR_COMPATIBILITY`; Android/JVM/iOS/JS/Wasm remain unchanged |
+| Installers and release identities | Compose Desktop packaging | Rust desktop packaging after upgrade proof | `RETAINED_FOR_COMPATIBILITY`; Windows UUID, macOS bundle ID and Debian package ID unchanged |
+| Cross-platform verification | Existing Gradle targets and Rust workspace | Rust desktop matrix plus existing KMP jobs | `IN_PROGRESS`; Windows JS/Wasm compilation passes locally, Android/iOS and GitHub matrix pending |
+| Application cutover | Kotlin desktop app and MCP launcher | Rust desktop app and MCP launcher | `NOT_STARTED`; no runtime cutover before compatibility gates pass |
 
-The Rust MCP binary is **opt-in** and is not wired into release packaging.
+The Rust MCP binary remains an opt-in executable. It is not yet bundled in the
+desktop installers or used by the existing `--mcp` launch path.

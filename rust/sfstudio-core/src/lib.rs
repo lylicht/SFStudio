@@ -4,11 +4,15 @@
 //! That keeps the 7,007 symbols in one authoritative location during migration.
 //! Run scripts/check_rust_mcp_parity.py to compare against the original JVM server.
 
+pub mod codegen;
+
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
-const CATALOG_SOURCE: &str = include_str!("../../../sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt");
+const CATALOG_SOURCE: &str = include_str!(
+    "../../../sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"
+);
 const TAG_SOURCE: &str = include_str!("../../../app/src/jvmMain/resources/symbol_tags.txt");
 
 #[derive(Debug)]
@@ -31,8 +35,10 @@ pub struct Catalog {
 
 pub fn catalog() -> &'static Catalog {
     static INSTANCE: OnceLock<Catalog> = OnceLock::new();
-    INSTANCE.get_or_init(|| Catalog::from_sources(CATALOG_SOURCE, TAG_SOURCE)
-        .expect("SFStudio catalog data must be valid"))
+    INSTANCE.get_or_init(|| {
+        Catalog::from_sources(CATALOG_SOURCE, TAG_SOURCE)
+            .expect("SFStudio catalog data must be valid")
+    })
 }
 
 impl Catalog {
@@ -66,7 +72,13 @@ impl Catalog {
             let pascal_words = camel_words(&pascal_name);
             let normalized = apple_name.to_lowercase().replace(['.', '-', '_'], " ");
             let symbol_tags = tags_for(&apple_name, &tags);
-            vocabulary.extend(segments.iter().chain(&pascal_words).chain(&symbol_tags).cloned());
+            vocabulary.extend(
+                segments
+                    .iter()
+                    .chain(&pascal_words)
+                    .chain(&symbol_tags)
+                    .cloned(),
+            );
             symbols.push(Symbol {
                 apple_name,
                 pascal_name,
@@ -82,7 +94,10 @@ impl Catalog {
         if symbols.is_empty() {
             return Err("catalog contains no symbols".to_owned());
         }
-        Ok(Self { symbols, vocabulary })
+        Ok(Self {
+            symbols,
+            vocabulary,
+        })
     }
 
     pub fn all(&self) -> &[Symbol] {
@@ -112,7 +127,10 @@ impl Catalog {
             tokens.retain(|t| !t.chars().all(|c| c.is_numeric()));
         }
 
-        let mut results: Vec<(i32, usize)> = self.symbols.iter().enumerate()
+        let mut results: Vec<(i32, usize)> = self
+            .symbols
+            .iter()
+            .enumerate()
             .filter_map(|(i, symbol)| {
                 let value = self.score(symbol, &tokens, &q);
                 (value > 0).then_some((value, i))
@@ -126,7 +144,11 @@ impl Catalog {
                 .then_with(|| left.apple_name.len().cmp(&right.apple_name.len()))
                 .then_with(|| left.apple_name.cmp(&right.apple_name))
         });
-        results.into_iter().take(limit).map(|(_, i)| &self.symbols[i]).collect()
+        results
+            .into_iter()
+            .take(limit)
+            .map(|(_, i)| &self.symbols[i])
+            .collect()
     }
 
     fn score(&self, symbol: &Symbol, tokens: &[String], q: &str) -> i32 {
@@ -157,10 +179,16 @@ impl Catalog {
 
         let dot_count = q.chars().filter(|c| *c == '.').count();
         if dot_count >= 2 && tokens.len() == dot_count + 1 {
-            let matches = tokens.iter().filter(|t| {
-                symbol.segments.iter().any(|s| s == *t || s.starts_with(t.as_str()))
-                    || self.edit_match(symbol, t) > 0
-            }).count();
+            let matches = tokens
+                .iter()
+                .filter(|t| {
+                    symbol
+                        .segments
+                        .iter()
+                        .any(|s| s == *t || s.starts_with(t.as_str()))
+                        || self.edit_match(symbol, t) > 0
+                })
+                .count();
             if matches < tokens.len() {
                 total /= 2;
             }
@@ -179,10 +207,28 @@ impl Catalog {
     fn token_score(&self, symbol: &Symbol, t: &str) -> i32 {
         let mut best = 0;
         for seg in &symbol.segments {
-            best = max(best, if seg == t { 600 } else if seg.starts_with(t) { 450 } else { 0 });
+            best = max(
+                best,
+                if seg == t {
+                    600
+                } else if seg.starts_with(t) {
+                    450
+                } else {
+                    0
+                },
+            );
         }
         for word in &symbol.pascal_words {
-            best = max(best, if word == t { 550 } else if word.starts_with(t) { 380 } else { 0 });
+            best = max(
+                best,
+                if word == t {
+                    550
+                } else if word.starts_with(t) {
+                    380
+                } else {
+                    0
+                },
+            );
         }
         if best == 0 && symbol.normalized.contains(t) {
             best = 250;
@@ -196,16 +242,25 @@ impl Catalog {
         }
         for category in &symbol.categories {
             let cat = category.to_lowercase();
-            let s = if cat == t { 500 }
-                else if cat.starts_with(t) { 320 }
-                else if n >= 3 && cat.contains(t) { 200 }
-                else { 0 };
+            let s = if cat == t {
+                500
+            } else if cat.starts_with(t) {
+                320
+            } else if n >= 3 && cat.contains(t) {
+                200
+            } else {
+                0
+            };
             best = max(best, s);
         }
         for tag in &symbol.tags {
-            let s = if tag == t { 560 }
-                else if n >= 3 && tag.starts_with(t) { 300 }
-                else { 0 };
+            let s = if tag == t {
+                560
+            } else if n >= 3 && tag.starts_with(t) {
+                300
+            } else {
+                0
+            };
             best = max(best, s);
         }
         best
@@ -215,18 +270,30 @@ impl Catalog {
         let token_len = token.chars().count();
         let budget = edit_budget(token_len);
         let mut best = budget + 1;
-        for word in symbol.segments.iter().chain(&symbol.pascal_words).chain(&symbol.tags) {
+        for word in symbol
+            .segments
+            .iter()
+            .chain(&symbol.pascal_words)
+            .chain(&symbol.tags)
+        {
             let word_len = word.chars().count();
             if (2..=14).contains(&word_len) && word_len.abs_diff(token_len) <= budget {
                 best = min(best, bounded_distance(word, token, budget));
             }
         }
-        if (1..=budget).contains(&best) { 300 - 40 * best as i32 } else { 0 }
+        if (1..=budget).contains(&best) {
+            300 - 40 * best as i32
+        } else {
+            0
+        }
     }
 }
 
 fn split_words(s: &str) -> Vec<String> {
-    s.split(['.', '-', '_', ' ']).filter(|x| !x.is_empty()).map(str::to_owned).collect()
+    s.split(['.', '-', '_', ' '])
+        .filter(|x| !x.is_empty())
+        .map(str::to_owned)
+        .collect()
 }
 
 fn camel_words(pascal: &str) -> Vec<String> {
@@ -237,20 +304,56 @@ fn camel_words(pascal: &str) -> Vec<String> {
         }
         separated.extend(ch.to_lowercase());
     }
-    separated.split(' ').filter(|s| !s.is_empty()).map(str::to_owned).collect()
+    separated
+        .split(' ')
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .collect()
 }
 
 fn is_filler(w: &str) -> bool {
-    matches!(w, "a"|"an"|"the"|"of"|"on"|"in"|"at"|"to"|"for"|"with"|"and"|"or"|"each"|"other"
-        |"top"|"some"|"like"|"that"|"is"|"are"|"my"|"me"|"icon"|"symbol"|"something"|"thing")
+    matches!(
+        w,
+        "a" | "an"
+            | "the"
+            | "of"
+            | "on"
+            | "in"
+            | "at"
+            | "to"
+            | "for"
+            | "with"
+            | "and"
+            | "or"
+            | "each"
+            | "other"
+            | "top"
+            | "some"
+            | "like"
+            | "that"
+            | "is"
+            | "are"
+            | "my"
+            | "me"
+            | "icon"
+            | "symbol"
+            | "something"
+            | "thing"
+    )
 }
 
 fn parse_tags(data: &str) -> HashMap<String, Vec<String>> {
     let mut tags: HashMap<String, Vec<String>> = HashMap::new();
-    for line in data.lines().map(str::trim).filter(|s| !s.is_empty() && !s.starts_with('#')) {
+    for line in data
+        .lines()
+        .map(str::trim)
+        .filter(|s| !s.is_empty() && !s.starts_with('#'))
+    {
         if let Some((key, values)) = line.split_once(':') {
             let key = key.trim().to_lowercase();
-            if key.is_empty() { continue; }
+            if key.is_empty() {
+                continue;
+            }
             let entry = tags.entry(key).or_default();
             for word in values.split_whitespace() {
                 let tag = word.to_lowercase();
@@ -281,7 +384,13 @@ fn tags_for(name: &str, table: &HashMap<String, Vec<String>>) -> Vec<String> {
 }
 
 fn edit_budget(len: usize) -> usize {
-    if len <= 4 { 1 } else if len <= 7 { 2 } else { 3 }
+    if len <= 4 {
+        1
+    } else if len <= 7 {
+        2
+    } else {
+        3
+    }
 }
 
 fn subsequence(needle: &str, haystack: &str) -> bool {
@@ -290,7 +399,9 @@ fn subsequence(needle: &str, haystack: &str) -> bool {
     for ch in haystack.chars() {
         if next == Some(ch) {
             next = required.next();
-            if next.is_none() { return true; }
+            if next.is_none() {
+                return true;
+            }
         }
     }
     next.is_none()
@@ -302,9 +413,15 @@ pub fn bounded_distance(a: &str, b: &str, budget: usize) -> usize {
     let a: Vec<char> = a.chars().collect();
     let b: Vec<char> = b.chars().collect();
     let (la, lb) = (a.len(), b.len());
-    if la.abs_diff(lb) > budget { return budget + 1; }
-    if la == 0 { return lb; }
-    if lb == 0 { return la; }
+    if la.abs_diff(lb) > budget {
+        return budget + 1;
+    }
+    if la == 0 {
+        return lb;
+    }
+    if lb == 0 {
+        return la;
+    }
     let mut prev2 = vec![0; lb + 1];
     let mut prev: Vec<usize> = (0..=lb).collect();
     let mut curr = vec![0; lb + 1];
@@ -348,16 +465,31 @@ mod tests {
     fn preserves_existing_search_regressions() {
         let index = catalog();
         for (query, expected) in [
-            ("garbage", "trash"), ("cog", "gear"), ("home", "house"),
-            ("tradh", "trash"), ("trsh", "trash"), ("hosue", "house"),
-            ("gearshap", "gearshape"), ("garbgae", "trash"),
-            ("settigns", "gear"), ("msg", "message"), ("pw", "lock"),
-            ("pics", "photo"), ("bunny", "hare"), ("zap", "bolt"),
-            ("doggy paw", "pawprint"), ("four boxes", "square.grid.2x2"),
+            ("garbage", "trash"),
+            ("cog", "gear"),
+            ("home", "house"),
+            ("tradh", "trash"),
+            ("trsh", "trash"),
+            ("hosue", "house"),
+            ("gearshap", "gearshape"),
+            ("garbgae", "trash"),
+            ("settigns", "gear"),
+            ("msg", "message"),
+            ("pw", "lock"),
+            ("pics", "photo"),
+            ("bunny", "hare"),
+            ("zap", "bolt"),
+            ("doggy paw", "pawprint"),
+            ("four boxes", "square.grid.2x2"),
             ("4 cubes stacked on top of each other", "square.stack.3d.up"),
-            ("a yucky can", "trash"), ("4 circle", "4.circle"),
+            ("a yucky can", "trash"),
+            ("4 circle", "4.circle"),
         ] {
-            assert_eq!(index.search(query, 1)[0].apple_name, expected, "query={query}");
+            assert_eq!(
+                index.search(query, 1)[0].apple_name,
+                expected,
+                "query={query}"
+            );
         }
     }
 

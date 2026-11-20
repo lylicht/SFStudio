@@ -1,6 +1,22 @@
 # Migration handoff
 
-## Completed in the first branch
+## Current branch and baseline
+
+The working branch is `migration/rust-max-coverage-2026-11-20`, created from
+PR #7's head. It has a corresponding remote branch on GitHub. The original
+Kotlin/Compose implementation and all public KMP targets remain active.
+
+On Windows x64, Rust fmt, all eight workspace tests, Clippy, both Gradle JVM
+test tasks, JS/Wasm compilation, MCP assembly, Rust MCP build, and all 92
+Kotlin/Rust differential MCP responses passed. Compose snippet output is
+covered by two shared Kotlin/Rust fixtures. See [VERIFICATION.md](VERIFICATION.md).
+
+The current changes fix Rust formatting, add an opt-in system Node/Yarn setup
+for the repository's strict Gradle settings, and add Rust/KMP platform CI.
+Cross-OS Rust and Android/iOS target CI still need a GitHub run before results
+can be recorded.
+
+## Existing work inherited from PR #7
 
 - Located and inspected the reference SFStudio Kotlin/Compose architecture.
 - Compared it with rust-anything's documented language coverage; Kotlin is
@@ -11,27 +27,18 @@
   harness and CI workflow.
 - Kept the existing UI, icon sources and installers untouched.
 
-## Verification status
+## Next unblocked migration work
 
-Code was authored and committed through the GitHub connector. The local
-tool environment did not have an installed Rust compiler, but GitHub Actions
-**successfully compiled the Rust workspace on Linux**, ran its six unit tests,
-passed Clippy with warnings denied, built the original Kotlin MCP implementation
-and confirmed **92 out of 92 differential JSON-RPC responses matched**.
-See GitHub Actions run 44417720106.
-
-Do not mark this slice production-ready without additional Windows/macOS
-smoke tests and review of behavior not covered by the 92 replay cases.
-
-## Next
-
-1. Fix any Rust build, clippy, or parity defects found by CI.
-2. Expand parity corpus and add exact lookup/case/category and unicode tests.
-3. Add Windows/macOS Rust CI and benchmark search on representative queries.
-4. Migrate favorites and snippet generation with byte-for-byte tests while
-   keeping the Compose UI unchanged.
-5. Design native Rust GUI and public KMP compatibility strategy before a
-   desktop or library cutover.
+1. Run the expanded Windows/macOS/Linux Rust and retained KMP CI jobs; fix any
+   failures without weakening parity checks.
+2. Expand MCP protocol replay for invalid IDs, pipelined requests, EOF,
+   Unicode, and stdout purity.
+3. Port one portable feature only alongside a target-compatible bridge and
+   differential tests; favorites and snippet generation are next candidates.
+4. Design and evaluate per-target Rust bridges for Android, JVM, iOS, JS, and
+   Wasm before changing any public KMP path.
+5. Establish UI, vector rendering, persistence, and installer baselines before
+   planning desktop or library cutover.
 
 ## References
 

@@ -1,0 +1,22 @@
+// Add the icon library to your module dependencies:
+// implementation("com.github.lylicht.sfstudio:sfsymbols:TAG")
+// Add maven("https://jitpack.io") to your dependency repositories.
+
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.composables.sfsymbols.SfSymbols
+import com.composables.sfsymbols.dualtone.SFHeartFill
+
+@Composable
+fun SFHeartFillIcon(modifier: Modifier = Modifier) {
+    Icon(
+        imageVector = SfSymbols.Dualtone.SFHeartFill,
+        contentDescription = "heart.fill",
+        tint = Color.Unspecified,
+        modifier = modifier.size(110.dp),
+    )
+}

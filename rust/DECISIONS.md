@@ -44,3 +44,18 @@ its JitPack coordinates backwards compatible during migration.
 **Outstanding design decisions:** native UI technology, icon-vector data
 conversion/licensing, multiplatform distribution/ABI, KMP bridge vs independent
 bindings, exact pixel parity and accessibility, release signing.
+
+## 006 — Keep Kotlin Multiplatform APIs live during Rust migration
+
+**Decision:** Preserve the published Kotlin package and Android, JVM, iOS, JS,
+and Wasm targets while Rust code is introduced. Build a separate bridge for
+each target behind the existing Kotlin API only after target-specific behavior
+and rendering checks pass.
+
+**Reason:** The Rust core currently has no FFI layer, and no single bridge is
+assumed to cover all KMP targets. Removing a target or changing a public
+Compose signature would break downstream consumers.
+
+**Rollback:** Keep the existing Kotlin implementation as the active consumer
+path. The Rust search/MCP executable stays opt-in until compatibility gates
+pass.

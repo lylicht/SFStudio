@@ -7,6 +7,8 @@ and its published Compose Multiplatform library remain unchanged.
 
 - `sfstudio-core`: the SFStudio catalog index and typo-tolerant search algorithm
   originally in `app/src/jvmMain/kotlin/com/sfsymbols/data/FuzzySearch.kt`.
+- `sfstudio-core::codegen`: Compose snippet generation ported against shared
+  Kotlin/Rust golden fixtures; the current desktop caller stays Kotlin.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
 - The Rust catalog is **read directly at compile time from the existing Kotlin
@@ -61,6 +63,8 @@ The `sfstudio-mcp` binary is a first step, not a full Rust desktop app.
 ## Non-negotiable compatibility
 
 See [DECISIONS.md](DECISIONS.md) and [MAP.md](MAP.md).
+See [COMPATIBILITY.md](COMPATIBILITY.md) for the per-target Kotlin contract
+and [VERIFICATION.md](VERIFICATION.md) for current checks and unverified work.
 
 - Keep existing light/dark styling, Liquid Glass elements, layout and controls.
 - Keep the 7,007 symbol names, order, categories, vector rendering and

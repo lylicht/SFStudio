@@ -40,17 +40,20 @@ fn handle_line(line: &str) -> Option<Value> {
         return Some(error(Value::Null, -32600, "Invalid request"));
     };
     let id = message.get("id");
-    let valid_id = id.is_some_and(|value| {
-        value.is_string() || value.as_i64().is_some()
-    });
+    let valid_id = id.is_some_and(|value| value.is_string() || value.as_i64().is_some());
     let method = message.get("method").and_then(Value::as_str);
     if message.get("jsonrpc").and_then(Value::as_str) != Some("2.0")
         || method.is_none()
         || (id.is_some() && !valid_id)
     {
         return Some(error(
-            if valid_id { id.cloned().unwrap_or(Value::Null) } else { Value::Null },
-            -32600, "Invalid request"
+            if valid_id {
+                id.cloned().unwrap_or(Value::Null)
+            } else {
+                Value::Null
+            },
+            -32600,
+            "Invalid request",
         ));
     }
 
@@ -59,7 +62,13 @@ fn handle_line(line: &str) -> Option<Value> {
     let params = match message.get("params") {
         Some(Value::Object(map)) => map,
         Some(_) => return Some(error(id, -32602, "'params' must be an object")),
-        None => return Some(success_or_error(id, method.unwrap(), &serde_json::Map::new())),
+        None => {
+            return Some(success_or_error(
+                id,
+                method.unwrap(),
+                &serde_json::Map::new(),
+            ))
+        }
     };
     Some(success_or_error(id, method.unwrap(), params))
 }
@@ -173,12 +182,20 @@ fn search_symbols(args: &serde_json::Map<String, Value>) -> RpcResult {
     };
     // Preserve Kotlin behavior: scope AFTER scoring, BEFORE applying limit.
     let index = catalog();
-    let symbols: Vec<Value> = index.search(query, index.all().len()).into_iter()
-        .filter(|s| category.map_or(true, |cat| s.categories.iter().any(|c| c.eq_ignore_ascii_case(cat))))
+    let symbols: Vec<Value> = index
+        .search(query, index.all().len())
+        .into_iter()
+        .filter(|s| {
+            category.map_or(true, |cat| {
+                s.categories.iter().any(|c| c.eq_ignore_ascii_case(cat))
+            })
+        })
         .take(limit)
         .map(symbol_json)
         .collect();
-    Ok(text_content(json!({"count":symbols.len(),"symbols":symbols})))
+    Ok(text_content(
+        json!({"count":symbols.len(),"symbols":symbols}),
+    ))
 }
 
 fn get_symbol(args: &serde_json::Map<String, Value>) -> RpcResult {
@@ -219,7 +236,9 @@ mod tests {
 
     #[test]
     fn handles_handshake_and_notifications() {
-        let r = response(r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}"#);
+        let r = response(
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}"#,
+        );
         assert_eq!(r["result"]["protocolVersion"], "2025-11-25");
         assert_eq!(r["result"]["serverInfo"]["name"], "sfstudio");
         assert!(handle_line(r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#).is_none());
@@ -229,8 +248,11 @@ mod tests {
     fn exposes_tools_and_symbol_lookup() {
         let r = response(r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#);
         assert_eq!(r["result"]["tools"].as_array().unwrap().len(), 2);
-        let r = response(r#"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_symbol","arguments":{"code":"SFHeartFill"}}}"#);
-        let json: Value = serde_json::from_str(r["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+        let r = response(
+            r#"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_symbol","arguments":{"code":"SFHeartFill"}}}"#,
+        );
+        let json: Value =
+            serde_json::from_str(r["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
         assert_eq!(json["appleName"], "heart.fill");
     }
 
@@ -238,7 +260,15 @@ mod tests {
     fn input_validation_matches_jvm() {
         assert_eq!(response("{broken")["error"]["code"], -32700);
         assert_eq!(response("[]")["error"]["code"], -32600);
-        assert_eq!(response(r#"{"jsonrpc":"2.0","id":1,"method":"unknown"}"#)["error"]["code"], -32601);
-        assert_eq!(response(r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search_symbols","arguments":{"query":"a","limit":0}}}"#)["error"]["code"], -32602);
+        assert_eq!(
+            response(r#"{"jsonrpc":"2.0","id":1,"method":"unknown"}"#)["error"]["code"],
+            -32601
+        );
+        assert_eq!(
+            response(
+                r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search_symbols","arguments":{"query":"a","limit":0}}}"#
+            )["error"]["code"],
+            -32602
+        );
     }
 }
