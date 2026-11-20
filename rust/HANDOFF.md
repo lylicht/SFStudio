@@ -32,8 +32,8 @@ Rust/KMP/package behavior in CI. GitHub Actions run
 vector/bounds baseline on Windows/macOS/Linux, JVM, Android API 37, iOS,
 JS/Wasm, packaged launchers, and MCP replay. The animation port passed the full
 cross-platform matrix in [run #25](https://github.com/lylicht/SFStudio/actions/runs/44787007184).
-The Magic Replace morph extension was added after run #25 and awaits the next
-cross-platform CI run.
+The Magic Replace morph extension passed the full matrix in
+[run #27](https://github.com/lylicht/SFStudio/actions/runs/44790870392).
 
 ## Existing work inherited from PR #7
 

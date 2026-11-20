@@ -92,9 +92,10 @@ Last local check: 2026-11-20, Windows x64, branch
   passed the full Windows/macOS/Linux, JVM, Android, iOS, JS/Wasm, packaged
   launcher, and MCP matrix for those effect frames.
 - The Magic Replace extension matches tagged layers and emits morphed path
-  operations/points. Its local Rust and Python ABI checks pass; the extension
-  postdates run #25 and awaits cross-platform CI. Draw-rail clipping is still
-  not implemented in Rust, and Compose remains the active visual renderer.
+  operations/points. Rust unit and Python ABI checks pass, and [GitHub Actions
+  run #27](https://github.com/lylicht/SFStudio/actions/runs/44790870392) passed
+  the full cross-platform matrix. Draw-rail clipping is still not implemented
+  in Rust, and Compose remains the active visual renderer.
 
 ## Not yet verified
 
