@@ -1,5 +1,6 @@
 package com.sfsymbols.mcp
 
+import com.sfsymbols.data.RustCatalogSearch
 import java.io.PrintWriter
 import java.io.StringReader
 import java.io.StringWriter
@@ -72,10 +73,54 @@ class McpServerTest {
     }
 
     @Test fun `client config launches the installed app with --mcp`() {
-        val server = Json.parseToJsonElement(mcpClientConfig("C:/Apps/SFStudio/SFStudio.exe"))
+        assertTrue(RustCatalogSearch.available(), "jvmTest must load the Rust native library")
+        val installedPath = "C:/Apps/SFStudio/\"Pilot\" café.exe"
+        val prettyJson = Json { prettyPrint = true }
+        val expectedInstalled = prettyJson.encodeToString(
+            JsonObject.serializer(),
+            buildJsonObject {
+                putJsonObject("mcpServers") {
+                    putJsonObject("sfstudio") {
+                        put("command", installedPath)
+                        putJsonArray("args") { add(JsonPrimitive("--mcp")) }
+                    }
+                }
+            },
+        )
+        val rustInstalled = assertNotNull(
+            RustCatalogSearch.mcpClientConfig(installedPath, "/unused"),
+        )
+        assertEquals(expectedInstalled, rustInstalled)
+
+        val installedConfig = mcpClientConfig(installedPath)
+        assertEquals(expectedInstalled, installedConfig)
+        val server = Json.parseToJsonElement(installedConfig)
             .jsonObject["mcpServers"]!!.jsonObject["sfstudio"]!!.jsonObject
-        assertEquals("C:/Apps/SFStudio/SFStudio.exe", server["command"]!!.jsonPrimitive.content)
+        assertEquals(installedPath, server["command"]!!.jsonPrimitive.content)
         assertEquals(listOf("--mcp"), server["args"]!!.jsonArray.map { it.jsonPrimitive.content })
+
+        val development = assertNotNull(
+            RustCatalogSearch.mcpClientConfig(null, "C:/build folder/app/lib"),
+        )
+        val expectedDevelopment = prettyJson.encodeToString(
+            JsonObject.serializer(),
+            buildJsonObject {
+                putJsonObject("mcpServers") {
+                    putJsonObject("sfstudio") {
+                        put("command", "java")
+                        putJsonArray("args") {
+                            add(JsonPrimitive("-Djava.awt.headless=true"))
+                            add(JsonPrimitive("-cp"))
+                            add(JsonPrimitive("C:/build folder/app/lib/*"))
+                            add(JsonPrimitive("com.sfsymbols.MainKt"))
+                            add(JsonPrimitive("--mcp"))
+                        }
+                    }
+                }
+            },
+        )
+        assertEquals(expectedDevelopment, development)
+
         val dev = Json.parseToJsonElement(mcpClientConfig(null))
             .jsonObject["mcpServers"]!!.jsonObject["sfstudio"]!!.jsonObject
         assertEquals("java", dev["command"]!!.jsonPrimitive.content)

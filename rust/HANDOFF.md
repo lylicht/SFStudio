@@ -6,7 +6,7 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all 32 workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 38 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
 8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
@@ -17,7 +17,8 @@ invalid IDs and batches, and notifications. See
 [VERIFICATION.md](VERIFICATION.md).
 
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
-Compose snippet generation, and favorite toggling through JNA. Search,
+Compose snippet generation, favorite toggling, and MCP client config generation
+through JNA. Search,
 filtering, snippets, and favorites passed Windows/macOS/Linux checks in run #17.
 The metadata lookup binding passed Windows/macOS/Linux parity and the Windows
 MSI passed in run #20; lookup is not yet called by a production UI path.
@@ -42,6 +43,10 @@ differential coverage for those color calculations is still pending. The
 draw-field distance calculation is now in Rust and exposed through a second
 C ABI function; Kotlin fixture parity and Linux/Windows/macOS checks passed in
 [GitHub Actions run #31](https://github.com/lylicht/SFStudio/actions/runs/44799137234).
+The Settings screen now gets installed-app and development-classpath MCP
+configuration from Rust through JNA when the native library is available.
+Parsed-JSON parity and escaped path handling pass locally; cross-OS checks for
+this addition are pending.
 
 ## Existing work inherited from PR #7
 
@@ -56,8 +61,9 @@ C ABI function; Kotlin fixture parity and Linux/Windows/macOS checks passed in
 
 ## Next unblocked migration work
 
-1. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
-   one FFI mechanism is not assumed to fit every target.
+1. Port the remaining portable desktop state transitions, then evaluate
+   Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately; one FFI
+   mechanism is not assumed to fit every target.
 2. Expand animation and layer-appearance parity fixtures, then connect the
    verified draw-field C ABI result to target renderers while preserving each
    platform's rasterized mask and clip behavior. Keep the existing renderer as

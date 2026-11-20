@@ -63,6 +63,16 @@ internal interface NativeSearch : Library {
         output: ByteArray?,
         outputCapacity: Long,
     ): Long
+
+    fun sfstudio_mcp_client_config_json(
+        appPath: ByteArray?,
+        appPathLength: Long,
+        appPathPresent: Int,
+        developmentLibPath: ByteArray?,
+        developmentLibPathLength: Long,
+        output: ByteArray?,
+        outputCapacity: Long,
+    ): Long
 }
 
 internal object RustCatalogSearch {
@@ -237,6 +247,36 @@ internal object RustCatalogSearch {
             output.size.toLong(),
         )
         check(written == required) { "Rust favorites wrote $written bytes; expected $required" }
+        return output.decodeToString()
+    }
+
+    fun mcpClientConfig(appPath: String?, developmentLibPath: String): String? {
+        val library = native ?: return null
+        val appPathBytes = appPath?.toByteArray(Charsets.UTF_8)
+        val developmentLibPathBytes = developmentLibPath.toByteArray(Charsets.UTF_8)
+        val required = library.sfstudio_mcp_client_config_json(
+            appPathBytes,
+            appPathBytes?.size?.toLong() ?: 0,
+            if (appPath == null) 0 else 1,
+            developmentLibPathBytes,
+            developmentLibPathBytes.size.toLong(),
+            null,
+            0,
+        )
+        check(required >= 0) { "Rust MCP client config failed with code $required" }
+        check(required <= Int.MAX_VALUE) { "Rust MCP client config is too large for the JVM" }
+
+        val output = ByteArray(required.toInt())
+        val written = library.sfstudio_mcp_client_config_json(
+            appPathBytes,
+            appPathBytes?.size?.toLong() ?: 0,
+            if (appPath == null) 0 else 1,
+            developmentLibPathBytes,
+            developmentLibPathBytes.size.toLong(),
+            output,
+            output.size.toLong(),
+        )
+        check(written == required) { "Rust MCP client config wrote $written bytes; expected $required" }
         return output.decodeToString()
     }
 

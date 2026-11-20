@@ -15,6 +15,14 @@ portable logic behind the installed desktop entry points.
 - `sfstudio-core::favorites`: ordered favorite state and JSON codec compatible
   with the existing Kotlin array format; packaged JVM toggles use the C ABI,
   while Kotlin retains ownership of the favorite file.
+- `sfstudio-core::rendering` and `sfstudio-core::draw`: Apple rendering-mode
+  colors, layer opacity, gradient stops, and rail-guided Draw On/Off reveal
+  levels are calculated in Rust. The platform still rasterizes paths and
+  builds Compose clip geometry.
+- `sfstudio-core::mcp_config`: the installed-launcher and development-classpath
+  MCP configuration shown by Settings, serialized byte-for-byte like the
+  existing Kotlin implementation. The desktop Settings helper uses Rust
+  through JNA when the native library is available and keeps its Kotlin fallback.
 - `sfstudio-core::vector`: compile-time extraction and Rust decoding of the
   generated glyph geometry, layer trees, and optical variants. Exact Kotlin
   geometry fingerprints match for all 8,526 glyphs locally. This is the data
@@ -23,14 +31,15 @@ portable logic behind the installed desktop entry points.
 - `sfstudio-core::animation`: Apple-style effect timing, per-layer transforms,
   variable-layer staging, replace recipes, and Magic Replace tag matching with
   morphed outlines. The JSON C ABI makes frame evaluation available to
-  foreign-language callers. Rendering modes, colors, renderer integration,
-  and draw-rail clipping remain in Kotlin.
+  foreign-language callers. Actual rendering and path rasterization remain in
+  Kotlin.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
 - `sfstudio-ffi`: a language-neutral C ABI for catalog search/filtering,
   symbol metadata lookup, glyph geometry at a requested weight and optical
-  scale, animation frames, Compose code generation, and favorite toggling. Its
-  header and UTF-8 buffer contract are in `include/sfstudio.h`. Python `ctypes`
+  scale, animation frames, Draw On/Off levels, MCP configuration, Compose code
+  generation, and favorite toggling. Its header and UTF-8 buffer contract are
+  in `include/sfstudio.h`. Python `ctypes`
   smoke checks for search, filtering,
   codegen, and favorites passed on Windows, macOS, and Linux in run #17. The
   packaged JVM UI calls it through JNA; published KMP callers remain unchanged.
@@ -43,9 +52,11 @@ portable logic behind the installed desktop entry points.
 
 Packaged `--mcp` launches delegate to the Rust executable after parity checks;
 classpath-based development launches retain the Kotlin fallback. Packaged UI
-search, category/favorites filtering, snippet generation, and favorite toggling
-call the Rust C ABI through JNA, keeping Kotlin behavior as the development and
-load-failure fallback.
+search, category/favorites filtering, snippet generation, favorite toggling,
+and Settings MCP configuration call the Rust C ABI through JNA, keeping Kotlin
+behavior as the development and load-failure fallback. The MCP config C ABI
+and JVM parity tests pass locally; cross-OS CI for this newest binding is
+pending.
 
 ## Verify
 

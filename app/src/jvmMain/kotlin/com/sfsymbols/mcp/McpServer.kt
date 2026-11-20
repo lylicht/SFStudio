@@ -1,6 +1,7 @@
 package com.sfsymbols.mcp
 
 import com.sfsymbols.data.FuzzySearch
+import com.sfsymbols.data.RustCatalogSearch
 import com.composables.sfsymbols.SfSymbolMetadata
 import com.composables.sfsymbols.SfSymbolsCatalog
 import kotlinx.serialization.json.*
@@ -241,13 +242,31 @@ private val prettyJson = Json { prettyPrint = true }
  * as when running from Gradle, the config falls back to the `assembleMcp` classpath.
  */
 public fun mcpClientConfig(appPath: String?): String {
+    val developmentLibPath = if (appPath == null) {
+        listOf(java.io.File("build/mcp/lib"), java.io.File("app/build/mcp/lib"))
+            .firstOrNull { it.isDirectory }?.absoluteFile?.invariantSeparatorsPath
+            ?: "/absolute/path/to/app/build/mcp/lib"
+    } else {
+        ""
+    }
+    try {
+        RustCatalogSearch.mcpClientConfig(appPath, developmentLibPath)?.let { return it }
+    } catch (error: Exception) {
+        RustCatalogSearch.reportFailure(error)
+    } catch (error: LinkageError) {
+        RustCatalogSearch.reportFailure(error)
+    }
+
     val (command, args) = if (appPath != null) {
         appPath to listOf("--mcp")
     } else {
-        val lib = listOf(java.io.File("build/mcp/lib"), java.io.File("app/build/mcp/lib"))
-            .firstOrNull { it.isDirectory }?.absoluteFile?.invariantSeparatorsPath
-            ?: "/absolute/path/to/app/build/mcp/lib"
-        "java" to listOf("-Djava.awt.headless=true", "-cp", "$lib/*", "com.sfsymbols.MainKt", "--mcp")
+        "java" to listOf(
+            "-Djava.awt.headless=true",
+            "-cp",
+            "$developmentLibPath/*",
+            "com.sfsymbols.MainKt",
+            "--mcp",
+        )
     }
     val config = buildJsonObject {
         putJsonObject("mcpServers") {

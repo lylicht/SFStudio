@@ -13,9 +13,9 @@ The desktop application is Kotlin/Compose on JVM. The installed app remains
 the default MCP endpoint and continues to use the existing favorite file at
 `~/.sf-symbols-catalog/pins.json`. Packaged `--mcp` invocations delegate to
 the bundled Rust MCP process; development classpath launches fall back to
-Kotlin. Packaged desktop search, snippet generation, and favorite toggling call
-the Rust C ABI through JNA, with Kotlin fallbacks. Kotlin still owns favorite
-file reads and writes.
+Kotlin. Packaged desktop search, snippet generation, favorite toggling, and MCP
+client configuration call the Rust C ABI through JNA, with Kotlin fallbacks.
+Kotlin still owns favorite file reads and writes.
 
 The shared catalog search and filters, symbol metadata lookup, Compose code
 generator, ordered favorite toggle, and glyph geometry decoder export C ABI
@@ -26,7 +26,8 @@ scale. `sfstudio_animation_json` evaluates Apple-style effect frames and can
 optionally resolve per-layer monochrome, hierarchical, palette, or multicolor
 appearance plus automatic gradient stops. `sfstudio_draw_field_json` accepts a
 platform-rasterized 112x112 layer mask and returns the 48-step rail-guided
-reveal level for each pixel. Bounds match Kotlin over ten symbols, all nine
+reveal level for each pixel. `sfstudio_mcp_client_config_json` builds the JSON
+shown in desktop Settings. Bounds match Kotlin over ten symbols, all nine
 weights, and all three optical scales. C, C++,
 Python, JNI/JNA, Kotlin/Native, Swift, and other runtimes with a C FFI can call
 these entry points.
@@ -34,8 +35,8 @@ This ABI is a language-neutral integration surface, not a claim that each
 language or platform already has a packaged adapter or complete app binding.
 The published KMP API does not call this ABI yet; its Android, iOS, JS, and
 Wasm implementations remain active. The desktop JVM app calls search, code
-generation, favorite toggling, and category/favorites filtering through JNA on
-Windows, macOS, and Linux. The JNA metadata lookup binding passed parity checks
+generation, favorite toggling, category/favorites filtering, and MCP client
+configuration through JNA on Windows, macOS, and Linux. The JNA metadata lookup binding passed parity checks
 on all three operating systems in run #20. JS and Wasm consumers still use
 Kotlin until target-specific Rust/Wasm adapters pass their tests. The vector
 geometry and animation C ABI smoke checks pass on Windows, macOS, and Linux in
@@ -60,7 +61,7 @@ run #29; the published KMP callers still do not use these Rust endpoints.
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `NOT_STARTED`; keep the Kotlin path |
-| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, and `--mcp` use Rust | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; published KMP APIs, UI state, and rendering remain Kotlin |
+| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, and `--mcp` use Rust | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; MCP config is wired through JNA with local Kotlin parity; published KMP APIs, UI state, and rendering remain Kotlin |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `NOT_STARTED`; evaluate a narrow C ABI / generated Swift bridge |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
 | Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |

@@ -1,4 +1,4 @@
-//! SFStudio's platform-neutral catalog, search, and filtering core.
+//! SFStudio's platform-neutral catalog, search, favorites, code generation, and rendering core.
 //!
 //! The catalog and aliases are embedded from their existing Kotlin source files.
 //! That keeps the 7,007 symbols in one authoritative location during migration.
@@ -8,6 +8,7 @@ pub mod animation;
 pub mod codegen;
 pub mod draw;
 pub mod favorites;
+pub mod mcp_config;
 pub mod rendering;
 pub mod vector;
 

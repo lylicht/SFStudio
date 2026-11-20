@@ -42,6 +42,12 @@ def main():
     draw_field_json = library.sfstudio_draw_field_json
     draw_field_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
     draw_field_json.restype = ctypes.c_ssize_t
+    mcp_client_config_json = library.sfstudio_mcp_client_config_json
+    mcp_client_config_json.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int32,
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
+    ]
+    mcp_client_config_json.restype = ctypes.c_ssize_t
     search_filtered_json = library.sfstudio_search_filtered_json
     search_filtered_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                                      ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
@@ -219,6 +225,44 @@ def main():
     invalid_draw_mask = ctypes.create_string_buffer(b'{"mask":[]}')
     assert draw_field_json(invalid_draw_mask, len(invalid_draw_mask.value), None, 0) == -12
 
+    def mcp_client_config(app_path, development_lib_path):
+        app_bytes = app_path.encode("utf-8") if app_path is not None else b""
+        app_buffer = ctypes.create_string_buffer(app_bytes) if app_path is not None else None
+        development_bytes = development_lib_path.encode("utf-8")
+        development_buffer = ctypes.create_string_buffer(development_bytes)
+
+        def call(output, capacity):
+            return mcp_client_config_json(
+                app_buffer,
+                len(app_bytes),
+                0 if app_path is None else 1,
+                development_buffer,
+                len(development_bytes),
+                output,
+                capacity,
+            )
+
+        required = call(None, 0)
+        assert required > 0, f"MCP client config sizing call failed: {required}"
+        output = ctypes.create_string_buffer(required)
+        written = call(output, required)
+        assert written == required
+        return json.loads(output.raw[:written])
+
+    installed_config = mcp_client_config('C:/Apps/SFStudio/"Pilot" café.exe', "/unused")
+    assert installed_config["mcpServers"]["sfstudio"] == {
+        "command": 'C:/Apps/SFStudio/"Pilot" café.exe', "args": ["--mcp"]
+    }
+    development_config = mcp_client_config(None, "C:/build folder/app/lib")
+    assert development_config["mcpServers"]["sfstudio"] == {
+        "command": "java",
+        "args": [
+            "-Djava.awt.headless=true", "-cp", "C:/build folder/app/lib/*",
+            "com.sfsymbols.MainKt", "--mcp",
+        ],
+    }
+    assert mcp_client_config_json(None, 0, 2, None, 0, None, 0) == -13
+
     def filtered_search(query, category, favorites, limit):
         encoded_query = query.encode("utf-8")
         encoded_category = category.encode("utf-8") if category is not None else b""
@@ -308,7 +352,7 @@ def main():
     assert toggle_favorites(broken_json, 7, ctypes.create_string_buffer(b"gear"), 4,
                             None, 0) == -8
 
-    print("Rust C ABI search, metadata, vectors, Apple animations, draw fields, filtering, codegen, and favorites smoke test passed (Python ctypes)")
+    print("Rust C ABI search, metadata, vectors, Apple animations, draw fields, MCP config, filtering, codegen, and favorites smoke test passed (Python ctypes)")
 
 
 if __name__ == "__main__":

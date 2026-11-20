@@ -93,6 +93,18 @@ intptr_t sfstudio_draw_field_json(const uint8_t *input, size_t input_len,
                                   uint8_t *output, size_t output_capacity);
 
 /*
+ * Generate the JSON MCP client configuration shown in desktop Settings.
+ * `app_path_present` is 1 for an installed app launcher, or 0 with a zero
+ * `app_path_len` to generate the development classpath configuration. The
+ * development library path is resolved by the host. Invalid flags return
+ * -13; other errors use the common buffer/error contract above.
+ */
+intptr_t sfstudio_mcp_client_config_json(
+    const uint8_t *app_path, size_t app_path_len, int32_t app_path_present,
+    const uint8_t *development_lib_path, size_t development_lib_path_len,
+    uint8_t *output, size_t output_capacity);
+
+/*
  * Returns raw UTF-8 Kotlin source for the snippet, using the same required-size
  * buffer contract. Mode: 0 dualtone, 1 monochrome. Boolean arguments use
  * zero/nonzero. Negative errors: -1 invalid symbol pointer, -2 invalid UTF-8,

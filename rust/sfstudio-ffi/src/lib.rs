@@ -15,6 +15,7 @@ const INVALID_SCALE: isize = -9;
 const INVALID_WEIGHT: isize = -10;
 const INVALID_ANIMATION: isize = -11;
 const INVALID_DRAW_FIELD: isize = -12;
+const INVALID_MCP_CONFIG: isize = -13;
 
 unsafe fn read_utf8<'a>(input: *const u8, input_len: usize) -> Result<&'a str, isize> {
     if input_len == 0 {
@@ -748,6 +749,59 @@ pub unsafe extern "C" fn sfstudio_draw_field_json(
             "levels": field.map(|field| field.levels),
         }))
         .map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
+/// Generate the JSON copied by the desktop MCP settings screen.
+///
+/// Set `app_path_present` to 1 for an installed launcher, or 0 with an empty
+/// app path to generate the development classpath configuration. The
+/// development library path is supplied by the host because locating build
+/// outputs depends on its working directory.
+///
+/// # Safety
+/// For nonzero input lengths, each corresponding input must point to that many
+/// readable UTF-8 bytes. If `output_capacity` is nonzero, `output` must point
+/// to that many writable bytes. Buffers may overlap because output is built
+/// before it is written.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_mcp_client_config_json(
+    app_path: *const u8,
+    app_path_len: usize,
+    app_path_present: i32,
+    development_lib_path: *const u8,
+    development_lib_path_len: usize,
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    if !matches!(app_path_present, 0 | 1) || (app_path_present == 0 && app_path_len != 0) {
+        return INVALID_MCP_CONFIG;
+    }
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+    let app_path = if app_path_present == 1 {
+        match unsafe { read_utf8(app_path, app_path_len) } {
+            Ok(path) => Some(path),
+            Err(code) => return code,
+        }
+    } else {
+        None
+    };
+    let development_lib_path =
+        match unsafe { read_utf8(development_lib_path, development_lib_path_len) } {
+            Ok(path) => path,
+            Err(code) => return code,
+        };
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        sfstudio_core::mcp_config::client_config(app_path, development_lib_path)
+            .map(String::into_bytes)
+            .map_err(|_| INTERNAL_ERROR)
     })) {
         Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
         Ok(Err(code)) => code,

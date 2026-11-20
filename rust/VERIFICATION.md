@@ -6,8 +6,8 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 37 Rust tests
-  passed (25 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 38 Rust tests
+  passed (26 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
@@ -16,7 +16,9 @@ Last local check: 2026-11-20, Windows x64, branch
   snippet fixtures, favorite ordering/toggle behavior, filtered search,
   symbol metadata lookup, and glyph decoding/interpolation at medium, small,
   and large scales, including visible bounds; animation rendering modes,
-  gradient stops, the draw-field C ABI, and invalid color/mask input also pass.
+  gradient stops, the draw-field C ABI, installed/development MCP config
+  generation with escaped Unicode paths, and invalid color/mask/config input
+  also pass.
 - `gradlew.bat :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfVectorRustParityTest --rerun-tasks --no-daemon` —
   passed; all 8,526 Kotlin glyphs and available small/large variants match the
   committed geometry fingerprint fixture.
@@ -28,6 +30,10 @@ Last local check: 2026-11-20, Windows x64, branch
   loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries,
   both Compose snippet variants, favorite ordering/removal, filtered
   category/favorites results, and symbol metadata lookup matched Kotlin references.
+- `gradlew.bat :app:jvmTest --tests com.sfsymbols.mcp.McpServerTest --no-daemon` —
+  passed; the Settings MCP config path calls the Rust JNA function and matches
+  the Kotlin JSON contract for installed and development launches, including
+  escaped Unicode paths. The full `:app:jvmTest` suite passed afterward.
 - `gradlew.bat :app:packageMsi --no-daemon` — Windows MSI build passed with the
   Rust FFI DLL and MCP executable in `app-jvm.jar`.
 - The `CatalogViewModelTest` snippet cases match the Rust fixtures exactly,
@@ -81,6 +87,13 @@ Last local check: 2026-11-20, Windows x64, branch
 - The new visible-bounds matrix is verified locally; cross-OS CI for this
   latest geometry addition passed in run #24.
 
+## Rust-backed desktop logic
+
+- MCP client configuration is generated in Rust and called by the existing
+  Settings helper through JNA when the native library is available. The
+  original Kotlin generator remains the native-library fallback. Local C ABI
+  and JVM parity pass; cross-OS CI for this addition is pending.
+
 ## Apple animation evaluator
 
 - Rust unit tests cover Apple draw timing and replace recipe boundaries.
@@ -124,9 +137,9 @@ Last local check: 2026-11-20, Windows x64, branch
 - Pixel rendering and visual parity, installer upgrades, user-data migration,
   performance baselines, and native bindings. Layer color calculation has
   cross-OS smoke coverage but no Kotlin differential fixture. Draw-field API
-  integration with the active renderer is pending. The geometry and
-  draw-field C ABIs have cross-OS CI coverage, but target-specific bindings
-  remain untested.
+  integration with the active renderer is pending. MCP config generation's
+  cross-OS checks are pending. The geometry and draw-field C ABIs have cross-OS
+  CI coverage, but target-specific bindings remain untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain
