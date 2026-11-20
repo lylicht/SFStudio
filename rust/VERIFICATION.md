@@ -6,8 +6,8 @@ Last local check: 2026-11-20, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 32 Rust tests
-  passed (20 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 37 Rust tests
+  passed (25 core, 9 C ABI, and 3 MCP), including Rust fingerprints for every
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
@@ -16,7 +16,7 @@ Last local check: 2026-11-20, Windows x64, branch
   snippet fixtures, favorite ordering/toggle behavior, filtered search,
   symbol metadata lookup, and glyph decoding/interpolation at medium, small,
   and large scales, including visible bounds; animation rendering modes,
-  gradient stops, and invalid color input also pass.
+  gradient stops, the draw-field C ABI, and invalid color/mask input also pass.
 - `gradlew.bat :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfVectorRustParityTest --rerun-tasks --no-daemon` —
   passed; all 8,526 Kotlin glyphs and available small/large variants match the
   committed geometry fingerprint fixture.
@@ -91,12 +91,14 @@ Last local check: 2026-11-20, Windows x64, branch
   configurations, selected symbols, and their flattened layers. [GitHub
   Actions run #25](https://github.com/lylicht/SFStudio/actions/runs/44787007184)
   passed the full Windows/macOS/Linux, JVM, Android, iOS, JS/Wasm, packaged
-  launcher, and MCP matrix for those effect frames.
+  launcher, and MCP matrix for those effect frames. The local
+  `gradlew.bat :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfDrawFieldRustParityTest --no-daemon -PsfstudioUseSystemWebTools=true`
+  run also passed exact Rust/Kotlin level parity for five real symbol layers.
 - The Magic Replace extension matches tagged layers and emits morphed path
   operations/points. Rust unit and Python ABI checks pass, and [GitHub Actions
   run #27](https://github.com/lylicht/SFStudio/actions/runs/44790870392) passed
-  the full cross-platform matrix. Draw-rail clipping is still not implemented
-  in Rust, and Compose remains the active visual renderer.
+  the full cross-platform matrix. Rust now computes draw-rail reveal levels;
+  path rasterization, clip geometry, and Compose remain in the active renderer.
 - Layer appearance calculations now cover monochrome, hierarchical, palette,
   and multicolor modes, named Apple colors, layer opacity, and Apple's
   automatic two-stop gradient. Rust unit and Python C ABI smoke checks passed
@@ -104,6 +106,13 @@ Last local check: 2026-11-20, Windows x64, branch
   passed the Windows/macOS/Linux Rust and C ABI checks plus the existing JVM,
   Android, iOS, JS/Wasm, packaged desktop, and MCP jobs. Kotlin differential
   fixtures and integration with a Rust renderer remain pending.
+- Draw On/Off reveal levels now use the Kotlin renderer's 112x112 grid,
+  48-level distance field, tie search, connected components, and no-corner
+  diagonal rule. A Kotlin-generated full-grid fixture for five real symbol
+  layers passes exact Rust parity, along with the JVM parity test and Python C
+  ABI smoke. The platform still rasterizes the source path; Rust returns the
+  mask's reveal levels and does not create Compose Path clip geometry. Visual
+  clip comparison remains pending.
 
 ## Not yet verified
 
@@ -111,8 +120,9 @@ Last local check: 2026-11-20, Windows x64, branch
   KMP targets remain buildable but still execute their Kotlin implementation.
 - Pixel rendering and visual parity, installer upgrades, user-data migration,
   performance baselines, and native bindings. Layer color calculation has
-  cross-OS smoke coverage but no Kotlin differential fixture. The geometry
-  C ABI has cross-OS CI coverage, but target-specific bindings remain untested.
+  cross-OS smoke coverage but no Kotlin differential fixture. Draw-field API
+  integration and cross-OS checks are pending. The geometry C ABI has cross-OS
+  CI coverage, but target-specific bindings remain untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain

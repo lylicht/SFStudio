@@ -14,6 +14,7 @@ const OUTPUT_TOO_LARGE: isize = -5;
 const INVALID_SCALE: isize = -9;
 const INVALID_WEIGHT: isize = -10;
 const INVALID_ANIMATION: isize = -11;
+const INVALID_DRAW_FIELD: isize = -12;
 
 unsafe fn read_utf8<'a>(input: *const u8, input_len: usize) -> Result<&'a str, isize> {
     if input_len == 0 {
@@ -696,6 +697,119 @@ pub unsafe extern "C" fn sfstudio_animation_json(
         Ok(Err(code)) => code,
         Err(_) => INTERNAL_ERROR,
     }
+}
+
+/// Build Draw On/Off reveal levels from a target-rendered 112x112 layer mask.
+///
+/// Input JSON contains a row-major zero/one mask, two-value origin, positive
+/// cell, four-value symbolBounds, and normalized coordinate-pair ties.
+/// Output levels is row-major with values 0..47 and 255 outside the layer;
+/// it is null when the mask is empty. The caller rasterizes the path so its
+/// platform's antialiasing threshold remains authoritative.
+///
+/// # Safety
+/// For nonzero input_len, input must point to that many readable UTF-8
+/// bytes. If output_capacity is nonzero, output must point to that many
+/// writable bytes. The buffers may overlap because the result is built first.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_draw_field_json(
+    input: *const u8,
+    input_len: usize,
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    let input = match unsafe { read_utf8(input, input_len) } {
+        Ok(input) => input,
+        Err(code) => return code,
+    };
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+    let request: serde_json::Value = match serde_json::from_str(input) {
+        Ok(request) => request,
+        Err(_) => return INVALID_DRAW_FIELD,
+    };
+    let Some(request) = parse_draw_field_request(&request) else {
+        return INVALID_DRAW_FIELD;
+    };
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let field = sfstudio_core::draw::build_draw_field(
+            &request.mask,
+            request.origin,
+            request.cell,
+            request.symbol_bounds,
+            &request.ties,
+        )
+        .map_err(|_| INVALID_DRAW_FIELD)?;
+        serde_json::to_vec(&serde_json::json!({
+            "width": sfstudio_core::draw::GRID,
+            "height": sfstudio_core::draw::GRID,
+            "levels": field.map(|field| field.levels),
+        }))
+        .map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
+struct DrawFieldRequest {
+    mask: Vec<u8>,
+    origin: [f32; 2],
+    cell: f32,
+    symbol_bounds: [f32; 4],
+    ties: Vec<f32>,
+}
+
+fn parse_draw_field_request(value: &serde_json::Value) -> Option<DrawFieldRequest> {
+    let object = value.as_object()?;
+    let values = object.get("mask")?.as_array()?;
+    if values.len() != sfstudio_core::draw::GRID * sfstudio_core::draw::GRID {
+        return None;
+    }
+    let mask = values
+        .iter()
+        .map(|value| match value.as_u64()? {
+            0 => Some(0),
+            1 => Some(1),
+            _ => None,
+        })
+        .collect::<Option<Vec<_>>>()?;
+    let origin = parse_f32_array(object.get("origin")?)?;
+    if origin.len() != 2 {
+        return None;
+    }
+    let cell = parse_f32(object.get("cell")?)?;
+    let symbol_bounds = parse_f32_array(object.get("symbolBounds")?)?;
+    if symbol_bounds.len() != 4 {
+        return None;
+    }
+    let ties = parse_f32_array(object.get("ties")?)?;
+    Some(DrawFieldRequest {
+        mask,
+        origin: [origin[0], origin[1]],
+        cell,
+        symbol_bounds: [
+            symbol_bounds[0],
+            symbol_bounds[1],
+            symbol_bounds[2],
+            symbol_bounds[3],
+        ],
+        ties,
+    })
+}
+
+fn parse_f32_array(value: &serde_json::Value) -> Option<Vec<f32>> {
+    value.as_array()?.iter().map(parse_f32).collect()
+}
+
+fn parse_f32(value: &serde_json::Value) -> Option<f32> {
+    value
+        .as_f64()
+        .map(|value| value as f32)
+        .filter(|value| value.is_finite())
 }
 
 fn parse_scope(

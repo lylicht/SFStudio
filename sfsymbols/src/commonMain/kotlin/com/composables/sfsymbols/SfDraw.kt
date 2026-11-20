@@ -64,7 +64,12 @@ private class MinHeap(cap: Int) {
  * @param symbolBounds bounds the rail ties are normalised against (glyph space)
  * @param ties rail tie midpoints as (u, v) fractions of [symbolBounds] (y from top); the first one is the start
  */
-internal fun buildDrawField(layerPath: Path, symbolBounds: Rect, ties: FloatArray): SfDrawField? {
+internal fun buildDrawField(
+    layerPath: Path,
+    symbolBounds: Rect,
+    ties: FloatArray,
+    recordPixelLevels: ((ByteArray) -> Unit)? = null,
+): SfDrawField? {
     val lb = layerPath.getBounds()
     if (lb.width <= 0f && lb.height <= 0f) return null
     val pad = max(lb.width, lb.height) * 0.02f + 1f
@@ -167,6 +172,11 @@ internal fun buildDrawField(layerPath: Path, symbolBounds: Rect, ties: FloatArra
                 } else x++
             }
         }
+    }
+    if (recordPixelLevels != null) {
+        recordPixelLevels(ByteArray(GRID * GRID) { index ->
+            if (mask[index]) level[index].toByte() else (-1).toByte()
+        })
     }
     return SfDrawField(levels)
 }

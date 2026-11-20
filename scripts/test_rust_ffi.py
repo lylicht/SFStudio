@@ -39,6 +39,9 @@ def main():
     animation_json = library.sfstudio_animation_json
     animation_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
     animation_json.restype = ctypes.c_ssize_t
+    draw_field_json = library.sfstudio_draw_field_json
+    draw_field_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
+    draw_field_json.restype = ctypes.c_ssize_t
     search_filtered_json = library.sfstudio_search_filtered_json
     search_filtered_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                                      ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
@@ -191,6 +194,31 @@ def main():
     )
     assert animation_json(invalid_rendering, len(invalid_rendering.value), None, 0) == -11
 
+    def draw_field(request):
+        encoded = json.dumps(request, separators=(",", ":")).encode("utf-8")
+        input_buffer = ctypes.create_string_buffer(encoded)
+        required = draw_field_json(input_buffer, len(encoded), None, 0)
+        assert required > 0, f"draw-field sizing call failed: {required}"
+        output = ctypes.create_string_buffer(required)
+        written = draw_field_json(input_buffer, len(encoded), output, required)
+        assert written == required
+        return json.loads(output.raw[:written])
+
+    draw_mask = [0] * (112 * 112)
+    draw_row = 55 * 112
+    draw_mask[draw_row + 55:draw_row + 60] = [1] * 5
+    draw_request = {
+        "mask": draw_mask, "origin": [0.0, 0.0], "cell": 1.0,
+        "symbolBounds": [0.0, 0.0, 112.0, 112.0],
+        "ties": [55.5 / 112, 55.5 / 112],
+    }
+    draw_levels = draw_field(draw_request)
+    assert (draw_levels["width"], draw_levels["height"]) == (112, 112)
+    assert draw_levels["levels"][draw_row + 55:draw_row + 60] == [0, 12, 24, 36, 47]
+    assert draw_levels["levels"][draw_row + 54] == 255
+    invalid_draw_mask = ctypes.create_string_buffer(b'{"mask":[]}')
+    assert draw_field_json(invalid_draw_mask, len(invalid_draw_mask.value), None, 0) == -12
+
     def filtered_search(query, category, favorites, limit):
         encoded_query = query.encode("utf-8")
         encoded_category = category.encode("utf-8") if category is not None else b""
@@ -280,7 +308,7 @@ def main():
     assert toggle_favorites(broken_json, 7, ctypes.create_string_buffer(b"gear"), 4,
                             None, 0) == -8
 
-    print("Rust C ABI search, metadata, vectors, Apple animations, filtering, codegen, and favorites smoke test passed (Python ctypes)")
+    print("Rust C ABI search, metadata, vectors, Apple animations, draw fields, filtering, codegen, and favorites smoke test passed (Python ctypes)")
 
 
 if __name__ == "__main__":

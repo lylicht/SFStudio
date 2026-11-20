@@ -6,6 +6,7 @@
 
 pub mod animation;
 pub mod codegen;
+pub mod draw;
 pub mod favorites;
 pub mod rendering;
 pub mod vector;

@@ -38,7 +38,9 @@ Layer rendering-mode colors and automatic gradient calculations are now
 available through the animation C ABI; Rust unit tests and Python `ctypes`
 smoke pass locally. [GitHub Actions run #29](https://github.com/lylicht/SFStudio/actions/runs/44794238481)
 passed the cross-platform C ABI and existing platform matrix. Kotlin
-differential coverage for those color calculations is still pending.
+differential coverage for those color calculations is still pending. The
+draw-field distance calculation is now in Rust and exposed through a second
+C ABI function; its Linux/Windows/macOS checks are pending for this change.
 
 ## Existing work inherited from PR #7
 
@@ -55,10 +57,10 @@ differential coverage for those color calculations is still pending.
 
 1. Evaluate Android/JNI, Kotlin/Native/iOS, and Wasm/JS adapters separately;
    one FFI mechanism is not assumed to fit every target.
-2. Expand Rust animation and Magic Replace parity fixtures, add Kotlin
-   differential coverage for layer appearance, and port draw-rail clipping;
-   keep the existing renderer as the visual reference until Rust rendering is
-   verified.
+2. Expand animation and layer-appearance parity fixtures, then connect the
+   verified draw-field C ABI result to target renderers while preserving each
+   platform's rasterized mask and clip behavior. Keep the existing renderer as
+   the visual reference until Rust rendering is verified.
 3. Preserve existing user data and package identities; test upgrade behavior
    before changing persistence or installers.
 

@@ -24,8 +24,10 @@ entry points without exposing Rust types. The header is
 interpolated at a requested `wght` value, and tight visible bounds at an optical
 scale. `sfstudio_animation_json` evaluates Apple-style effect frames and can
 optionally resolve per-layer monochrome, hierarchical, palette, or multicolor
-appearance plus automatic gradient stops. Bounds match Kotlin over ten symbols,
-all nine weights, and all three optical scales. C, C++,
+appearance plus automatic gradient stops. `sfstudio_draw_field_json` accepts a
+platform-rasterized 112x112 layer mask and returns the 48-step rail-guided
+reveal level for each pixel. Bounds match Kotlin over ten symbols, all nine
+weights, and all three optical scales. C, C++,
 Python, JNI/JNA, Kotlin/Native, Swift, and other runtimes with a C FFI can call
 these entry points.
 This ABI is a language-neutral integration surface, not a claim that each
@@ -79,9 +81,10 @@ calculations, and automatic gradient stops have Rust core implementations and
 JSON C ABI, along with tagged-layer Magic Replace morph paths. Selected Kotlin
 differential fixtures cover effect timing and layer transforms; rendering color
 calculations currently have Rust unit tests and Windows/macOS/Linux C ABI
-smoke coverage, but no Kotlin differential fixture. Kotlin remains the active
-visual renderer; Rust renderer integration, draw-rail clipping, visual
-rendering parity, broader morph fixtures, and mobile/JS/Wasm adapters are still
-outstanding. The published symbol definitions and KMP API remain available.
-Do not extract or redistribute Apple-owned symbol assets beyond the repository's
-existing permitted scope.
+smoke coverage, but no Kotlin differential fixture. Draw-field distance and
+level calculations are ported, while platform path rasterization and clip
+geometry generation remain in Kotlin. Kotlin remains the active visual
+renderer; renderer integration, visual rendering parity, broader morph
+fixtures, and mobile/JS/Wasm adapters are still outstanding. The published
+symbol definitions and KMP API remain available. Do not extract or redistribute
+Apple-owned symbol assets beyond the repository's existing permitted scope.
