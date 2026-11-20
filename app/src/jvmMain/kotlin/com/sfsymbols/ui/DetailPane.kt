@@ -19,10 +19,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -31,8 +34,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.sfsymbols.data.SfSymbolIconResolver
+import com.composables.sfsymbols.SfEffectRepeat
+import com.composables.sfsymbols.SfRenderingMode
+import com.composables.sfsymbols.SfSymbol
 import com.composables.sfsymbols.SfSymbolMetadata
+import com.composables.sfsymbols.SfSymbolEffect
+import com.composables.sfsymbols.SfSymbolIcon
+import com.composables.sfsymbols.SfWeight
+import com.sfsymbols.data.SfSymbolIconResolver
+import com.sfsymbols.data.SymbolMode
 import com.sfsymbols.data.SymbolTags
 import com.sfsymbols.viewmodel.CatalogViewModel
 import dev.nucleusframework.macoscompose.components.ColorGrid
@@ -58,6 +68,27 @@ private val BACKGROUND_PALETTE = listOf(
 private const val TAB_COLOR = 0
 private const val TAB_BG = 1
 private const val TAB_INFO = 2
+
+private data class AppleEffectOption(
+    val label: String,
+    val effect: SfSymbolEffect,
+    val held: Boolean = false,
+    val continuous: Boolean = false,
+)
+
+private val APPLE_EFFECTS = listOf(
+    AppleEffectOption("Appear", SfSymbolEffect.Appear(), held = true),
+    AppleEffectOption("Disappear", SfSymbolEffect.Disappear(), held = true),
+    AppleEffectOption("Bounce", SfSymbolEffect.Bounce()),
+    AppleEffectOption("Pulse", SfSymbolEffect.Pulse()),
+    AppleEffectOption("Variable Color", SfSymbolEffect.VariableColor()),
+    AppleEffectOption("Scale", SfSymbolEffect.Scale(), held = true),
+    AppleEffectOption("Wiggle", SfSymbolEffect.Wiggle()),
+    AppleEffectOption("Rotate", SfSymbolEffect.Rotate()),
+    AppleEffectOption("Breathe", SfSymbolEffect.Breathe(), continuous = true),
+    AppleEffectOption("Draw On", SfSymbolEffect.DrawOn(), held = true),
+    AppleEffectOption("Draw Off", SfSymbolEffect.DrawOff(), held = true),
+)
 
 /**
  * Trailing inspector pane: a 3-tab preview segmented control
@@ -94,37 +125,7 @@ public fun DetailPane(
 
             Spacer(Modifier.height(16.dp))
 
-            // Centered preview image + box
-            val previewSize = 240.dp
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(previewSize),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(previewSize)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(viewModel.backgroundColor ?: cs.surfaceContainerLow)
-                        .border(1.dp, cs.borderSubtle, RoundedCornerShape(10.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Crossfade(targetState = meta, label = "preview-symbol") { previewMeta ->
-                        val vec = remember(previewMeta, viewModel.mode) {
-                            SfSymbolIconResolver.resolve(previewMeta, viewModel.mode)
-                        }
-                        if (vec != null) {
-                            Icon(
-                                imageVector = vec,
-                                contentDescription = previewMeta.appleName,
-                                tint = if (viewModel.tintIcon) viewModel.iconColor else Color.Unspecified,
-                                modifier = Modifier.size(110.dp),
-                            )
-                        }
-                    }
-                }
-            }
+            AppleSymbolPreview(meta, viewModel)
 
             Spacer(Modifier.height(16.dp))
 
@@ -147,6 +148,112 @@ public fun DetailPane(
             viewModel.badgeText?.let { badge ->
                 Spacer(Modifier.height(16.dp))
                 Text(text = badge, color = cs.success)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppleSymbolPreview(meta: SfSymbolMetadata, viewModel: CatalogViewModel) {
+    val cs = MacosTheme.colorScheme
+    var effectIndex by remember { mutableIntStateOf(2) }
+    var menuOpen by remember { mutableStateOf(false) }
+    var animationRequested by remember(meta) { mutableStateOf(false) }
+    var animationActive by remember(meta) { mutableStateOf(false) }
+    var trigger by remember(meta) { mutableIntStateOf(0) }
+    val option = APPLE_EFFECTS[effectIndex]
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(240.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(viewModel.backgroundColor ?: cs.surfaceContainerLow)
+                    .border(1.dp, cs.borderSubtle, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Crossfade(targetState = meta, label = "preview-symbol") { previewMeta ->
+                    val symbol = remember(previewMeta) { SfSymbol.named(previewMeta.appleName) }
+                    if (animationRequested && symbol != null) {
+                        SfSymbolIcon(
+                            symbol = symbol,
+                            size = 110.dp,
+                            weight = SfWeight.Regular,
+                            mode = when {
+                                viewModel.mode == SymbolMode.Monochrome || viewModel.tintIcon -> SfRenderingMode.Monochrome
+                                else -> SfRenderingMode.Multicolor
+                            },
+                            tint = if (viewModel.tintIcon) viewModel.iconColor else Color.Black,
+                            effect = option.effect,
+                            repeat = if (option.continuous) SfEffectRepeat.Continuous else null,
+                            trigger = trigger,
+                            active = animationActive,
+                            contentDescription = previewMeta.appleName,
+                        )
+                    } else {
+                        val vector = remember(previewMeta, viewModel.mode) {
+                            SfSymbolIconResolver.resolve(previewMeta, viewModel.mode)
+                        }
+                        if (vector != null) {
+                            Icon(
+                                imageVector = vector,
+                                contentDescription = previewMeta.appleName,
+                                tint = if (viewModel.tintIcon) viewModel.iconColor else Color.Unspecified,
+                                modifier = Modifier.size(110.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box {
+                PushButton(onClick = { menuOpen = true }) {
+                    Text("Effect: ${option.label} ▾")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    APPLE_EFFECTS.forEachIndexed { index, item ->
+                        DropdownMenuItem(
+                            text = { Text(item.label) },
+                            onClick = {
+                                effectIndex = index
+                                menuOpen = false
+                                animationRequested = false
+                                animationActive = false
+                                trigger = 0
+                            },
+                        )
+                    }
+                }
+            }
+            PushButton(onClick = {
+                animationRequested = true
+                if (option.held || option.continuous) {
+                    if (animationActive) animationActive = false
+                    else {
+                        trigger++
+                        animationActive = true
+                    }
+                } else {
+                    trigger++
+                    animationActive = true
+                }
+            }) {
+                Text(
+                    when {
+                        option.continuous && animationActive -> "Stop"
+                        option.held && animationActive -> "Reset"
+                        else -> "Play"
+                    },
+                )
             }
         }
     }
