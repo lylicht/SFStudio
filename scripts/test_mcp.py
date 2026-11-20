@@ -1,6 +1,7 @@
 """Exercise the assembled MCP server through real stdin/stdout pipes (no third-party packages)."""
 import argparse
 import json
+import os
 from pathlib import Path
 import queue
 import subprocess
@@ -20,6 +21,20 @@ def main():
         launcher = Path(args.launcher).resolve()
         if not launcher.is_file():
             parser.error(f"SFStudio launcher not found: {launcher}")
+        resource = "native/sfstudio-mcp.exe" if launcher.suffix == ".exe" else "native/sfstudio-mcp"
+        app_jars = [
+            jar
+            for directory in (launcher.parent / "app", launcher.parent.parent / "app")
+            if directory.is_dir()
+            for jar in directory.glob("app-jvm*.jar")
+        ]
+        rust_bundled = False
+        for jar in app_jars:
+            if zipfile.is_zipfile(jar):
+                with zipfile.ZipFile(jar) as archive:
+                    rust_bundled |= resource in archive.namelist()
+        if not rust_bundled:
+            parser.error(f"Packaged Rust MCP resource missing near launcher: {resource}")
         command = [str(launcher), "--mcp"]
     else:
         if not lib.is_dir():
@@ -39,10 +54,15 @@ def main():
         command.append(f"-Dcompose.application.resources.dir={rust_binary.parent}")
     if not args.launcher:
         command.extend(["-cp", str(lib / "*"), "com.sfsymbols.MainKt", "--mcp"])
+    env = os.environ.copy()
+    if args.rust_binary or args.launcher:
+        env["SFSTUDIO_REQUIRE_RUST_MCP"] = "1"
+    else:
+        env.pop("SFSTUDIO_REQUIRE_RUST_MCP", None)
     process = subprocess.Popen(
         command,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, encoding="utf-8", bufsize=1,
+        text=True, encoding="utf-8", bufsize=1, env=env,
     )
     replies = queue.Queue()
 
@@ -107,6 +127,7 @@ def main():
         assert receive(11)["result"]["content"]
         process.stdin.close()
         assert process.wait(timeout=20) == 0, process.stderr.read()
+        assert "falling back to Kotlin" not in process.stderr.read(), "Packaged launcher used Kotlin fallback"
         assert replies.empty(), "Unexpected stdout or notification response"
         print("MCP smoke test passed: handshake, tools, pipelining, Unicode, invalid requests, errors, stdout purity, and clean EOF.")
     finally:

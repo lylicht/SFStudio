@@ -11,6 +11,7 @@ import com.sfsymbols.ui.AppLogo
 import com.sfsymbols.ui.SfSymbolsCatalogApp
 import dev.nucleusframework.application.nucleusApplication
 import dev.nucleusframework.macoscompose.window.MacosDecoratedWindow
+import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -27,13 +28,16 @@ fun main(args: Array<String>) {
 private fun runMcpServer() {
     val windowsHost = System.getProperty("os.name").startsWith("Windows", ignoreCase = true)
     val extension = if (windowsHost) ".exe" else ""
-    val rustServer = if (System.getProperty("compose.application.resources.dir") != null) {
-        McpServer::class.java.getResourceAsStream("/native/sfstudio-mcp$extension")
-    } else {
-        null
+    val rustRequired = System.getenv("SFSTUDIO_REQUIRE_RUST_MCP") == "1"
+    val resourcesDir = System.getProperty("compose.application.resources.dir")
+    val rustServer = resourcesDir?.let {
+        File(it, "sfstudio-mcp$extension").takeIf(File::isFile)?.inputStream()
+            ?: McpServer::class.java.getResourceAsStream("/native/sfstudio-mcp$extension")
+            ?: throw IOException("Bundled Rust MCP executable is missing")
     }
 
     if (rustServer == null) {
+        if (rustRequired) throw IOException("Rust MCP is required but no packaged resource directory is configured")
         McpServer().runBlockingUntilExit()
         return
     }
@@ -50,6 +54,7 @@ private fun runMcpServer() {
             Files.deleteIfExists(executable)
         }
     } catch (error: IOException) {
+        if (rustRequired) throw error
         System.err.println("Rust MCP could not start; falling back to Kotlin MCP: ${error.message}")
         McpServer().runBlockingUntilExit()
         return

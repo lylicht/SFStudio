@@ -26,7 +26,8 @@ Last local check: 2026-11-20, Windows x64, branch
   — Rust server through the existing `--mcp` launcher passed.
 - `python scripts/test_mcp.py --launcher app/build/compose/binaries/main/app/SFStudio/SFStudio.exe`
   — packaged Windows Rust MCP entrypoint passed, including Unicode and
-  malformed-request checks.
+  malformed-request checks; this smoke run requires Rust and fails if the
+  launcher falls back to Kotlin.
 - `gradlew.bat :sfsymbols:jsNodeTest :sfsymbols:wasmJsNodeTest --no-daemon -PsfstudioUseSystemWebTools=true`
   — JS and Wasm source compilation passed; both test tasks reported `NO-SOURCE`.
 
