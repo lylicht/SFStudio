@@ -161,6 +161,10 @@ Last local check: 2026-11-20, Windows x64, branch
   passed every job: Rust and FFI on Windows/macOS/Linux; JVM animation parity
   on Windows/macOS/Linux; Android, iOS, JS/Wasm, all packaged launchers, and MCP
   differential replay.
+- [GitHub Actions run #39](https://github.com/lylicht/SFStudio/actions/runs/44819189332)
+  passed every job: Rust and MCP on Windows/macOS/Linux; JVM and Compose API
+  checks on Windows/macOS/Linux; Android, iOS, JS/Wasm, packaged MCP launchers
+  on Linux/macOS/Windows, and Kotlin/Rust MCP differential replay.
 
 ## Not yet verified
 
