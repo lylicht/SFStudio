@@ -1,5 +1,6 @@
 package com.composables.sfsymbols
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 
 internal actual fun sfRustAnimationFrames(
@@ -13,3 +14,12 @@ internal actual fun sfRustAnimationFrames(
     palette: List<Color>,
     gradient: Boolean,
 ): FloatArray? = null
+
+internal actual fun sfRustDrawFieldLevels(
+    mask: ByteArray,
+    originX: Float,
+    originY: Float,
+    cell: Float,
+    symbolBounds: Rect,
+    ties: FloatArray,
+): ByteArray? = null

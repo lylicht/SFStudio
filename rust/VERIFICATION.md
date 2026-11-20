@@ -25,7 +25,12 @@ Last local check: 2026-11-20, Windows x64, branch
 - `gradlew.bat :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfVectorRustParityTest.rustVisibleBoundsMatchKotlinAcrossWeightsAndOpticalScales --no-daemon` —
   passed; Rust and Kotlin bounds match for ten symbols across all nine weights
   and three optical scales.
-- `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25.
+- `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25 after wiring
+  the Rust draw-field C ABI into the JVM renderer. The direct bridge check
+  confirms the native library returns levels, and the Kotlin-generated fixture
+  still matches Rust reveal levels for five real symbol layers.
+- `gradlew.bat :app:jvmTest :sfsymbols:compileKotlinJs :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true`
+  — passed after the shared renderer change.
 - `gradlew.bat :app:jvmTest --no-daemon` — passed with the Rust search library
   loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries,
   both Compose snippet variants, favorite ordering/removal, filtered
@@ -170,11 +175,12 @@ Last local check: 2026-11-20, Windows x64, branch
 
 - Android, Kotlin/Native, Swift, JS, and Wasm bindings for the shared Rust API.
   Their existing KMP targets remain buildable and use the Kotlin evaluator;
-  only JVM effect-frame evaluation calls Rust today.
+  only the JVM renderer calls Rust for effect frames, appearance, gradients,
+  and draw-field reveal levels today.
 - Pixel-by-pixel rendering parity, installer upgrades, user-data migration,
-  and performance baselines. Draw-field API integration with the active
-  renderer is pending. Geometry and draw-field C ABIs have cross-OS CI coverage,
-  but target-specific bindings remain untested.
+  and performance baselines. Kotlin still rasterizes the source paths and
+  constructs Compose clip geometry; geometry and draw-field C ABIs have
+  cross-OS CI coverage, but target-specific bindings remain untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
 The passing CI run verifies the existing Kotlin Multiplatform targets remain

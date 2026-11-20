@@ -1,11 +1,14 @@
 package com.composables.sfsymbols
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import com.sun.jna.Library
 import com.sun.jna.Native
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -18,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private interface NativeAnimation : Library {
     fun sfstudio_animation_json(input: ByteArray, inputLength: Long, output: ByteArray?, outputCapacity: Long): Long
+    fun sfstudio_draw_field_json(input: ByteArray, inputLength: Long, output: ByteArray?, outputCapacity: Long): Long
 }
 
 internal actual fun sfRustAnimationFrames(
@@ -31,6 +35,15 @@ internal actual fun sfRustAnimationFrames(
     palette: List<Color>,
     gradient: Boolean,
 ): FloatArray? = RustAnimation.frames(symbol, effect, time, rtl, variableValue, mode, tint, palette, gradient)
+
+internal actual fun sfRustDrawFieldLevels(
+    mask: ByteArray,
+    originX: Float,
+    originY: Float,
+    cell: Float,
+    symbolBounds: Rect,
+    ties: FloatArray,
+): ByteArray? = RustAnimation.drawFieldLevels(mask, originX, originY, cell, symbolBounds, ties)
 
 private object RustAnimation {
     private val warned = AtomicBoolean()
@@ -132,6 +145,55 @@ private object RustAnimation {
                         }
                     }
                 }
+            }
+        }
+    } catch (error: Exception) {
+        warn(error.message ?: error::class.simpleName.orEmpty())
+        null
+    } catch (error: LinkageError) {
+        warn(error.message ?: error::class.simpleName.orEmpty())
+        null
+    }
+
+    fun drawFieldLevels(
+        mask: ByteArray,
+        originX: Float,
+        originY: Float,
+        cell: Float,
+        symbolBounds: Rect,
+        ties: FloatArray,
+    ): ByteArray? = try {
+        val library = native ?: return null
+        val request = buildJsonObject {
+            put("mask", buildJsonArray { mask.forEach { add(it.toInt() and 0xff) } })
+            put("origin", buildJsonArray { add(originX); add(originY) })
+            put("cell", cell)
+            put("symbolBounds", buildJsonArray {
+                add(symbolBounds.left); add(symbolBounds.top); add(symbolBounds.right); add(symbolBounds.bottom)
+            })
+            put("ties", buildJsonArray { ties.forEach { add(it) } })
+        }.toString().toByteArray(Charsets.UTF_8)
+
+        var buffer = output.get()
+        var size = library.sfstudio_draw_field_json(request, request.size.toLong(), null, 0)
+        if (size < 0) {
+            warn("Rust draw-field evaluator returned $size")
+            return null
+        }
+        if (size > Int.MAX_VALUE) return null
+        if (size > buffer.size) {
+            buffer = ByteArray(size.toInt())
+            output.set(buffer)
+        }
+        val written = library.sfstudio_draw_field_json(request, request.size.toLong(), buffer, buffer.size.toLong())
+        if (written != size) return null
+        val values = Json.parseToJsonElement(buffer.decodeToString(0, written.toInt()))
+            .jsonObject["levels"]?.takeUnless { it == JsonNull }?.jsonArray ?: return null
+        if (values.size != mask.size) return null
+        ByteArray(values.size).also { result ->
+            for (index in values.indices) {
+                val value = values[index].jsonPrimitive.content.toIntOrNull()?.takeIf { it in 0..255 } ?: return null
+                result[index] = value.toByte()
             }
         }
     } catch (error: Exception) {

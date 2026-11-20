@@ -19,11 +19,12 @@ through JNA, with Kotlin fallbacks.
 Kotlin still owns favorite file reads and writes.
 
 The JVM implementation of the public `SfSymbolIcon` now evaluates Apple effect
-frames, layer colors, and automatic gradient stops through the same Rust C ABI
-when the native library is available and colors use sRGB. Compose still
-rasterizes paths and applies the results; wide-gamut colors and unavailable
-native libraries use Kotlin. Android, iOS, JS, and Wasm keep using the Kotlin
-evaluator until their Rust adapters are implemented.
+frames and Draw On/Off reveal levels through the Rust C ABI when the native
+library is available. It also requests Rust-resolved layer colors and automatic
+gradient stops when colors use sRGB. Compose still rasterizes paths and applies
+the results; wide-gamut colors use Kotlin color resolution, and unavailable
+native libraries use the Kotlin evaluator. Android, iOS, JS, and Wasm keep using
+the Kotlin evaluator until their Rust adapters are implemented.
 
 The shared catalog search and filters, filter-selection transitions, symbol
 metadata lookup, Compose code generator, ordered favorite toggle, glyph
@@ -43,19 +44,20 @@ Python, JNI/JNA, Kotlin/Native, Swift, and other runtimes with a C FFI can call
 these entry points.
 This ABI is a language-neutral integration surface, not a claim that each
 language or platform already has a packaged adapter or complete app binding.
-The JVM `SfSymbolIcon` calls the animation endpoint when its native library is
-available; Android, iOS, JS, and Wasm retain the Kotlin evaluator. The desktop
-JVM app calls search, code generation, favorite toggling, category/favorites
-filtering, filter-selection transitions, MCP client configuration, and effect
-evaluation through JNA. The JNA metadata lookup binding passed parity checks on
-Windows, macOS, and Linux in run #20. Rust animation frames match the Kotlin
-evaluator in the JVM parity test; sRGB appearance and gradients pass differential
-checks in all four rendering modes, and Compose render tests pass with Rust
-enabled. JS and Wasm consumers still use Kotlin until target-specific Rust/Wasm
-adapters pass their tests. The vector geometry
-and animation C ABI smoke checks passed on Windows, macOS, and Linux. Run #34
-passed the filter-selection C ABI on those operating systems and retained the
-KMP builds.
+The JVM `SfSymbolIcon` calls the animation and draw-field endpoints when its
+native library is available; Android, iOS, JS, and Wasm retain the Kotlin
+evaluator. The desktop JVM app calls search, code generation, favorite toggling,
+category/favorites filtering, filter-selection transitions, MCP client
+configuration, and effect evaluation through JNA. The JNA metadata lookup
+binding passed parity checks on Windows, macOS, and Linux in run #20. Rust
+animation frames match the Kotlin evaluator in JVM parity tests; sRGB appearance
+and gradients pass differential checks in all four rendering modes, and Compose
+render tests pass with Rust enabled. The draw-field bridge matches the Kotlin
+fixture for five real symbol layers. JS and Wasm consumers still use Kotlin until
+target-specific Rust/Wasm adapters pass their tests. The vector geometry,
+animation, and draw-field C ABI smoke checks passed on Windows, macOS, and Linux.
+Run #34 passed the filter-selection C ABI on those operating systems and
+retained the KMP builds.
 
 ## Compatibility rules
 
@@ -76,7 +78,7 @@ KMP builds.
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `NOT_STARTED`; keep the Kotlin path |
-| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, animation frames, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; MCP config has local Kotlin parity; Apple animation frames pass native/Kotlin parity and the Compose suite; Compose still rasterizes symbol paths |
+| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, animation frames, draw-field levels, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; MCP config has local Kotlin parity; Apple animation frames and draw-field levels pass native/Kotlin parity and the Compose suite; Compose still rasterizes symbol paths and constructs clips |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `NOT_STARTED`; evaluate a narrow C ABI / generated Swift bridge |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
 | Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |
@@ -101,9 +103,10 @@ Compose continues to rasterize paths and clip geometry. Rendering color
 calculations have Rust unit tests, Windows/macOS/Linux C ABI smoke coverage, and
 JVM/Kotlin differential checks; wide-gamut color parity still uses the Kotlin
 fallback.
-Draw-field distance and level calculations are ported; platform path
-rasterization and clip geometry remain in Kotlin. Pixel-by-pixel Rust/Kotlin
-rendering comparison, broader morph fixtures, and mobile/JS/Wasm adapters are
-outstanding. The published symbol definitions and KMP API remain available. Do
-not extract or redistribute Apple-owned symbol assets beyond the repository's
-existing permitted scope.
+Draw-field distance and level calculations are ported and the JVM renderer
+uses the Rust C ABI for cached reveal levels; platform path rasterization and
+Compose clip geometry remain in Kotlin. Pixel-by-pixel Rust/Kotlin rendering
+comparison, broader morph fixtures, and mobile/JS/Wasm adapters are outstanding.
+The published symbol definitions and KMP API remain available. Do not extract
+or redistribute Apple-owned symbol assets beyond the repository's existing
+permitted scope.

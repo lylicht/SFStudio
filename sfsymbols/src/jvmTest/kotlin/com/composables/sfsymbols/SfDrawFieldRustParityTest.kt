@@ -1,12 +1,29 @@
 package com.composables.sfsymbols
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SfDrawFieldRustParityTest {
+    @Test
+    fun rustDrawFieldBridgeReturnsRevealLevels() {
+        val mask = ByteArray(GRID * GRID)
+        mask[0] = 1
+        mask[1] = 1
+
+        val levels = sfRustDrawFieldLevels(mask, 0f, 0f, 1f, Rect(0f, 0f, 112f, 112f), FloatArray(0))
+
+        assertNotNull("Rust draw-field C ABI should be available in JVM tests", levels)
+        val actual = checkNotNull(levels)
+        assertEquals(0, actual[0].toInt() and 0xff)
+        assertEquals(47, actual[1].toInt() and 0xff)
+        assertEquals(255, actual[2].toInt() and 0xff)
+    }
+
     @Test
     fun rustDrawFieldMatchesRealKotlinSymbolLayers() {
         val names = listOf(
