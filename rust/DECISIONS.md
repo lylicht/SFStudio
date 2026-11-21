@@ -186,3 +186,17 @@ simulator compilation plus simulator parity passed in [Actions run
 #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293).
 Physical-device runtime remains unverified; effects and Draw On/Off stay on
 Kotlin.
+
+## 015 — Route iOS Apple effect frames through the Rust C ABI
+
+**Decision:** Keep the published KMP API and Kotlin fallback. Call the existing
+`sfstudio_animation_json` endpoint from the iOS actual through Kotlin/Native
+C interop, sharing request encoding and frame validation with JVM and Android.
+Use Rust for Apple effect transforms and sRGB layer appearance/gradients;
+retain Kotlin for wide-gamut colors and Draw On/Off raster-level reveal fields.
+
+**Gate:** iOS simulator tests compare Rust frames with Kotlin for 17 effect
+configurations and compare layer appearance for three symbols in all four
+rendering modes with gradients enabled and disabled. Device/simulator builds
+and parity passed in [Actions run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656).
+Physical-device runtime and iOS draw-field integration remain unverified.

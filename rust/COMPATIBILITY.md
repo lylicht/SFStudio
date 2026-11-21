@@ -24,10 +24,11 @@ ABI when the native library is available. It also requests Rust-resolved layer
 colors and automatic gradient stops for sRGB colors. Android uses private JNI
 bridges for points, effect frames, layer appearance, and draw-field levels,
 with Kotlin fallback. iOS now has a Kotlin/Native C-interop path for weighted
-outline points, verified against Kotlin on the simulator; its animation,
-appearance, and draw-field behavior still uses Kotlin. JS and Wasm still use
-Kotlin. Compose continues to construct and rasterize paths; wide-gamut colors
-use Kotlin.
+outline points and Apple effect frames with sRGB layer appearance. Point
+parity passed in run #44854205293, and simulator animation/appearance parity
+passed in [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656).
+Draw-field levels still use Kotlin on iOS. JS and Wasm still use Kotlin. Compose
+continues to construct and rasterize paths; wide-gamut colors use Kotlin.
 
 The shared catalog search and filters, filter-selection transitions, symbol
 metadata lookup, Compose code generator, ordered favorite toggle, glyph
@@ -50,7 +51,7 @@ This ABI is a language-neutral integration surface, not a claim that each
 language or platform already has a packaged adapter or complete app binding.
 The JVM `SfSymbolIcon` calls the animation and draw-field endpoints when its
 native library is available; Android calls the point, animation, and draw-field
-endpoints through JNI; iOS currently calls the typed glyph-points endpoint
+endpoints through JNI; iOS calls the typed glyph-points and animation endpoints
 through Kotlin/Native C interop. The desktop JVM app calls search, code generation, favorite toggling,
 category/favorites filtering, filter-selection transitions, MCP client
 configuration, and effect evaluation through JNA. The JNA metadata lookup
@@ -84,7 +85,7 @@ retained the KMP builds.
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `IN_PROGRESS`; weighted outline points, animation frames, layer appearance, and draw-field levels use Rust through JNI with Kotlin fallback; the four-ABI AAR and Android device-test compilation pass CI; point parity passes on an API 36.1 x86_64 emulator; new rendering runtime parity still needs a device run |
 | JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, glyph points, animation frames, draw-field levels, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; Rust glyph points pass exact Kotlin parity across representative symbols, all nine weights, and three optical scales; Apple animation frames and draw-field levels pass native/Kotlin parity and the Compose suite; Compose still constructs paths and rasterizes symbol shapes |
-| iOS device and simulator | Kotlin Multiplatform + Compose | `IN_PROGRESS`; Rust weighted-point C-interop uses target-specific static archives for device and simulator; device/simulator compilation and exact simulator parity across ten symbols, nine weights, and three scales passed in [run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293); physical-device runtime is unverified, and animation/draw-field still use Kotlin |
+| iOS device and simulator | Kotlin Multiplatform + Compose | `IN_PROGRESS`; weighted points and Apple effect frames with sRGB layer appearance use Rust C-interop; point parity across ten symbols, nine weights, and three scales passed in [run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293), and animation/appearance parity passed on the simulator in [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656); physical-device runtime is unverified and draw-field levels remain Kotlin-backed |
 | JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
 | Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |
 
@@ -117,9 +118,9 @@ fallback.
 Draw-field distance and level calculations are ported and the JVM renderer
 uses the Rust C ABI for cached reveal levels; platform path rasterization and
 Compose clip geometry remain in Kotlin. Android runtime parity for the new
-animation, appearance, and draw-field adapters; iOS animation and draw-field
-adapters; physical-device runtime; pixel-by-pixel Rust/Kotlin rendering
-comparison; broader morph fixtures; and JS/Wasm adapters are outstanding.
+animation, appearance, and draw-field adapters; iOS draw-field integration;
+physical-device runtime; pixel-by-pixel Rust/Kotlin rendering comparison;
+broader morph fixtures; and JS/Wasm adapters are outstanding.
 The published symbol definitions and KMP API remain available. Do not extract
 or redistribute Apple-owned symbol assets beyond the repository's existing
 permitted scope.

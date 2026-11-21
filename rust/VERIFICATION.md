@@ -33,6 +33,10 @@ Last local check: 2026-11-21, Windows x64, branch
   still matches Rust reveal levels for five real symbol layers.
 - `gradlew.bat :app:jvmTest :sfsymbols:compileKotlinJs :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true`
   — passed after the shared renderer change.
+- `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon -PsfstudioUseSystemWebTools=true --rerun-tasks`
+  — passed after moving the Rust animation request/frame codec into common KMP
+  code. JS and Wasm main sources also compiled successfully in the preceding
+  invocation.
 - `gradlew.bat :app:jvmTest --no-daemon` — passed with the Rust search library
   loaded and extracted from JVM resources; 37 Rust-versus-Kotlin search queries,
   both Compose snippet variants, favorite ordering/removal, filtered
@@ -229,7 +233,7 @@ Last local check: 2026-11-21, Windows x64, branch
   passed Android main/device-test compilation and four-ABI packaging. Device
   runtime parity remains pending.
 
-## iOS weighted outline points
+## iOS Rust rendering bridges
 
 - The iOS `SfSymbol.points()` path now calls `sfstudio_glyph_points` through
   Kotlin/Native C interop, keeping Kotlin fallback behavior for failures. The
@@ -237,8 +241,15 @@ Last local check: 2026-11-21, Windows x64, branch
   simulator parity passed in [GitHub Actions run
   #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293).
   The parity test compares ten symbols, all nine weights, and all three optical
-  scales. Physical-device runtime is unverified; animation and draw-field calls
-  still use Kotlin.
+  scales.
+- The iOS animation actual now calls `sfstudio_animation_json` through the same
+  Kotlin/Native C interop and shared codec used by JVM and Android. Rust frame
+  parity covers 17 Apple effect configurations; rendering appearance checks
+  cover three symbols, all four rendering modes, and automatic-gradient on/off.
+  C interop, iOS device/simulator compilation, malformed frame rejection, and
+  simulator parity passed in [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656).
+  Unsupported wide-gamut colors and draw-field levels retain Kotlin behavior.
+  Physical-device runtime is unverified.
 
 ## Not yet verified
 
@@ -246,8 +257,8 @@ Last local check: 2026-11-21, Windows x64, branch
   Rust API. Android weighted outline points are JNI-backed and pass on x86_64;
   Android effects, appearance, and draw-field JNI adapters are implemented but
   pass CI compilation and await runtime parity on a device. The iOS point
-  adapter and simulator parity pass, but physical-device runtime, iOS animation,
-  and draw-field adapters remain unverified.
+  and animation adapters pass simulator parity, but physical-device runtime and
+  the iOS draw-field adapter remain unverified.
   JVM consumes Rust points, effect frames, appearance, gradients, and draw-field
   reveal levels. JS and Wasm compilation passed locally; those targets still
   use Kotlin adapters.
@@ -257,9 +268,10 @@ Last local check: 2026-11-21, Windows x64, branch
   cross-OS CI coverage, but target-specific bindings remain untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
-The passing [CI run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293)
+The passing [CI run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656)
 verifies the existing Kotlin Multiplatform targets remain buildable and the iOS
-simulator point parity. Local JVM parity verifies the public desktop renderer uses Rust
+simulator animation/appearance parity; [run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293)
+verifies iOS point parity. Local JVM parity verifies the public desktop renderer uses Rust
 frames when the native library is available, and the Android emulator test
 verifies Rust outline points through the existing KMP renderer. The Android
 rendering adapters pass the hosted compile gate and still need a device run; the
