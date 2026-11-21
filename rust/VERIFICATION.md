@@ -458,6 +458,11 @@ adapter checks are recorded below.
   -PsfstudioUseSystemWebTools=true` — passed. The task emitted nonfatal Wasm
   loader warnings; browser runtime and published-package loading remain
   unverified.
-- Android four-ABI/device-test compilation and iOS simulator parity for this
-  response change await the CI run for this commit. Android effect/draw runtime,
-  iOS physical-device rendering, and full pixel-image comparison remain open.
+- GitHub Actions [run #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359)
+  passed all 13 jobs: Rust on Windows/macOS/Linux, JVM on all three desktop
+  systems, Android four-ABI/test-source compilation, iOS device/simulator
+  compilation and simulator parity, JS Node tests, Wasm compilation, packaged
+  MCP launchers, and Kotlin/Rust MCP differential replay.
+- Android effect/draw runtime parity still needs a device; iOS physical-device
+  rendering, browser Wasm runtime, published-package loading, and full
+  pixel-image comparison remain open.

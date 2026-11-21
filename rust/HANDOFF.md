@@ -39,7 +39,7 @@ matches all 8,526 glyphs and available optical variants, including full layer
 trees. The desktop ViewModel also resolves System/Light/Dark and clamps
 grid scale through Rust, retaining Kotlin fallbacks; Kotlin continues to own
 Java Preferences persistence and Compose state. The latest completed
-cross-platform run [#44883198772](https://github.com/lylicht/SFStudio/actions/runs/44883198772)
+cross-platform run [#44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359)
 passed Rust/C ABI checks, JVM tests on Windows/macOS/Linux, Android compilation
 and four-ABI packaging, iOS device/simulator compilation and simulator tests,
 packaged MCP launchers on all three desktop OSes, JS Node parity, Wasm
@@ -77,6 +77,12 @@ Wasm library behind the existing APIs with Kotlin fallback; browser runtime and
 published-package loading remain unverified. Compose still rasterizes the mask
 and materializes platform `Path` clips from Rust-generated horizontal reveal
 spans. The Kotlin reveal-level and path-building fallback remains in place.
+The Rust draw-field response now adds horizontal spans without removing its
+existing `levels` array. Local Rust and JVM/JS/Wasm checks pass; [run
+#44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359)
+passed the full desktop, Android packaging, iOS simulator, JS/Wasm, and MCP
+matrix with this change. Android rendering still needs a device, iOS physical-
+device rendering remains unverified, and browser Wasm runtime is still open.
 
 The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
 `arm64-v8a`, `x86`, and `x86_64`. The local AAR contains all four libraries
