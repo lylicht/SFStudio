@@ -13,12 +13,12 @@ The desktop application is Kotlin/Compose on JVM. The installed app remains
 the default MCP endpoint and continues to use the existing favorite file at
 `~/.sf-symbols-catalog/pins.json`. Packaged `--mcp` invocations delegate to
 the bundled Rust MCP process; development classpath launches fall back to
-Kotlin. Packaged desktop search, snippet generation, favorite toggling and file
-storage, filter-selection transitions, MCP client configuration, theme
-resolution, and grid-scale clamping call the Rust C ABI through JNA, with
-Kotlin fallbacks. Kotlin resolves the existing favorites path and keeps the
-fallback; Rust reads and writes the same ordered JSON format when available.
-Kotlin still owns Java Preferences persistence.
+Kotlin. Packaged desktop search, category-count aggregation, snippet generation,
+favorite toggling and file storage, filter-selection transitions, MCP client
+configuration, theme resolution, and grid-scale clamping call the Rust C ABI
+through JNA, with Kotlin fallbacks. Kotlin resolves the existing favorites
+path and keeps the fallback; Rust reads and writes the same ordered JSON format
+when available. Kotlin still owns Java Preferences persistence.
 
 The JVM implementation of the public `SfSymbolIcon` obtains weighted outline
 points, Apple effect frames, and Draw On/Off reveal levels through the Rust C
@@ -104,7 +104,7 @@ retained the KMP builds.
 | Target | Existing implementation | Rust bridge status |
 | --- | --- | --- |
 | Android | Kotlin Multiplatform + Compose | `IN_PROGRESS`; weighted outline points, animation frames, layer appearance, and draw-field levels/spans use Rust through JNI with Kotlin fallback; the four-ABI AAR and device-test sources compile in [run #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359); point parity passes on an API 36.1 x86_64 emulator; new rendering runtime parity still needs a device run |
-| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, glyph points, animation frames, draw-field levels/spans, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; Rust glyph points pass exact Kotlin parity across representative symbols, all nine weights, and three optical scales; Apple animation frames and draw-field levels/spans pass native/Kotlin parity and the Compose suite; Compose rasterizes symbol masks and materializes `Path` clips |
+| JVM / desktop | Kotlin Multiplatform + Compose; packaged search, category counts, filtering, snippets, favorites, MCP config, glyph points, animation frames, draw-field levels/spans, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; category-count ordering and values match Kotlin locally on Windows; Rust glyph points pass exact Kotlin parity across representative symbols, all nine weights, and three optical scales; Apple animation frames and draw-field levels/spans pass native/Kotlin parity and the Compose suite; Compose rasterizes symbol masks and materializes `Path` clips |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `IN_PROGRESS`; weighted points, Apple effect frames with sRGB layer appearance, and draw-field levels/spans use Rust C-interop; point parity across ten symbols, nine weights, and three scales passed in [run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293), animation/appearance parity passed in [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656), and the new response parser and draw-span parity passed simulator tests in [run #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359); physical-device runtime is unverified |
 | JS | Kotlin/JS + Compose | `IN_PROGRESS`; packages the Rust Wasm C ABI as a Compose web resource and uses it for points, Apple animation frames, and draw-field levels/spans; JS Node parity passes in [run #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359); browser runtime and published-package loading remain unverified |
 | Wasm JS | Kotlin/Wasm + Compose | `IN_PROGRESS`; shares the Rust Wasm web adapter and compiles with its integration test in [run #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359); Node execution is blocked before parity by Compose Skiko's `skiko.wasm` fetch, and browser runtime remains unverified |

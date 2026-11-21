@@ -90,7 +90,16 @@ public class CatalogViewModel(
     private val allSymbols by lazy { SfSymbolsCatalog.all }
 
     public val categories: List<Pair<String, Int>> by lazy {
-        allSymbols
+        val rustCategories = try {
+            RustCatalogSearch.categoryCounts()
+        } catch (error: Exception) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        } catch (error: LinkageError) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        }
+        rustCategories ?: allSymbols
             .flatMap { it.categories }
             .groupingBy { it }
             .eachCount()

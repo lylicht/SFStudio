@@ -112,6 +112,23 @@ impl Catalog {
         &self.symbols
     }
 
+    /// Count category memberships in first-seen order, then sort by descending
+    /// count. Stable sorting preserves Kotlin's insertion order for ties.
+    pub fn category_counts(&self) -> Vec<(&str, usize)> {
+        let mut indices: HashMap<&str, usize> = HashMap::new();
+        let mut counts: Vec<(&str, usize)> = Vec::new();
+        for category in self.symbols.iter().flat_map(|symbol| &symbol.categories) {
+            if let Some(index) = indices.get(category.as_str()) {
+                counts[*index].1 += 1;
+            } else {
+                indices.insert(category.as_str(), counts.len());
+                counts.push((category.as_str(), 1));
+            }
+        }
+        counts.sort_by_key(|entry| std::cmp::Reverse(entry.1));
+        counts
+    }
+
     pub fn find(&self, code: &str) -> Option<&Symbol> {
         self.symbols.iter().find(|s| {
             s.apple_name.eq_ignore_ascii_case(code) || s.pascal_name.eq_ignore_ascii_case(code)
@@ -492,6 +509,23 @@ mod tests {
         assert_eq!(index.find("SFHeartFill").unwrap().apple_name, "heart.fill");
         assert_eq!(index.find("HEART.FILL").unwrap().pascal_name, "SFHeartFill");
         assert!(index.find("not-a-symbol").is_none());
+    }
+
+    #[test]
+    fn category_counts_keep_first_seen_order_for_ties() {
+        let source = r#"
+private val raw: String = """
+one|One|B,A|0
+two|Two|A,C|0
+three|Three|C,B|0
+four|Four|D|0
+"""
+"#;
+        let index = Catalog::from_sources(source, "").unwrap();
+        assert_eq!(
+            index.category_counts(),
+            vec![("B", 2), ("A", 2), ("C", 2), ("D", 1)]
+        );
     }
 
     #[test]

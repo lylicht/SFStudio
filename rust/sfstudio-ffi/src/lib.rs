@@ -192,6 +192,29 @@ pub unsafe extern "C" fn sfstudio_symbol_json(
     }
 }
 
+/// Return catalog category names and counts as JSON pairs ordered by descending
+/// count, preserving first-seen order for ties.
+///
+/// # Safety
+/// If `output_capacity` is nonzero, `output` must point to that many writable
+/// bytes.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_category_counts_json(
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+    match catch_unwind(AssertUnwindSafe(|| {
+        serde_json::to_vec(&sfstudio_core::catalog().category_counts()).map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
 fn layer_json(
     node: &sfstudio_core::vector::LayerNode,
     tags: &[String],
@@ -1880,6 +1903,22 @@ mod tests {
         }
     }
 
+    fn category_counts() -> Result<serde_json::Value, isize> {
+        // SAFETY: The function has no input buffers; output is sized before writing.
+        unsafe {
+            let required = sfstudio_category_counts_json(std::ptr::null_mut(), 0);
+            if required < 0 {
+                return Err(required);
+            }
+            let mut output = vec![0; required as usize];
+            let written = sfstudio_category_counts_json(output.as_mut_ptr(), output.len());
+            if written != required {
+                return Err(written);
+            }
+            serde_json::from_slice(&output).map_err(|_| INTERNAL_ERROR)
+        }
+    }
+
     #[test]
     fn returns_ranked_names_and_supports_sizing_calls() {
         assert_eq!(search(b"hosue", 1).unwrap(), r#"["house"]"#);
@@ -1888,6 +1927,25 @@ mod tests {
             r#"["0.circle.fill","0.circle","0.square.fill"]"#
         );
         assert_eq!(search("🐈".as_bytes(), 5).unwrap(), "[]");
+    }
+
+    #[test]
+    fn category_counts_use_the_common_buffer_contract() {
+        let values = category_counts().unwrap();
+        let entries = values.as_array().unwrap();
+        assert!(!entries.is_empty());
+        assert!(entries.iter().all(|entry| {
+            entry.as_array().is_some_and(|pair| {
+                pair.len() == 2 && pair[0].is_string() && pair[1].as_u64().is_some()
+            })
+        }));
+        assert!(entries
+            .windows(2)
+            .all(|pair| { pair[0][1].as_u64().unwrap() >= pair[1][1].as_u64().unwrap() }));
+        assert_eq!(
+            unsafe { sfstudio_category_counts_json(std::ptr::null_mut(), 1) },
+            INVALID_OUTPUT
+        );
     }
 
     #[test]

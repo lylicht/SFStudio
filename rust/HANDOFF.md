@@ -10,13 +10,15 @@ The Windows titlebar header now reserves the three caption-button widths plus a
 controls fit at the 1000 dp minimum. `:app:compileKotlinJvm` passes with the
 larger margin. The live default-size capture was taken before this last spacing
 increase; small-window, high-DPI, and refreshed visual checks remain unverified.
+The caption-spacing change passed the full cross-platform workflow in [run
+#44886962212](https://github.com/lylicht/SFStudio/actions/runs/44886962212).
 The existing KMP `SfSymbol.layers` API now uses Rust-flattened animation layer
 records from the glyph JSON bridge when available and keeps the Kotlin tree
 flattening fallback. Full field parity passes for all 8,526 catalog symbols.
 The observed catalog layout and unverified UI gates are recorded in
 [UI_BASELINE.md](UI_BASELINE.md); its screenshot was not saved to the repo.
 
-On Windows x64, Rust fmt, all 49 workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 51 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
 8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
@@ -26,9 +28,10 @@ All 99 Kotlin/Rust MCP differential responses match, including malformed JSON,
 invalid IDs and batches, and notifications. See
 [VERIFICATION.md](VERIFICATION.md).
 
-The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
-filter-selection transitions, Compose snippet generation, favorite toggling,
-MCP client config generation, complete glyph/layer decoding, outline
+The Rust C ABI is loaded by packaged JVM search, category count aggregation,
+category/favorites filtering, filter-selection transitions, Compose snippet
+generation, favorite toggling, MCP client config generation, complete
+glyph/layer decoding, outline
 interpolation, and Apple effect rendering through JNA. Android JNI and iOS
 Kotlin/Native actuals now request the same glyph JSON with Kotlin fallback; JS
 and Wasm are wired too. Browser Wasm loads asynchronously, so a glyph first
@@ -37,8 +40,10 @@ matches all 8,526 glyphs and available optical variants, including full layer
 trees. The desktop ViewModel also resolves System/Light/Dark and clamps
 grid scale through Rust, retaining Kotlin fallbacks; Kotlin continues to own
 Java Preferences persistence and Compose state. The latest completed
-cross-platform run [#44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359)
-passed Rust/C ABI checks, JVM tests on Windows/macOS/Linux, Android compilation
+cross-platform run [#44886962212](https://github.com/lylicht/SFStudio/actions/runs/44886962212)
+passed all 13 jobs for the caption-spacing change; category-count changes are
+local-only and await CI. Run #44885280359 passed Rust/C ABI checks, JVM tests on
+Windows/macOS/Linux, Android compilation
 and four-ABI packaging, iOS device/simulator compilation and simulator tests,
 packaged MCP launchers on all three desktop OSes, JS Node parity, Wasm
 compilation, and differential MCP replay. Wasm runtime and browser validation

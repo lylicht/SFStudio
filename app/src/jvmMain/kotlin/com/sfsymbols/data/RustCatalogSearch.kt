@@ -39,6 +39,8 @@ internal interface NativeSearch : Library {
         outputCapacity: Long,
     ): Long
 
+    fun sfstudio_category_counts_json(output: ByteArray?, outputCapacity: Long): Long
+
     fun sfstudio_search_filtered_json(
         query: ByteArray?,
         queryLength: Long,
@@ -186,6 +188,34 @@ internal object RustCatalogSearch {
             categories = metadata.getValue("categories").jsonArray.map { it.jsonPrimitive.content },
             isRestricted = metadata.getValue("isRestricted").jsonPrimitive.content.toBooleanStrict(),
         )
+    }
+
+    fun categoryCounts(): List<Pair<String, Int>>? {
+        val library = native ?: return null
+        val required = library.sfstudio_category_counts_json(null, 0)
+        check(required >= 0) { "Rust category counts failed with code $required" }
+        check(required <= Int.MAX_VALUE) { "Rust category counts are too large for the JVM" }
+
+        val output = ByteArray(required.toInt())
+        val written = library.sfstudio_category_counts_json(output, output.size.toLong())
+        check(written == required) { "Rust category counts wrote $written bytes; expected $required" }
+        val values = Json.parseToJsonElement(output.decodeToString()).jsonArray.map { item ->
+            val pair = item.jsonArray
+            check(pair.size == 2) { "Rust category count returned an invalid pair" }
+            val name = pair[0].jsonPrimitive.content
+            val count = pair[1].jsonPrimitive.content.toIntOrNull()
+                ?: error("Rust category count was not an integer")
+            check(name.isNotBlank() && count > 0) { "Rust category count returned invalid values" }
+            name to count
+        }
+        check(values.isNotEmpty()) { "Rust category counts returned no categories" }
+        check(values.map { it.first }.distinct().size == values.size) {
+            "Rust category counts returned duplicate names"
+        }
+        check(values.zipWithNext().all { (left, right) -> left.second >= right.second }) {
+            "Rust category counts are not sorted by descending count"
+        }
+        return values
     }
 
     fun search(query: String, limit: Int): List<SfSymbolMetadata>? {

@@ -282,3 +282,20 @@ fallback behavior. The additive JSON field preserves existing `levels` readers.
 JVM bridge tests validate the JSON runs and the Compose rendering suite passes.
 Android, iOS, JS, and Wasm use the same response parser through their existing
 bridges; each target's CI compilation/runtime gate remains separate.
+
+## 020 — Aggregate desktop category counts in Rust
+
+**Decision:** Add category membership counting and stable descending ordering
+to `sfstudio-core::Catalog`, expose it as JSON through the existing C ABI, and
+have the desktop ViewModel use that response when available. Keep the original
+Kotlin aggregation as a fallback and compatibility reference.
+
+**Reason:** The Rust catalog already owns the same authoritative symbol/category
+records. Moving this deterministic aggregation removes another duplicate
+calculation without changing the ViewModel's `List<Pair<String, Int>>` shape.
+Stable sorting preserves Kotlin's first-seen order when counts tie.
+
+**Gate:** A Rust fixture checks tie order, the C ABI checks JSON and sizing
+behavior, and JVM parity compares the full ordered result with Kotlin's
+`flatMap`/`groupingBy`/stable sort. Windows local Rust, Clippy, and JVM checks
+pass; cross-OS CI is pending.

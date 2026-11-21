@@ -6,8 +6,8 @@ Last local check: 2026-11-21, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 48 Rust tests
-  passed (30 core, 15 C ABI, and 3 MCP), including Rust fingerprints for every
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 51 Rust tests
+  passed (32 core, 16 C ABI, and 3 MCP), including Rust fingerprints for every
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo check --manifest-path rust/Cargo.toml -p sfstudio-ffi --target aarch64-linux-android` — passed; Android JNI exports type-check for the Android target.
@@ -469,3 +469,22 @@ adapter checks are recorded below.
 - Android effect/draw runtime parity still needs a device; iOS physical-device
   rendering, browser Wasm runtime, published-package loading, and full
   pixel-image comparison remain open.
+
+## Rust desktop category aggregation (2026-11-21)
+
+- `Catalog::category_counts` counts catalog category memberships in Rust and
+  applies a stable descending sort, retaining Kotlin's first-seen ordering for
+  ties. The Kotlin ViewModel uses the new JSON C ABI endpoint when available and
+  preserves the existing aggregation as fallback.
+- A synthetic Rust catalog fixture verifies equal-count ordering. The FFI test
+  checks JSON pairs, descending counts, the two-call buffer contract, and null
+  output rejection.
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — passed all 51 Rust
+  tests (32 core, 16 FFI, 3 MCP). `cargo fmt --all -- --check` and
+  `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `gradlew.bat :app:jvmTest --no-daemon --console=plain
+  -PsfstudioUseSystemWebTools=true` — passed. The new ViewModel test compares
+  the complete Rust/JNA category list against Kotlin's existing stable ordering.
+- Cross-OS CI for this category-count change is pending; the preceding
+  caption-spacing change passed all 13 jobs in [run
+  #44886962212](https://github.com/lylicht/SFStudio/actions/runs/44886962212).

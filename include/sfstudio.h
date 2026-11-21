@@ -50,6 +50,12 @@ intptr_t sfstudio_symbol_json(const uint8_t *symbol_name,
                               size_t symbol_name_len, uint8_t *output,
                               size_t output_capacity);
 
+/* Return catalog category/count pairs as UTF-8 JSON, sorted by descending
+ * count with first-seen order preserved for ties. Uses the common buffer
+ * sizing contract described above. */
+intptr_t sfstudio_category_counts_json(uint8_t *output,
+                                       size_t output_capacity);
+
 /*
  * Decode a symbol's geometry, animation hints, hierarchical layer tree, and
  * Rust-flattened animation layers as UTF-8 JSON. Flat layers include contours,

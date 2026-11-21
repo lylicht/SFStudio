@@ -11,6 +11,19 @@ import kotlin.test.*
 class CatalogViewModelTest {
     private val heart = SfSymbolsCatalog.all.first { it.appleName == "heart.fill" }
 
+    @Test fun `Rust category counts match the Kotlin reference order`() {
+        assertTrue(RustCatalogSearch.available(), "jvmTest must load the Rust native library")
+        val expected = SfSymbolsCatalog.all
+            .flatMap { it.categories }
+            .groupingBy { it }
+            .eachCount()
+            .entries
+            .sortedByDescending { it.value }
+            .map { it.key to it.value }
+
+        assertEquals(expected, CatalogViewModel { }.categories)
+    }
+
     @Test fun `category changes invalidate the observed grid results`() {
         assertTrue(RustCatalogSearch.available(), "jvmTest must load the Rust native library")
         val vm = CatalogViewModel { }
