@@ -134,7 +134,7 @@ private fun loadRustWasm(url: String, onReady: () -> Unit): Unit = js(
 )
 
 private fun rustGlyphFloatArrayJson(
-    exportName: String,
+    functionName: String,
     symbolName: String,
     scaleId: Int,
     requestedWeight: Float,
@@ -164,7 +164,7 @@ private fun rustGlyphFloatArrayJson(
             if (output) ffi.sfstudio_free(output, outputBytes);
             ffi.sfstudio_free(input, inputBytes.length);
         }
-    })(globalThis.__sfstudioRustWasm, exportName, symbolName, scaleId, requestedWeight)
+    })(globalThis.__sfstudioRustWasm, functionName, symbolName, scaleId, requestedWeight)
     """,
 )
 

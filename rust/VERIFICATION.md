@@ -423,3 +423,16 @@ adapter checks are recorded below.
   and the unchanged KMP `SfSymbol.layers` property consumes them when present.
   Kotlin tree flattening remains the compatibility fallback when the bridge
   is absent or returns an older payload.
+
+## Web Rust bridge follow-up (2026-11-21)
+
+- Renamed the Kotlin/JS points-bridge parameter that collided with an embedded
+  JavaScript lambda parameter; the compiler renamed the Kotlin local while raw
+  JS still referenced the old name, returning `null` for Rust points.
+- `:sfsymbols:jsNodeTest` passes. Bounds parity allows `0.001` for JavaScript
+  double versus Rust `f32` rounding; the public `symbol.bounds` result is still
+  checked against the exact Rust values.
+- `:sfsymbols:compileKotlinWasmJs` passes. Wasm Node execution fails before the
+  parity test because Compose Skiko cannot fetch `skiko.wasm`; the Karma browser
+  test receives 404s for packaged Compose resources. CI now runs JS Node parity
+  plus Wasm compilation; Wasm runtime remains unverified.

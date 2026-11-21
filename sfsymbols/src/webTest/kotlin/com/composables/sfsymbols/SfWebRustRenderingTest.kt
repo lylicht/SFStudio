@@ -7,6 +7,8 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+import kotlin.math.abs
 
 class SfWebRustRenderingTest {
     @Test
@@ -27,10 +29,19 @@ class SfWebRustRenderingTest {
         val expectedBounds = symbol.boundsFromKotlinData(SfWeight.Regular, SfScale.Medium)
         val rustBounds = assertNotNull(sfRustGlyphBounds(symbol, 400f, SfScale.Medium))
         assertEquals(
-            listOf(expectedBounds.left, expectedBounds.top, expectedBounds.right, expectedBounds.bottom),
-            rustBounds.toList(),
+            4,
+            rustBounds.size,
         )
-        assertEquals(expectedBounds, symbol.bounds(SfWeight.Regular, SfScale.Medium))
+        assertTrue(
+            listOf(expectedBounds.left, expectedBounds.top, expectedBounds.right, expectedBounds.bottom)
+                .zip(rustBounds.toList())
+                .all { (expected, actual) -> abs(expected - actual) <= 0.001f },
+            "Rust bounds must match Kotlin within f32 rounding tolerance",
+        )
+        assertEquals(
+            Rect(rustBounds[0], rustBounds[1], rustBounds[2], rustBounds[3]),
+            symbol.bounds(SfWeight.Regular, SfScale.Medium),
+        )
 
         val frames = assertNotNull(sfRustAnimationFrames(symbol, SfSymbolEffect.Pulse(), 0.4f, false, null))
         assertEquals(symbol.layers.size * RUST_FRAME_STRIDE, frames.size)

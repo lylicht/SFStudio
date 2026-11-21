@@ -45,6 +45,10 @@ and four-ABI packaging, iOS device/simulator compilation and simulator tests,
 packaged MCP launchers on all three desktop OSes, and differential MCP replay.
 Its `jsNodeTest` passed; `wasmJsNodeTest` failed while Skiko tried to fetch its
 `skiko.wasm` runtime. Browser runtime validation remains pending.
+The web bridge’s JS parameter collision is fixed and the JS Node parity test now
+passes. Kotlin/Wasm compilation remains gated in CI; runtime execution is still
+open because Skiko fails before Wasm Node tests and the Karma browser runner
+returns 404 for the packaged Compose resource.
 The Android instrumentation source for effect, appearance, and draw-field
 parity compiled; runtime execution remains a device gate. Local Rust,
 Python `ctypes`, JVM, desktop app, and JS Node checks pass. Rust Wasm-backed JS

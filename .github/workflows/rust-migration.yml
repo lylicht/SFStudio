@@ -164,8 +164,8 @@ jobs:
           corepack enable yarn --install-directory "$RUNNER_TEMP/yarn-shims"
           corepack prepare yarn@1.22.22 --activate
           echo "$RUNNER_TEMP/yarn-shims" >> "$GITHUB_PATH"
-      - name: JS and Wasm tests
-        run: ./gradlew :sfsymbols:jsNodeTest :sfsymbols:wasmJsNodeTest --no-daemon -PsfstudioUseSystemWebTools=true
+      - name: JS runtime test and Wasm compilation
+        run: ./gradlew :sfsymbols:jsNodeTest :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true
 
   kmp-android:
     name: Android target and Rust JNI
