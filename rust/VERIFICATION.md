@@ -398,9 +398,11 @@ adapter checks are recorded below.
   asynchronously, so glyph data cached from Kotlin on first use does not switch
   to Rust in that session. Kotlin fallback remains active in all these cases.
 - Windows titlebar search clearance increased from 12 dp to 64 dp beyond the
-  three native caption-button widths. `:app:compileKotlinJvm` passes after the
-  change; the JVM test suite was not rerun. The screenshot baseline predates
-  this change, so the refreshed visual check is pending.
+  three native caption-button widths; `:app:compileKotlinJvm` passed after that
+  change. The live window still showed a narrow gap, so the margin was adjusted
+  to 80 dp. `:app:compileKotlinJvm` passed and the refreshed default-size
+  Windows screenshot shows about 78 px of clearance. The minimum-size layout
+  and JVM test suite were not rerun.
 
 ## Rust-flattened animation layers (2026-11-21)
 

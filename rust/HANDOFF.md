@@ -5,12 +5,13 @@
 The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
-The Windows titlebar header now reserves the three caption-button widths plus a
-64 dp margin; the lower gallery toolbar uses the content-pane inset so its
+The Windows titlebar header now reserves the three caption-button widths plus an
+80 dp margin; the lower gallery toolbar uses the content-pane inset so its
 controls fit at the 1000 dp minimum. The local JVM app suite passed the toolbar
 layout change; `:app:compileKotlinJvm` passes after the latest titlebar spacing
-change. The in-session screenshot predates that change; a refreshed visual
-capture remains pending.
+change. A refreshed default-size Windows capture shows a clear gap between the
+search field and native caption controls; small-window and high-DPI variants
+remain unverified.
 The existing KMP `SfSymbol.layers` API now uses Rust-flattened animation layer
 records from the glyph JSON bridge when available and keeps the Kotlin tree
 flattening fallback. Full field parity passes for all 8,526 catalog symbols.
