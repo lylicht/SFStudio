@@ -364,11 +364,16 @@ adapter checks are recorded below.
 - `gradlew.bat :app:jvmTest :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfVectorRustParityTest :sfsymbols:jsNodeTest :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true`
   — passed. This includes JVM app tests, JS Node Rust glyph JSON smoke coverage
   for medium and small optical scales, and Kotlin/Wasm compilation.
-- Windows, Android, and iOS now have Rust glyph JSON adapters behind the
-  existing KMP API; Android package and iOS C-interop compilation for this new
-  endpoint await the branch CI run. Browser Wasm starts loading asynchronously,
-  so glyph data cached from Kotlin on first use does not switch to Rust in that
-  session. Kotlin fallback remains active in all these cases.
+- GitHub Actions [run #44873269421](https://github.com/lylicht/SFStudio/actions/runs/44873269421)
+  passed Rust checks, JVM/API tests on Windows/macOS/Linux, Android compilation
+  and four-ABI packaging, iOS device/simulator compilation and simulator tests,
+  packaged MCP launchers, and differential replay. Its JS Node suite passed;
+  `wasmJsNodeTest` failed when Skiko could not fetch its `skiko.wasm` runtime.
+- Windows JVM, Android JNI, iOS C interop, and JS/Wasm Node now have Rust glyph
+  JSON adapters behind the existing KMP API. Android glyph runtime and iOS
+  physical-device runtime remain unverified. Browser Wasm starts loading
+  asynchronously, so glyph data cached from Kotlin on first use does not switch
+  to Rust in that session. Kotlin fallback remains active in all these cases.
 - Windows titlebar search clearance increased from 12 dp to 32 dp beyond the
   three native caption-button widths. `:app:jvmTest` passes. The screenshot
   baseline predates this change, so the refreshed visual check is pending.

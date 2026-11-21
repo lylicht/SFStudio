@@ -255,6 +255,8 @@ on its first request remains on that fallback for the current app session.
 **Gate:** JVM parity compares full glyph/layer fingerprints for all 8,526
 catalog symbols and available optical variants. A JS Node smoke case checks
 Rust medium and small-scale JSON; Rust workspace tests, Clippy, Android target
-compilation, and JVM/JS Gradle checks pass locally. The new Android packaging
-and iOS C-interop actuals still await branch CI; browser runtime behavior is
-not verified.
+compilation, and JVM/JS Gradle checks pass locally. Android four-ABI packaging
+and iOS device/simulator compilation plus simulator tests passed in [run
+#44873269421](https://github.com/lylicht/SFStudio/actions/runs/44873269421).
+Direct full-glyph parity is exhaustive on JVM and smoke-tested on JS Node; the
+browser cache and mobile physical-device behavior remain unverified.

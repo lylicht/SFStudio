@@ -22,8 +22,9 @@ and a 1000×680 dp minimum size.
 The visible screenshot showed the caption buttons separated from the app search
 field. The screenshot was displayed and inspected in-session but was not saved
 as a repository artifact. The lower-toolbar and expanded caption-control inset
-changes pass the local JVM app suite; a refreshed screenshot and current
-cross-platform CI are pending.
+changes pass the local JVM app suite and the Windows/macOS/Linux JVM CI jobs in
+[run #44873269421](https://github.com/lylicht/SFStudio/actions/runs/44873269421).
+A refreshed screenshot remains pending.
 
 ## Appearance and remaining gate
 

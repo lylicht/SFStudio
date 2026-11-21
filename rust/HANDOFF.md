@@ -34,11 +34,12 @@ matches all 8,526 glyphs and available optical variants, including full layer
 trees. The desktop ViewModel also resolves System/Light/Dark and clamps
 grid scale through Rust, retaining Kotlin fallbacks; Kotlin continues to own
 Java Preferences persistence and Compose state. The latest completed
-cross-platform run [#44869413797](https://github.com/lylicht/SFStudio/actions/runs/44869413797)
-passed Rust/C ABI checks and JVM tests on Windows/macOS/Linux, Android
-compilation and four-ABI packaging, iOS simulator parity, packaged MCP launchers
-on all three desktop OSes, and differential MCP replay. Its JS/Wasm job failed
-at `wasmJsNodeTest`; browser runtime validation remains pending.
+cross-platform run [#44873269421](https://github.com/lylicht/SFStudio/actions/runs/44873269421)
+passed Rust/C ABI checks, JVM tests on Windows/macOS/Linux, Android compilation
+and four-ABI packaging, iOS device/simulator compilation and simulator tests,
+packaged MCP launchers on all three desktop OSes, and differential MCP replay.
+Its `jsNodeTest` passed; `wasmJsNodeTest` failed while Skiko tried to fetch its
+`skiko.wasm` runtime. Browser runtime validation remains pending.
 The Android instrumentation source for effect, appearance, and draw-field
 parity compiled; runtime execution remains a device gate. Local Rust,
 Python `ctypes`, JVM, desktop app, and JS Node checks pass. Rust Wasm-backed JS
