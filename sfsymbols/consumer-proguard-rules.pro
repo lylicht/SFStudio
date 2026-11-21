@@ -1,1 +1,1 @@
--keep class com.composables.sfsymbols.RustGlyphPoints { *; }
+-keep class com.composables.sfsymbols.RustFfi { *; }

@@ -351,7 +351,7 @@ pub unsafe extern "C" fn sfstudio_glyph_points(
 
 #[cfg(target_os = "android")]
 #[no_mangle]
-pub extern "system" fn Java_com_composables_sfsymbols_RustGlyphPoints_glyphPoints<'local>(
+pub extern "system" fn Java_com_composables_sfsymbols_RustFfi_glyphPoints<'local>(
     mut env: jni::JNIEnv<'local>,
     _receiver: jni::objects::JObject<'local>,
     name: jni::objects::JString<'local>,
@@ -386,6 +386,74 @@ pub extern "system" fn Java_com_composables_sfsymbols_RustGlyphPoints_glyphPoint
     }));
 
     result.ok().flatten().unwrap_or(ptr::null_mut())
+}
+
+#[cfg(target_os = "android")]
+type JsonAbi = unsafe extern "C" fn(*const u8, usize, *mut u8, usize) -> isize;
+
+#[cfg(target_os = "android")]
+fn android_json_output(input: &[u8], abi: JsonAbi) -> Option<Vec<u8>> {
+    use std::ptr;
+
+    // SAFETY: `input` is a readable slice, and null/zero queries the output size.
+    let required = unsafe { abi(input.as_ptr(), input.len(), ptr::null_mut(), 0) };
+    let length = usize::try_from(required).ok()?;
+    if length > 64 * 1024 * 1024 {
+        return None;
+    }
+    let mut output = vec![0; length];
+    // SAFETY: `input` is readable and `output` supplies `length` writable bytes.
+    let written = unsafe {
+        abi(
+            input.as_ptr(),
+            input.len(),
+            output.as_mut_ptr(),
+            output.len(),
+        )
+    };
+    (written == required).then_some(output)
+}
+
+#[cfg(target_os = "android")]
+fn android_json_jni<'local>(
+    env: jni::JNIEnv<'local>,
+    input: jni::objects::JByteArray<'local>,
+    abi: JsonAbi,
+) -> jni::sys::jbyteArray {
+    use jni::objects::JByteArray;
+    use jni::sys::jbyte;
+    use std::ptr;
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let input = env.convert_byte_array(input).ok()?;
+        let output = android_json_output(&input, abi)?;
+        let array: JByteArray = env.new_byte_array(output.len() as i32).ok()?;
+        let bytes: Vec<jbyte> = output.into_iter().map(|value| value as jbyte).collect();
+        env.set_byte_array_region(&array, 0, &bytes).ok()?;
+        Some(array.into_raw())
+    }));
+
+    result.ok().flatten().unwrap_or(ptr::null_mut())
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "system" fn Java_com_composables_sfsymbols_RustFfi_animationJson<'local>(
+    env: jni::JNIEnv<'local>,
+    _receiver: jni::objects::JObject<'local>,
+    input: jni::objects::JByteArray<'local>,
+) -> jni::sys::jbyteArray {
+    android_json_jni(env, input, sfstudio_animation_json)
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "system" fn Java_com_composables_sfsymbols_RustFfi_drawFieldJson<'local>(
+    env: jni::JNIEnv<'local>,
+    _receiver: jni::objects::JObject<'local>,
+    input: jni::objects::JByteArray<'local>,
+) -> jni::sys::jbyteArray {
+    android_json_jni(env, input, sfstudio_draw_field_json)
 }
 
 /// Search the catalog while applying an optional category and favorites filter.

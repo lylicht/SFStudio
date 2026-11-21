@@ -185,7 +185,7 @@ jobs:
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --version 4.1.2 --locked
       - name: Android Kotlin compilation and Rust ABI packaging
-        run: ./gradlew :sfsymbols:compileAndroidMain :sfsymbols:assembleAndroidMain --no-daemon
+        run: ./gradlew :sfsymbols:compileAndroidMain :sfsymbols:compileAndroidDeviceTest :sfsymbols:assembleAndroidMain --no-daemon
 
   kmp-ios:
     name: Existing iOS targets

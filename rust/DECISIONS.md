@@ -155,3 +155,17 @@ through the public KMP API or porting unrelated animation behavior. The device
 test compares exact point arrays against Kotlin for ten symbols, all nine
 weights, and all three optical scales. Device runtime verification currently
 covers x86_64; the other ABIs are built and packaged but not device-tested.
+
+## 013 — Reuse the Rust rendering C ABI from Android JNI
+
+**Decision:** Keep the common KMP renderer and Kotlin fallback. Have the
+Android actual pass the existing animation and draw-field JSON requests through
+JNI to the Rust C ABI, including sRGB layer appearance and gradients. Keep
+wide-gamut colors on Kotlin and validate frame shape, numeric fields, and
+reveal-level ranges before returning native results.
+
+**Gate:** Android instrumentation cases compare Apple effect frames, all four
+rendering modes and gradients, and draw-field levels with the Kotlin reference.
+The Android test source is added to the CI compile job. Device runtime parity
+is still pending; hosted emulator attempts have no usable virtualization, and
+the current Windows host has no Android SDK.

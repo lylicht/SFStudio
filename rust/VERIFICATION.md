@@ -1,6 +1,6 @@
 # Verification record
 
-Last local check: 2026-11-20, Windows x64, branch
+Last local check: 2026-11-21, Windows x64, branch
 `migration/rust-max-coverage-2026-11-20`.
 
 ## Passed locally
@@ -10,6 +10,7 @@ Last local check: 2026-11-20, Windows x64, branch
   passed (28 core, 11 C ABI, and 3 MCP), including Rust fingerprints for every
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
+- `cargo check --manifest-path rust/Cargo.toml -p sfstudio-ffi --target aarch64-linux-android` — passed; Android JNI exports type-check for the Android target.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
   Windows x64; Python `ctypes` smoke passed, including sizing calls, typo search,
   Unicode, invalid UTF-8, null pointers, short-buffer handling, exact Compose
@@ -48,6 +49,7 @@ Last local check: 2026-11-20, Windows x64, branch
   and the Rust-written JSON fixture with the existing Kotlin set serializer.
 - `gradlew.bat :app:assembleMcp --no-daemon` — passed.
 - `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon -PsfstudioUseSystemWebTools=true` — passed after routing JVM outline interpolation through Rust; this ran the complete Compose library and desktop app test suites.
+- `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon` — passed after the Android JNI changes; all existing Compose library and desktop app test suites pass.
 - `gradlew.bat :app:compileKotlinJvm --no-daemon -PsfstudioUseSystemWebTools=true` — passed after reserving the Windows/Linux title-bar control area in the desktop header. [GitHub Actions run #43](https://github.com/lylicht/SFStudio/actions/runs/44832295245) passed.
 - `gradlew.bat :sfsymbols:compileKotlinJs :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true` — passed with JS and Wasm retaining Kotlin geometry.
 - `python scripts/test_rust_ffi.py` — passed the typed-float glyph points endpoint through Python `ctypes`, including interpolation parity against the JSON endpoint and short-buffer behavior.
@@ -217,12 +219,20 @@ Last local check: 2026-11-20, Windows x64, branch
   attempts failed or stalled, and the Apple Silicon runner reported
   `HV_UNSUPPORTED`. CI continues to compile and package all Android ABIs; device
   runtime parity is covered by the local x86_64 emulator test only.
+- Android now has JNI adapters for Rust Apple effect frames, sRGB layer
+  appearances/gradients, and draw-field levels, retaining Kotlin fallback when
+  native calls or response validation fail. Instrumentation checks cover all
+  public effect kinds, all rendering modes, gradients, and a draw-field mask.
+  The Rust Android target check passed, but local Android Gradle compilation
+  could not run because this Windows host has no Android SDK or `adb`; CI
+  compilation and device runtime parity remain pending.
 
 ## Not yet verified
 
 - Remaining Android, Kotlin/Native, Swift, JS, and Wasm bindings for the shared
   Rust API. Android weighted outline points are JNI-backed and pass on x86_64;
-  Android effects, appearance, and draw-field reveal levels still use Kotlin.
+  Android effects, appearance, and draw-field JNI adapters are implemented but
+  await CI compilation and runtime parity on a device.
   JVM consumes Rust points, effect frames, appearance, gradients, and draw-field
   reveal levels. JS and Wasm compilation passed locally; iOS requires macOS CI.
 - Pixel-by-pixel rendering parity, installer upgrades, user-data migration,
@@ -234,5 +244,6 @@ Last local check: 2026-11-20, Windows x64, branch
 The passing CI run verifies the existing Kotlin Multiplatform targets remain
 buildable. Local JVM parity verifies the public desktop renderer uses Rust
 frames when the native library is available, and the Android emulator test
-verifies Rust outline points through the existing KMP renderer. Other Android
-rendering behavior and the remaining KMP targets continue to use Kotlin.
+verifies Rust outline points through the existing KMP renderer. The new Android
+rendering adapters still need their hosted compile gate and a device run; the
+remaining KMP targets continue to use Kotlin.

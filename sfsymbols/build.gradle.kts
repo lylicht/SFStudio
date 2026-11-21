@@ -77,6 +77,10 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
 
+        androidMain.dependencies {
+            implementation(libs.kotlinx.serialization.json)
+        }
+
         jvmTest.dependencies {
             implementation(kotlin("test-junit"))
             // Skia natives for the headless render tests (picked for the machine running them)
