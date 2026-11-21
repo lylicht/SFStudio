@@ -56,6 +56,7 @@ Last local check: 2026-11-21, Windows x64, branch
 - `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon -PsfstudioUseSystemWebTools=true` — passed after routing JVM outline interpolation through Rust; this ran the complete Compose library and desktop app test suites.
 - `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon` — passed after Android JNI and iOS target configuration changes; Windows disables Apple cinterop and iOS simulator execution.
 - `gradlew.bat :app:compileKotlinJvm --no-daemon -PsfstudioUseSystemWebTools=true` — passed after reserving the Windows/Linux title-bar control area in the desktop header. [GitHub Actions run #43](https://github.com/lylicht/SFStudio/actions/runs/44832295245) passed.
+- `gradlew.bat :app:jvmTest --no-daemon --console=plain -PsfstudioUseSystemWebTools=true` — passed after removing the unnecessary caption-button gutter from the lower gallery toolbar; it retains the normal 18 dp inset and stays within the central pane at the 1000 dp minimum window width.
 - `gradlew.bat :sfsymbols:compileKotlinJs :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true` — passed with JS and Wasm retaining Kotlin geometry.
 - `python scripts/test_rust_ffi.py` — passed the typed-float glyph points endpoint through Python `ctypes`, including interpolation parity against the JSON endpoint and short-buffer behavior.
 - The packaged app image launcher passed the Rust MCP stdio smoke test.
@@ -155,8 +156,10 @@ Last local check: 2026-11-21, Windows x64, branch
 - Rust FFI `cargo check` passed for Windows x64, Android ARM64, iOS device and
   simulator, and Wasm. File-storage exports are intentionally desktop-only;
   the mobile and Wasm targets retain their current APIs.
-- Cross-OS runtime checks for the new file operations will run in the existing
-  Windows/macOS/Linux CI matrix after this change is pushed.
+- Windows/macOS/Linux Rust C ABI and JVM checks for the file operations passed
+  in [Actions run #44869413797](https://github.com/lylicht/SFStudio/actions/runs/44869413797).
+- The same Actions run failed only in the JS/Wasm job at `wasmJsNodeTest`; Rust,
+  JVM, Android, iOS, packaged MCP, and differential replay jobs passed.
 
 ## Rust-backed outline interpolation
 

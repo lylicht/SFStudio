@@ -5,6 +5,11 @@
 The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
+Desktop caption-button clearance stays on the titlebar header; the lower gallery
+toolbar uses the content-pane inset so its controls fit at the 1000 dp minimum.
+The local JVM app suite passes this layout change; branch-head CI is running.
+The observed catalog layout and unverified UI gates are recorded in
+[UI_BASELINE.md](UI_BASELINE.md); its screenshot was not saved to the repo.
 
 On Windows x64, Rust fmt, all 47 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
@@ -21,10 +26,12 @@ filter-selection transitions, Compose snippet generation, favorite toggling,
 MCP client config generation, outline interpolation, and Apple effect rendering
 through JNA. The desktop ViewModel also resolves System/Light/Dark and clamps
 grid scale through Rust, retaining Kotlin fallbacks; Kotlin continues to own
-Java Preferences persistence and Compose state. The latest completed Rust migration [GitHub Actions run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638)
-passed Rust/C ABI checks on Windows/macOS/Linux, JVM tests on Windows/macOS/Linux,
-Android main/device-test compilation and four-ABI packaging, iOS, JS/Wasm,
-packaged MCP launchers on all three desktop OSes, and differential MCP replay.
+Java Preferences persistence and Compose state. The latest completed
+cross-platform run [#44869413797](https://github.com/lylicht/SFStudio/actions/runs/44869413797)
+passed Rust/C ABI checks and JVM tests on Windows/macOS/Linux, Android
+compilation and four-ABI packaging, iOS simulator parity, packaged MCP launchers
+on all three desktop OSes, and differential MCP replay. Its JS/Wasm job failed
+at `wasmJsNodeTest`; browser runtime validation remains pending.
 The Android instrumentation source for effect, appearance, and draw-field
 parity compiled; runtime execution remains a device gate. Local Rust,
 Python `ctypes`, JVM, desktop app, and JS Node checks pass. Rust Wasm-backed JS
@@ -103,7 +110,8 @@ when the native library is available. Rust keeps the ordered JSON array,
 normalizes duplicates, preserves regular-file permissions, and replaces via a
 same-directory temporary file. Kotlin still resolves the path and retains its
 fallback, including symlink writes. Rust, Python, and JVM checks pass locally;
-cross-OS CI for the new file operations is pending.
+Windows/macOS/Linux Rust C ABI and JVM checks passed in run #44869413797. The
+user path and JSON contract remain unchanged.
 
 ## Existing work inherited from PR #7
 
