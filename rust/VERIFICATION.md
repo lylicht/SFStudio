@@ -248,17 +248,23 @@ Last local check: 2026-11-21, Windows x64, branch
   cover three symbols, all four rendering modes, and automatic-gradient on/off.
   C interop, iOS device/simulator compilation, malformed frame rejection, and
   simulator parity passed in [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656).
-  Unsupported wide-gamut colors and draw-field levels retain Kotlin behavior.
-  Physical-device runtime is unverified.
+  Wide-gamut colors remain Kotlin-backed. Physical-device runtime is
+  unverified.
+- iOS draw-field levels now use `sfstudio_draw_field_json` through Kotlin/Native
+  C interop. Simulator checks compare a two-pixel mask against the known Kotlin
+  reveal levels and verify empty/invalid mask responses return `null` for the
+  existing Kotlin fallback. iOS device/simulator compilation and these checks
+  passed in [run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638).
+  Compose still rasterizes the path and constructs the clip geometry.
 
 ## Not yet verified
 
-- Remaining Android, Kotlin/Native, Swift, JS, and Wasm bindings for the shared
-  Rust API. Android weighted outline points are JNI-backed and pass on x86_64;
-  Android effects, appearance, and draw-field JNI adapters are implemented but
-  pass CI compilation and await runtime parity on a device. The iOS point
-  and animation adapters pass simulator parity, but physical-device runtime and
-  the iOS draw-field adapter remain unverified.
+- Remaining platform gaps are Android rendering runtime parity, Kotlin/Native
+  physical-device runtime, Swift bindings, and JS/Wasm adapters. Android
+  weighted outline points are JNI-backed and pass on x86_64; Android effects,
+  appearance, and draw-field JNI adapters pass CI compilation and await runtime
+  parity on a device. The iOS point, animation, and draw-field adapters pass
+  simulator checks, but physical-device runtime remains unverified.
   JVM consumes Rust points, effect frames, appearance, gradients, and draw-field
   reveal levels. JS and Wasm compilation passed locally; those targets still
   use Kotlin adapters.
@@ -268,12 +274,13 @@ Last local check: 2026-11-21, Windows x64, branch
   cross-OS CI coverage, but target-specific bindings remain untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
-The passing [CI run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656)
+The passing [CI run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638)
 verifies the existing Kotlin Multiplatform targets remain buildable and the iOS
-simulator animation/appearance parity; [run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293)
+draw-field adapter checks; [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656)
+verifies iOS animation/appearance parity, and [run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293)
 verifies iOS point parity. Local JVM parity verifies the public desktop renderer uses Rust
 frames when the native library is available, and the Android emulator test
 verifies Rust outline points through the existing KMP renderer. The Android
 rendering adapters pass the hosted compile gate and still need a device run; the
-iOS point bridge still needs physical-device validation; JS and Wasm continue to
+iOS adapters still need physical-device validation; JS and Wasm continue to
 use Kotlin.

@@ -193,10 +193,24 @@ Kotlin.
 `sfstudio_animation_json` endpoint from the iOS actual through Kotlin/Native
 C interop, sharing request encoding and frame validation with JVM and Android.
 Use Rust for Apple effect transforms and sRGB layer appearance/gradients;
-retain Kotlin for wide-gamut colors and Draw On/Off raster-level reveal fields.
+retain Kotlin for wide-gamut colors and Draw On/Off mask rasterization and clip
+geometry. Decision 016 routes reveal-level calculation through Rust.
 
 **Gate:** iOS simulator tests compare Rust frames with Kotlin for 17 effect
 configurations and compare layer appearance for three symbols in all four
 rendering modes with gradients enabled and disabled. Device/simulator builds
 and parity passed in [Actions run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656).
 Physical-device runtime and iOS draw-field integration remain unverified.
+
+## 016 — Bind iOS Draw On/Off reveal levels through the Rust C ABI
+
+**Decision:** Keep the KMP API and Kotlin fallback. Call the existing
+`sfstudio_draw_field_json` endpoint through Kotlin/Native C interop, sharing
+request encoding and response validation with JVM and Android. Compose remains
+responsible for rasterizing each layer mask and constructing reveal clip paths.
+
+**Gate:** The iOS simulator adapter returns the Kotlin reference levels for a
+two-pixel mask, including 255 outside the mask, and returns `null` for empty or
+invalid masks. Device/simulator compilation and these checks passed in [Actions
+run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638).
+Physical-device runtime remains unverified.

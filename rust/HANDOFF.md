@@ -19,7 +19,7 @@ invalid IDs and batches, and notifications. See
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
 filter-selection transitions, Compose snippet generation, favorite toggling,
 MCP client config generation, outline interpolation, and Apple effect rendering
-through JNA. The latest completed Rust migration [GitHub Actions run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656)
+through JNA. The latest completed Rust migration [GitHub Actions run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638)
 passed Rust/C ABI checks on Windows/macOS/Linux, JVM tests on Windows/macOS/Linux,
 Android main/device-test compilation and four-ABI packaging, iOS, JS/Wasm,
 packaged MCP launchers on all three desktop OSes, and differential MCP replay.
@@ -41,8 +41,9 @@ simulator compilation plus simulator Kotlin parity for ten symbols across all
 nine weights and three scales in [run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293).
 iOS Apple effect frames and sRGB layer appearance now pass simulator parity in
 [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656).
-Physical-device runtime remains unverified; iOS draw-field, JS, and Wasm retain
-Kotlin implementations.
+iOS draw-field C-interop checks passed in [run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638).
+Physical-device runtime remains unverified; JS and Wasm retain Kotlin
+implementations. Compose still rasterizes the mask and constructs clip paths.
 
 The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
 `arm64-v8a`, `x86`, and `x86_64`. The local AAR contains all four libraries
@@ -99,7 +100,7 @@ coverage in [run #34](https://github.com/lylicht/SFStudio/actions/runs/448059126
 ## Next unblocked migration work
 
 1. Execute the Android animation, appearance, and draw-field parity cases on a
-   device; add the iOS draw-field adapter. Evaluate JS/Wasm bindings independently.
+   device. Evaluate JS/Wasm bindings independently.
 2. Continue porting the shared vector renderer, including path/clip generation
    and pixel-level comparison, while preserving Compose as the public UI until
    a Rust-native frontend meets the existing screenshot and interaction gates.
