@@ -166,6 +166,7 @@ reveal-level ranges before returning native results.
 
 **Gate:** Android instrumentation cases compare Apple effect frames, all four
 rendering modes and gradients, and draw-field levels with the Kotlin reference.
-The Android test source is added to the CI compile job. Device runtime parity
-is still pending; hosted emulator attempts have no usable virtualization, and
-the current Windows host has no Android SDK.
+The Android source compile and four-ABI package gate passed in [Actions run
+#44849774443](https://github.com/lylicht/SFStudio/actions/runs/44849774443).
+Device runtime parity is still pending; hosted emulator attempts have no usable
+virtualization, and the current Windows host has no Android SDK.

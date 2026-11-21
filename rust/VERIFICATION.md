@@ -213,28 +213,30 @@ Last local check: 2026-11-21, Windows x64, branch
   contains all four and the consumer R8 keep rule. The Android device parity
   test passed on an Android 16 / API 36.1 x86_64 emulator, comparing the Rust
   and Kotlin renderers across ten symbols, all nine weights, and all three
-  optical scales. Android effect frames, appearance, and draw-field behavior
-  remain on Kotlin. Standard GitHub-hosted runners cannot provide the nested
+  optical scales. Standard GitHub-hosted runners cannot provide the nested
   virtualization required by this emulator action: Linux software-emulation
   attempts failed or stalled, and the Apple Silicon runner reported
-  `HV_UNSUPPORTED`. CI continues to compile and package all Android ABIs; device
-  runtime parity is covered by the local x86_64 emulator test only.
+  `HV_UNSUPPORTED`. The new effects, appearance, and draw-field adapters compile
+  and package in CI; their runtime parity remains pending.
 - Android now has JNI adapters for Rust Apple effect frames, sRGB layer
   appearances/gradients, and draw-field levels, retaining Kotlin fallback when
   native calls or response validation fail. Instrumentation checks cover all
   public effect kinds, all rendering modes, gradients, and a draw-field mask.
   The Rust Android target check passed, but local Android Gradle compilation
-  could not run because this Windows host has no Android SDK or `adb`; CI
-  compilation and device runtime parity remain pending.
+  could not run because this Windows host has no Android SDK or `adb`. [GitHub
+  Actions run #44849774443](https://github.com/lylicht/SFStudio/actions/runs/44849774443)
+  passed Android main/device-test compilation and four-ABI packaging. Device
+  runtime parity remains pending.
 
 ## Not yet verified
 
 - Remaining Android, Kotlin/Native, Swift, JS, and Wasm bindings for the shared
   Rust API. Android weighted outline points are JNI-backed and pass on x86_64;
   Android effects, appearance, and draw-field JNI adapters are implemented but
-  await CI compilation and runtime parity on a device.
+  pass CI compilation and await runtime parity on a device.
   JVM consumes Rust points, effect frames, appearance, gradients, and draw-field
-  reveal levels. JS and Wasm compilation passed locally; iOS requires macOS CI.
+  reveal levels. JS and Wasm compilation passed locally; iOS targets compile in
+  run #44849774443 but still use Kotlin adapters.
 - Pixel-by-pixel rendering parity, installer upgrades, user-data migration,
   and performance baselines. Kotlin still rasterizes the source paths and
   constructs Compose clip geometry; geometry and draw-field C ABIs have
@@ -245,5 +247,5 @@ The passing CI run verifies the existing Kotlin Multiplatform targets remain
 buildable. Local JVM parity verifies the public desktop renderer uses Rust
 frames when the native library is available, and the Android emulator test
 verifies Rust outline points through the existing KMP renderer. The new Android
-rendering adapters still need their hosted compile gate and a device run; the
-remaining KMP targets continue to use Kotlin.
+rendering adapters pass the hosted compile gate and still need a device run;
+the remaining KMP targets continue to use Kotlin.

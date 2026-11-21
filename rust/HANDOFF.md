@@ -19,14 +19,14 @@ invalid IDs and batches, and notifications. See
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
 filter-selection transitions, Compose snippet generation, favorite toggling,
 MCP client config generation, outline interpolation, and Apple effect rendering
-through JNA. The latest completed Rust migration [GitHub Actions run #44](https://github.com/lylicht/SFStudio/actions/runs/44832738954)
+through JNA. The latest completed Rust migration [GitHub Actions run #44849774443](https://github.com/lylicht/SFStudio/actions/runs/44849774443)
 passed Rust/C ABI checks on Windows/macOS/Linux, JVM tests on Windows/macOS/Linux,
-Android, iOS, JS/Wasm, packaged MCP launchers on all three desktop OSes, and
-differential MCP replay. This includes the typed-float outline endpoint in the
-JVM renderer and the live Rust metadata lookup used by desktop symbol
-selection. Local Rust, Python `ctypes`, JVM, desktop app, JS, and Wasm checks
-pass. The Kotlin metadata fallback remains active when Rust is unavailable or
-errors.
+Android main/device-test compilation and four-ABI packaging, iOS, JS/Wasm,
+packaged MCP launchers on all three desktop OSes, and differential MCP replay.
+The Android instrumentation source for effect, appearance, and draw-field
+parity compiled; runtime execution remains a device gate. Local Rust,
+Python `ctypes`, JVM, desktop app, JS, and Wasm checks pass. The Kotlin metadata
+fallback remains active when Rust is unavailable or errors.
 The metadata lookup endpoint and its live desktop caller passed
 Windows/macOS/Linux parity in runs #20 and #44; the Windows MSI passed in run
 #20.
@@ -34,8 +34,9 @@ Android/iOS/JS/Wasm Kotlin targets still compile and retain their compatibility
 paths. Android weighted glyph outline points now use a Rust JNI adapter;
 Android effects, appearance, and draw-field rendering now have Rust JNI
 adapters with the existing Kotlin fallback. Their instrumentation parity cases
-are added, but Android compilation and runtime are pending hosted CI/device
-verification. iOS, JS, and Wasm remain Kotlin-backed.
+are added. Run [#44849774443](https://github.com/lylicht/SFStudio/actions/runs/44849774443)
+passed Android main/device-test compilation and four-ABI packaging; runtime
+parity still needs a device. iOS, JS, and Wasm remain Kotlin-backed.
 
 The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
 `arm64-v8a`, `x86`, and `x86_64`. The local AAR contains all four libraries
@@ -44,11 +45,11 @@ local Android 16 / API 36.1 x86_64 emulator for ten symbols across all nine
 weights and all three optical scales. Hosted Linux software emulation failed or
 stalled, and the Apple Silicon runner reported `HV_UNSUPPORTED`; standard hosted
 Actions runners do not provide the nested virtualization this device test needs.
-CI therefore verifies Android compilation and four-ABI packaging, while the
-JNI runtime parity test remains a locally verified device gate. The new
-effects/appearance/draw-field JNI path is not yet verified: this Windows host
-has no Android SDK or `adb`, and Android test-source compilation was added to
-the next CI run.
+CI verifies Android compilation and four-ABI packaging, while the outline JNI
+runtime parity test remains locally verified on x86_64. Run #44849774443 also
+compiled the new effects/appearance/draw-field device tests. Their runtime
+parity is not verified: this Windows host has no Android SDK or `adb`, and the
+hosted runners cannot run the required emulator.
 Building the Android target now requires Android NDK `28.2.13676358` and
 `cargo-ndk` `4.1.2`; CI installs both before assembling the KMP AAR.
 
@@ -91,9 +92,8 @@ coverage in [run #34](https://github.com/lylicht/SFStudio/actions/runs/448059126
 
 ## Next unblocked migration work
 
-1. Run the Android CI compile gate and execute the new animation, appearance,
-   and draw-field parity cases on a device. Evaluate Kotlin/Native and JS/Wasm
-   bindings independently.
+1. Execute the new Android animation, appearance, and draw-field parity cases
+   on a device. Evaluate Kotlin/Native and JS/Wasm bindings independently.
 2. Continue porting the shared vector renderer, including path/clip generation
    and pixel-level comparison, while preserving Compose as the public UI until
    a Rust-native frontend meets the existing screenshot and interaction gates.
