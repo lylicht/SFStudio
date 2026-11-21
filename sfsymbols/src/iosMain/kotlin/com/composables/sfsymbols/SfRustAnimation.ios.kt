@@ -5,6 +5,7 @@ package com.composables.sfsymbols
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import com.composables.sfsymbols.ffi.sfstudio_animation_json
+import com.composables.sfsymbols.ffi.sfstudio_draw_field_json
 import com.composables.sfsymbols.ffi.sfstudio_glyph_points
 import kotlinx.cinterop.UByteVar
 import kotlinx.cinterop.addressOf
@@ -97,4 +98,24 @@ internal actual fun sfRustDrawFieldLevels(
     cell: Float,
     symbolBounds: Rect,
     ties: FloatArray,
-): ByteArray? = null
+): ByteArray? = try {
+    val request = buildRustDrawFieldRequest(mask, originX, originY, cell, symbolBounds, ties)
+    request.usePinned { pinnedRequest ->
+        val requestPointer = pinnedRequest.addressOf(0).reinterpret<UByteVar>()
+        val required = sfstudio_draw_field_json(requestPointer, request.size.convert(), null, 0uL)
+        if (required <= 0L || required > Int.MAX_VALUE.toLong()) return null
+        val response = ByteArray(required.toInt())
+        val written = response.usePinned { pinnedResponse ->
+            sfstudio_draw_field_json(
+                requestPointer,
+                request.size.convert(),
+                pinnedResponse.addressOf(0).reinterpret<UByteVar>(),
+                response.size.convert(),
+            )
+        }
+        if (written != required) return null
+        parseRustDrawFieldLevels(response.decodeToString(), mask.size)
+    }
+} catch (_: Exception) {
+    null
+}

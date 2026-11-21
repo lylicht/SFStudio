@@ -4,15 +4,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import com.sun.jna.Library
 import com.sun.jna.Native
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.add
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.atomic.AtomicBoolean
@@ -136,15 +127,7 @@ private object RustAnimation {
         ties: FloatArray,
     ): ByteArray? = try {
         val library = native ?: return null
-        val request = buildJsonObject {
-            put("mask", buildJsonArray { mask.forEach { add(it.toInt() and 0xff) } })
-            put("origin", buildJsonArray { add(originX); add(originY) })
-            put("cell", cell)
-            put("symbolBounds", buildJsonArray {
-                add(symbolBounds.left); add(symbolBounds.top); add(symbolBounds.right); add(symbolBounds.bottom)
-            })
-            put("ties", buildJsonArray { ties.forEach { add(it) } })
-        }.toString().toByteArray(Charsets.UTF_8)
+        val request = buildRustDrawFieldRequest(mask, originX, originY, cell, symbolBounds, ties)
 
         var buffer = output.get()
         var size = library.sfstudio_draw_field_json(request, request.size.toLong(), null, 0)
@@ -159,15 +142,7 @@ private object RustAnimation {
         }
         val written = library.sfstudio_draw_field_json(request, request.size.toLong(), buffer, buffer.size.toLong())
         if (written != size) return null
-        val values = Json.parseToJsonElement(buffer.decodeToString(0, written.toInt()))
-            .jsonObject["levels"]?.takeUnless { it == JsonNull }?.jsonArray ?: return null
-        if (values.size != mask.size) return null
-        ByteArray(values.size).also { result ->
-            for (index in values.indices) {
-                val value = values[index].jsonPrimitive.content.toIntOrNull()?.takeIf { it in 0..255 } ?: return null
-                result[index] = value.toByte()
-            }
-        }
+        parseRustDrawFieldLevels(buffer.decodeToString(0, written.toInt()), mask.size) ?: return null
     } catch (error: Exception) {
         warn(error.message ?: error::class.simpleName.orEmpty())
         null
