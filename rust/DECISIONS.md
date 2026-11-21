@@ -138,16 +138,17 @@ draft. Sources: [Slint Winit docs](https://docs.slint.dev/latest/docs/slint/guid
 and [Iced 0.15 milestone](https://github.com/iced-rs/iced/milestone/26).
 
 An isolated Slint 1.19 probe now lives in `rust/sfstudio-ui`; it compiles on
-Windows x64, its two Rust tests and the full Rust workspace checks pass, and
-its System/Light/Dark settings were visually exercised. The probe intentionally
-does not implement the full app or replace Compose.
+Windows x64, and its System/Light/Dark settings were visually exercised. It
+now displays every catalog category, loads and persists favorites through the
+existing JSON path, and reserves space for Windows caption controls. The probe
+still does not implement the full app or replace Compose.
 
 **Next gate:** Save Compose references at 1280×820 and minimum size, then compare
 the Rust symbol tile, inspector, header, and effect preview in light and dark
-themes. Complete missing favorites, toolbar actions, category coverage, and
-state persistence; check keyboard and screen-reader behavior and preserve the
-Rust-computed Apple effect frames. Keep the probe out of production until parity
-is measured, and resolve the Slint attribution requirement before distribution.
+themes. Complete toolbar actions, persistent settings, and inspector behavior;
+check keyboard and screen-reader behavior and exercise the full Apple effect
+set. Keep the probe out of production until parity is measured, and resolve
+the Slint attribution requirement before distribution.
 
 ## 012 — Bind Android glyph interpolation through JNI
 

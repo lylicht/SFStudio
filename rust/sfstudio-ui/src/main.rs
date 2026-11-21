@@ -1,9 +1,12 @@
 use sfstudio_core::animation::{AnimationSymbol, Effect, Scope};
+use sfstudio_core::favorites::Favorites;
 use sfstudio_core::settings::ThemeMode;
 use sfstudio_core::vector::{interpolate_points, vector_catalog, Geometry};
 use sfstudio_core::{catalog, Symbol};
 use slint::{ComponentHandle, Timer, TimerMode, VecModel};
 use std::cell::RefCell;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
@@ -15,26 +18,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ui = MainWindow::new()?;
     let selected_name = Rc::new(RefCell::new("0.circle.fill".to_owned()));
     let selected_category = Rc::new(RefCell::new(None::<String>));
+    let only_favorites_state = Rc::new(RefCell::new(false));
     let query = Rc::new(RefCell::new(String::new()));
+    let favorites_file = favorites_path();
+    let favorites_state = Rc::new(RefCell::new(load_favorites(favorites_file.as_deref())));
 
-    ui.set_categories(
-        Rc::new(VecModel::from(
-            catalog()
-                .category_counts()
-                .into_iter()
-                .take(16)
-                .map(|(name, count)| CategoryRow {
-                    name: name.into(),
-                    count: count.min(i32::MAX as usize) as i32,
-                })
-                .collect::<Vec<_>>(),
-        ))
-        .into(),
+    ui.set_categories(Rc::new(VecModel::from(category_rows())).into());
+    refresh(
+        &ui,
+        "",
+        None,
+        false,
+        &favorites_state.borrow(),
+        &selected_name.borrow(),
     );
-    refresh(&ui, "", None, &selected_name.borrow());
 
     let weak = ui.as_weak();
     let category = Rc::clone(&selected_category);
+    let only_favorites = Rc::clone(&only_favorites_state);
+    let favorites = Rc::clone(&favorites_state);
     let selected = Rc::clone(&selected_name);
     let query_state = Rc::clone(&query);
     ui.on_search_changed(move |value| {
@@ -44,6 +46,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &ui,
                 &query_state.borrow(),
                 category.borrow().as_deref(),
+                *only_favorites.borrow(),
+                &favorites.borrow(),
                 &selected.borrow(),
             );
         }
@@ -51,15 +55,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let weak = ui.as_weak();
     let category = Rc::clone(&selected_category);
+    let only_favorites = Rc::clone(&only_favorites_state);
+    let favorites = Rc::clone(&favorites_state);
     let selected = Rc::clone(&selected_name);
     let query_state = Rc::clone(&query);
     ui.on_category_selected(move |name| {
         *category.borrow_mut() = (!name.is_empty()).then(|| name.to_string());
+        *only_favorites.borrow_mut() = false;
         if let Some(ui) = weak.upgrade() {
             refresh(
                 &ui,
                 &query_state.borrow(),
                 category.borrow().as_deref(),
+                false,
+                &favorites.borrow(),
                 &selected.borrow(),
             );
         }
@@ -67,6 +76,54 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let weak = ui.as_weak();
     let category = Rc::clone(&selected_category);
+    let only_favorites = Rc::clone(&only_favorites_state);
+    let favorites = Rc::clone(&favorites_state);
+    let selected = Rc::clone(&selected_name);
+    let query_state = Rc::clone(&query);
+    ui.on_favorites_selected(move || {
+        *category.borrow_mut() = None;
+        *only_favorites.borrow_mut() = true;
+        if let Some(ui) = weak.upgrade() {
+            refresh(
+                &ui,
+                &query_state.borrow(),
+                None,
+                true,
+                &favorites.borrow(),
+                &selected.borrow(),
+            );
+        }
+    });
+
+    let weak = ui.as_weak();
+    let category = Rc::clone(&selected_category);
+    let only_favorites = Rc::clone(&only_favorites_state);
+    let favorites = Rc::clone(&favorites_state);
+    let favorites_file = favorites_file.clone();
+    let selected = Rc::clone(&selected_name);
+    let query_state = Rc::clone(&query);
+    ui.on_favorite_toggled(move |name| {
+        {
+            let mut favorites = favorites.borrow_mut();
+            favorites.toggle(name.as_str());
+            save_favorites(favorites_file.as_deref(), &favorites);
+        }
+        if let Some(ui) = weak.upgrade() {
+            refresh(
+                &ui,
+                &query_state.borrow(),
+                category.borrow().as_deref(),
+                *only_favorites.borrow(),
+                &favorites.borrow(),
+                &selected.borrow(),
+            );
+        }
+    });
+
+    let weak = ui.as_weak();
+    let category = Rc::clone(&selected_category);
+    let only_favorites = Rc::clone(&only_favorites_state);
+    let favorites = Rc::clone(&favorites_state);
     let selected = Rc::clone(&selected_name);
     let query_state = Rc::clone(&query);
     ui.on_symbol_selected(move |name| {
@@ -76,6 +133,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &ui,
                 &query_state.borrow(),
                 category.borrow().as_deref(),
+                *only_favorites.borrow(),
+                &favorites.borrow(),
                 &selected.borrow(),
             );
         }
@@ -173,19 +232,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn refresh(ui: &MainWindow, query: &str, category: Option<&str>, selected_name: &str) {
-    let symbols = catalog().search_filtered(query, category, None, RESULT_LIMIT);
-    let total = if query.trim().is_empty() && category.is_none() {
+fn refresh(
+    ui: &MainWindow,
+    query: &str,
+    category: Option<&str>,
+    only_favorites: bool,
+    favorites: &Favorites,
+    selected_name: &str,
+) {
+    let favorite_names: HashSet<_> = favorites.as_slice().iter().cloned().collect();
+    let filter_favorites = only_favorites.then_some(&favorite_names);
+    let symbols = catalog().search_filtered(query, category, filter_favorites, RESULT_LIMIT);
+    let total = if query.trim().is_empty() && category.is_none() && !only_favorites {
         catalog().all().len()
     } else {
         symbols.len()
     };
     ui.set_result_count(format!("{total} symbols").into());
+    ui.set_favorite_count(favorites.as_slice().len().min(i32::MAX as usize) as i32);
+    ui.set_only_favorites(only_favorites);
     ui.set_symbols(
         Rc::new(VecModel::from(
             symbols
                 .into_iter()
-                .filter_map(|symbol| symbol_row(symbol, selected_name))
+                .filter_map(|symbol| symbol_row(symbol, selected_name, &favorite_names))
                 .collect::<Vec<_>>(),
         ))
         .into(),
@@ -194,12 +264,61 @@ fn refresh(ui: &MainWindow, query: &str, category: Option<&str>, selected_name: 
     ui.set_selected_path(glyph_path(selected_name).unwrap_or_default().into());
 }
 
-fn symbol_row(symbol: &Symbol, selected_name: &str) -> Option<SymbolRow> {
+fn category_rows() -> Vec<CategoryRow> {
+    catalog()
+        .category_counts()
+        .into_iter()
+        .map(|(name, count)| CategoryRow {
+            name: name.into(),
+            count: count.min(i32::MAX as usize) as i32,
+        })
+        .collect()
+}
+
+fn symbol_row(
+    symbol: &Symbol,
+    selected_name: &str,
+    favorite_names: &HashSet<String>,
+) -> Option<SymbolRow> {
     Some(SymbolRow {
         name: symbol.apple_name.as_str().into(),
         path: glyph_path(&symbol.apple_name)?.into(),
         selected: symbol.apple_name == selected_name,
+        favorite: favorite_names.contains(&symbol.apple_name),
     })
+}
+
+fn favorites_path() -> Option<PathBuf> {
+    #[cfg(windows)]
+    let home = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME"));
+    #[cfg(not(windows))]
+    let home = std::env::var_os("HOME");
+    home.map(PathBuf::from)
+        .map(|home| home.join(".sf-symbols-catalog").join("pins.json"))
+}
+
+fn load_favorites(path: Option<&Path>) -> Favorites {
+    let Some(path) = path else {
+        eprintln!("SFStudio favorites could not be loaded: user home directory is unavailable");
+        return Favorites::default();
+    };
+    match Favorites::load_file(path) {
+        Ok(favorites) => favorites,
+        Err(error) => {
+            eprintln!("SFStudio favorites could not be loaded: {error:?}");
+            Favorites::default()
+        }
+    }
+}
+
+fn save_favorites(path: Option<&Path>, favorites: &Favorites) {
+    let Some(path) = path else {
+        eprintln!("SFStudio favorites could not be saved: user home directory is unavailable");
+        return;
+    };
+    if let Err(error) = favorites.save_file(path) {
+        eprintln!("SFStudio favorites could not be saved: {error:?}");
+    }
 }
 
 fn glyph_path(name: &str) -> Option<String> {
@@ -265,8 +384,19 @@ fn svg_coordinate(value: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::svg_path;
+    use super::{category_rows, svg_path};
+    use sfstudio_core::catalog;
     use sfstudio_core::vector::Geometry;
+
+    #[test]
+    fn sidebar_exposes_every_category_in_rust_catalog_order() {
+        let rows = category_rows();
+        let categories = catalog().category_counts();
+        assert!(rows.len() > 16);
+        assert_eq!(rows.len(), categories.len());
+        assert_eq!(rows[0].name.as_str(), categories[0].0);
+        assert_eq!(rows[0].count as usize, categories[0].1);
+    }
 
     #[test]
     fn svg_path_serializes_moves_lines_cubics_and_closes() {

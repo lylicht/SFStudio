@@ -1,6 +1,10 @@
 //! Ordered favorites and the JSON array format used by the Kotlin app.
 
 use std::collections::HashSet;
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+use std::io::Write;
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+use std::path::Path;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Favorites(Vec<String>);
@@ -39,6 +43,92 @@ impl Favorites {
     pub fn as_slice(&self) -> &[String] {
         &self.0
     }
+
+    #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+    pub fn load_file(path: &Path) -> Result<Self, FavoritesFileError> {
+        use std::fs;
+
+        fs::create_dir_all(favorites_parent(path)).map_err(FavoritesFileError::Io)?;
+        let json = match fs::read_to_string(path) {
+            Ok(json) => json,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(Self::default())
+            }
+            Err(error) => return Err(FavoritesFileError::Io(error)),
+        };
+        Self::from_json(&json).map_err(FavoritesFileError::InvalidJson)
+    }
+
+    #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+    pub fn save_file(&self, path: &Path) -> Result<(), FavoritesFileError> {
+        use std::fs;
+
+        let parent = favorites_parent(path);
+        fs::create_dir_all(parent).map_err(FavoritesFileError::Io)?;
+        let permissions = match fs::symlink_metadata(path) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err(FavoritesFileError::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "refusing to replace a symlink",
+                )))
+            }
+            Ok(metadata) if metadata.is_file() => {
+                let permissions = metadata.permissions();
+                if permissions.readonly() {
+                    return Err(FavoritesFileError::Io(std::io::Error::new(
+                        std::io::ErrorKind::PermissionDenied,
+                        "favorites file is read-only",
+                    )));
+                }
+                Some(permissions)
+            }
+            Ok(_) => {
+                return Err(FavoritesFileError::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "favorites destination is not a regular file",
+                )))
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+            Err(error) => return Err(FavoritesFileError::Io(error)),
+        };
+
+        let json = self.to_json().map_err(FavoritesFileError::Serialization)?;
+        let mut temporary =
+            tempfile::NamedTempFile::new_in(parent).map_err(FavoritesFileError::Io)?;
+        temporary
+            .write_all(json.as_bytes())
+            .map_err(FavoritesFileError::Io)?;
+        temporary
+            .as_file()
+            .sync_all()
+            .map_err(FavoritesFileError::Io)?;
+        if let Some(permissions) = permissions {
+            temporary
+                .as_file()
+                .set_permissions(permissions)
+                .map_err(FavoritesFileError::Io)?;
+        }
+        // shortcut: parent-directory sync is not portable here; add platform-specific sync if power-loss durability becomes a requirement.
+        temporary
+            .persist(path)
+            .map_err(|error| FavoritesFileError::Io(error.error))?;
+        Ok(())
+    }
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+#[derive(Debug)]
+pub enum FavoritesFileError {
+    InvalidJson(serde_json::Error),
+    Serialization(serde_json::Error),
+    Io(std::io::Error),
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+fn favorites_parent(path: &Path) -> &Path {
+    path.parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."))
 }
 
 #[cfg(test)]

@@ -417,10 +417,23 @@ adapter checks are recorded below.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings`
   — passed.
 - Windows x64 visual inspection confirmed System follows the current dark OS
-  appearance and the Settings controls switch visibly to Light and Dark. This
-  probe is incomplete, unsaved as a reference capture, and not connected to the
-  production Compose app. It omits complete categories, Favorites, full toolbar
-  behavior, app-state persistence, and detailed inspector actions.
+  appearance and Settings switches visibly to Light and Dark. It showed the
+  search field too close to the native caption-button hit area; the Rust header
+  now leaves a 170 px right-side clearance. A fresh screenshot confirms the
+  gap. Minimum-size and high-DPI layouts remain unverified.
+- The Slint UI now exposes all catalog categories and loads/saves Favorites at
+  the existing `~/.sf-symbols-catalog/pins.json` path. In a dedicated isolated
+  home, a UI click saved `0.circle`, the Favorites view showed exactly one
+  result, and a restart reloaded it. This did not access or change the user's
+  real favorites file.
+- `cargo test --manifest-path rust/Cargo.toml -p sfstudio-ui` — passed all 3
+  probe tests after these changes. `cargo test --manifest-path rust/Cargo.toml
+  --workspace` passed all 54 tests, workspace Clippy passed with warnings denied,
+  formatting check passed, and `:app:jvmTest` passed to verify the preserved
+  KMP/JNA contract. Full toolbar behavior, persistent settings,
+  most inspector behavior, animation-effect coverage beyond Bounce, visual and
+  accessibility parity, and saved reference captures remain open. The probe
+  is not connected to the production Compose app.
 - Slint 1.19 and its Rust 1.95 minimum are pinned in the probe crate. The
   Slint attribution requirement remains unresolved before any distribution.
 

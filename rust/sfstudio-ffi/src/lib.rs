@@ -2,8 +2,6 @@
 
 use std::alloc::{alloc, dealloc, Layout};
 use std::collections::HashSet;
-#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
-use std::io::Write;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
 use std::path::Path;
@@ -881,50 +879,6 @@ pub unsafe extern "C" fn sfstudio_favorites_toggle_json(
     }
 }
 
-#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
-fn favorites_parent(path: &Path) -> &Path {
-    path.parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-        .unwrap_or_else(|| Path::new("."))
-}
-
-#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
-fn write_favorites(path: &Path, json: &[u8]) -> Result<(), isize> {
-    use std::fs;
-
-    let parent = favorites_parent(path);
-    fs::create_dir_all(parent).map_err(|_| FAVORITES_IO_ERROR)?;
-    let permissions = match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_symlink() => return Err(FAVORITES_IO_ERROR),
-        Ok(metadata) if metadata.is_file() => {
-            let permissions = metadata.permissions();
-            if permissions.readonly() {
-                return Err(FAVORITES_IO_ERROR);
-            }
-            Some(permissions)
-        }
-        Ok(_) => return Err(FAVORITES_IO_ERROR),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
-        Err(_) => return Err(FAVORITES_IO_ERROR),
-    };
-
-    let mut temporary = tempfile::NamedTempFile::new_in(parent).map_err(|_| FAVORITES_IO_ERROR)?;
-    temporary.write_all(json).map_err(|_| FAVORITES_IO_ERROR)?;
-    temporary
-        .as_file()
-        .sync_all()
-        .map_err(|_| FAVORITES_IO_ERROR)?;
-    if let Some(permissions) = permissions {
-        temporary
-            .as_file()
-            .set_permissions(permissions)
-            .map_err(|_| FAVORITES_IO_ERROR)?;
-    }
-    // shortcut: parent-directory sync is not portable here; add platform-specific sync if power-loss durability becomes a requirement.
-    temporary.persist(path).map_err(|_| FAVORITES_IO_ERROR)?;
-    Ok(())
-}
-
 /// Load and normalize a desktop favorites JSON file. A missing file is `[]`.
 /// Returns UTF-8 JSON through the common required-size buffer contract.
 /// Errors: -1 invalid path pointer, -2 invalid UTF-8, -3 invalid output
@@ -951,20 +905,15 @@ pub unsafe extern "C" fn sfstudio_favorites_load_json(
     }
 
     match catch_unwind(AssertUnwindSafe(|| {
-        let parent = favorites_parent(path);
-        std::fs::create_dir_all(parent).map_err(|_| FAVORITES_IO_ERROR)?;
-        let json = match std::fs::read_to_string(path) {
-            Ok(json) => json,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                return sfstudio_core::favorites::Favorites::default()
-                    .to_json()
-                    .map(String::into_bytes)
-                    .map_err(|_| INTERNAL_ERROR);
-            }
-            Err(_) => return Err(FAVORITES_IO_ERROR),
-        };
-        sfstudio_core::favorites::Favorites::from_json(&json)
-            .map_err(|_| INVALID_FAVORITES_JSON)?
+        let favorites =
+            sfstudio_core::favorites::Favorites::load_file(path).map_err(|error| match error {
+                sfstudio_core::favorites::FavoritesFileError::InvalidJson(_) => {
+                    INVALID_FAVORITES_JSON
+                }
+                sfstudio_core::favorites::FavoritesFileError::Serialization(_) => INTERNAL_ERROR,
+                sfstudio_core::favorites::FavoritesFileError::Io(_) => FAVORITES_IO_ERROR,
+            })?;
+        favorites
             .to_json()
             .map(String::into_bytes)
             .map_err(|_| INTERNAL_ERROR)
@@ -1004,8 +953,11 @@ pub unsafe extern "C" fn sfstudio_favorites_save_json(
     match catch_unwind(AssertUnwindSafe(|| {
         let favorites = sfstudio_core::favorites::Favorites::from_json(favorites_json)
             .map_err(|_| INVALID_FAVORITES_JSON)?;
-        let json = favorites.to_json().map_err(|_| INTERNAL_ERROR)?;
-        write_favorites(path, json.as_bytes())
+        favorites.save_file(path).map_err(|error| match error {
+            sfstudio_core::favorites::FavoritesFileError::InvalidJson(_) => INVALID_FAVORITES_JSON,
+            sfstudio_core::favorites::FavoritesFileError::Serialization(_) => INTERNAL_ERROR,
+            sfstudio_core::favorites::FavoritesFileError::Io(_) => FAVORITES_IO_ERROR,
+        })
     })) {
         Ok(Ok(())) => 0,
         Ok(Err(code)) => code,

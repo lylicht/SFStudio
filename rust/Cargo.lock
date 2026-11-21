@@ -3765,6 +3765,7 @@ dependencies = [
  "base64",
  "flate2",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]

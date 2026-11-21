@@ -145,6 +145,13 @@ fallback, including symlink writes. Rust, Python, and JVM checks pass locally;
 Windows/macOS/Linux Rust C ABI and JVM checks passed in run #44869413797. The
 user path and JSON contract remain unchanged.
 
+The isolated Slint probe now lists every category and supports the existing
+desktop favorites file contract, including reload after restart. A Windows
+visual check also moved its search field clear of the native caption controls.
+The production app still uses Compose; the Slint probe lacks complete toolbar,
+settings persistence, inspector, and animation-effect parity, and still needs
+visual/accessibility baselines, min-size/high-DPI checks, and license attribution.
+
 ## Existing work inherited from PR #7
 
 - Located and inspected the reference SFStudio Kotlin/Compose architecture.
@@ -164,8 +171,9 @@ user path and JSON contract remain unchanged.
    clip spans; add pixel-level comparison for the resulting clip geometry while
    preserving Compose as the public UI until a Rust-native frontend meets the
    existing screenshot and interaction gates.
-3. Compare current Rust UI frameworks against desktop visual/interaction
-   baselines before implementing a cutover candidate.
+3. Continue Rust UI parity work against saved desktop visual/interaction
+   baselines; do not cut over Compose until all UI, accessibility, animation,
+   and licensing gates pass.
 4. Preserve existing user data and package identities; test upgrade behavior
    before changing persistence or installers.
 
