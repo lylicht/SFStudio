@@ -40,10 +40,10 @@ The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
 and the consumer R8 keep rule. Its Android device parity test passed on the
 local Android 16 / API 36.1 x86_64 emulator for ten symbols across all nine
 weights and all three optical scales. The first hosted emulator attempt failed
-before boot because current Emulator 37 requires `ANDROID_I_WANT_MY_TCG=yes`
-without hardware acceleration. The next run booted, but its package manager
-failed during APK installation with a broken pipe and SwiftShader color-buffer
-errors; CI now allocates four emulator cores and disables GPU rendering.
+without hardware acceleration; enabling TCG let a later run boot, but its
+package manager failed during APK installation with a broken pipe, and a GPU-off
+retry stalled. The Android device gate now uses an ARM64 emulator on macOS to
+use native Hypervisor.Framework acceleration.
 Building the Android target now requires Android NDK `28.2.13676358` and
 `cargo-ndk` `4.1.2`; CI installs both before assembling the KMP AAR.
 

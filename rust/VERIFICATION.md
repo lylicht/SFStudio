@@ -212,11 +212,12 @@ Last local check: 2026-11-20, Windows x64, branch
   test passed on an Android 16 / API 36.1 x86_64 emulator, comparing the Rust
   and Kotlin renderers across ten symbols, all nine weights, and all three
   optical scales. Android effect frames, appearance, and draw-field behavior
-  remain on Kotlin. Hosted CI required `ANDROID_I_WANT_MY_TCG=yes` to boot
-  without hardware acceleration. The first TCG run booted slowly, then the
-  package manager returned a broken pipe during test APK installation alongside
-  software GPU color-buffer errors. CI now uses four emulator cores and disables
-  GPU rendering; hosted device verification is pending a rerun.
+  remain on Kotlin. Linux-hosted emulator attempts could not complete the device
+  test with software CPU emulation: one failed during APK installation with a
+  broken pipe and SwiftShader color-buffer errors, and the GPU-off retry stalled
+  beyond twenty minutes. The Android device job now runs an ARM64 emulator on
+  macOS, where native Hypervisor.Framework acceleration is available; hosted
+  device verification is pending.
 
 ## Not yet verified
 
