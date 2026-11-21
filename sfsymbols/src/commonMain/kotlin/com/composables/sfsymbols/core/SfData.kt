@@ -12,6 +12,7 @@ import com.composables.sfsymbols.core.data.SF_SYMBOL_CHUNKS
 import com.composables.sfsymbols.core.data.SF_TAG_CHUNKS
 import com.composables.sfsymbols.core.data.SF_VARIANT_CHUNKS
 import com.composables.sfsymbols.core.data.sfBlobPiece
+import com.composables.sfsymbols.sfRustGlyphData
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -155,6 +156,7 @@ internal object SfData {
 
     private val tagTable: List<String> by lazy { SF_TAG_CHUNKS.flatMap { it.split('\n') } }
     fun tag(i: Int): String = tagTable[i]
+    fun tagCount(): Int = tagTable.size
 
     fun all(): List<SfInfo> = infos
     fun categoryKeys(): List<String> = SF_CATEGORY_KEYS
@@ -162,6 +164,7 @@ internal object SfData {
     fun categoryIcons(): List<String> = SF_CATEGORY_ICONS
     fun categoryTitles(): Map<String, List<String>> = SF_CATEGORY_TITLES
     fun colorName(id: Int): String? = SF_LAYER_COLORS.getOrNull(id)
+    fun colorCount(): Int = SF_LAYER_COLORS.size
 
     /** "heart.fill" -> "SFHeartFill": the property name used by the original per-icon API. */
     fun legacyName(name: String): String =
@@ -216,7 +219,13 @@ internal object SfData {
     private val glyphs = HashMap<SfInfo, SfGlyph>()
     private val scaled = HashMap<Pair<SfInfo, SfScaleId>, SfGlyph?>()
 
-    fun glyph(info: SfInfo): SfGlyph = glyphs.getOrPut(info) { readGlyph(Reader(block(info.block), info.offset)) }
+    fun glyph(info: SfInfo): SfGlyph = glyphs.getOrPut(info) {
+        sfRustGlyphData(info.name, SfScaleId.Medium) ?: glyphFromKotlin(info)
+    }
+
+    internal fun rustGlyph(info: SfInfo): SfGlyph? = sfRustGlyphData(info.name, SfScaleId.Medium)
+
+    internal fun glyphFromKotlin(info: SfInfo): SfGlyph = readGlyph(Reader(block(info.block), info.offset))
 
     /** The small/large optical variant of [info], or null when Apple draws none (use medium). */
     fun scaleGlyph(info: SfInfo, scale: SfScaleId): SfGlyph? = scaled.getOrPut(info to scale) {
@@ -225,7 +234,28 @@ internal object SfData {
             SfScaleId.Large -> info.largeBlock to info.largeOffset
             SfScaleId.Medium -> -1 to -1
         }
-        if (b < 0) null else glyph(info).let { m -> m.withGeometry(readScaleGeom(Reader(block(b), o), m)) }
+        if (b < 0) null else sfRustGlyphData(info.name, scale)
+            ?: glyph(info).let { m -> m.withGeometry(readScaleGeom(Reader(block(b), o), m)) }
+    }
+
+    internal fun rustScaleGlyph(info: SfInfo, scale: SfScaleId): SfGlyph? {
+        val hasVariant = when (scale) {
+            SfScaleId.Small -> info.smallBlock >= 0
+            SfScaleId.Medium -> false
+            SfScaleId.Large -> info.largeBlock >= 0
+        }
+        return if (hasVariant) sfRustGlyphData(info.name, scale) else null
+    }
+
+    internal fun scaleGlyphFromKotlin(info: SfInfo, scale: SfScaleId): SfGlyph? {
+        val (b, o) = when (scale) {
+            SfScaleId.Small -> info.smallBlock to info.smallOffset
+            SfScaleId.Large -> info.largeBlock to info.largeOffset
+            SfScaleId.Medium -> -1 to -1
+        }
+        return if (b < 0) null else glyphFromKotlin(info).let { m ->
+            m.withGeometry(readScaleGeom(Reader(block(b), o), m))
+        }
     }
 
     /** Optical-scale outline: per master, an affine map of the medium outline plus exact integer residuals. */

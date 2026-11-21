@@ -4,11 +4,23 @@ package com.composables.sfsymbols
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import com.composables.sfsymbols.core.SfGlyph
+import com.composables.sfsymbols.core.SfScaleId
 import com.composables.sfsymbols.resources.Res
 import kotlin.js.js
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 private var rustWasmLoadStarted = false
+
+internal actual fun sfRustGlyphData(name: String, scale: SfScaleId): SfGlyph? = runCatching {
+    if (!ensureRustWasm()) return null
+    val scaleId = when (scale) {
+        SfScaleId.Medium -> 0
+        SfScaleId.Small -> 1
+        SfScaleId.Large -> 2
+    }
+    parseRustGlyphData(rustGlyphDataJson(name, scaleId) ?: return null)
+}.getOrNull()
 
 internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? = runCatching {
     if (!ensureRustWasm()) return null
@@ -134,6 +146,36 @@ private fun rustGlyphPointsJson(symbolName: String, scaleId: Int, requestedWeigh
             ffi.sfstudio_free(input, inputBytes.length);
         }
     })(globalThis.__sfstudioRustWasm, symbolName, scaleId, requestedWeight)
+    """,
+)
+
+// shortcut: browser Wasm loads asynchronously; add cache invalidation when its loaded signal can refresh glyphs.
+private fun rustGlyphDataJson(symbolName: String, scaleId: Int): String? = js(
+    """
+    ((ffi, name, scale) => {
+        if (!ffi) return null;
+        const inputBytes = new TextEncoder().encode(name);
+        const input = ffi.sfstudio_alloc(inputBytes.length);
+        if (!input) return null;
+        let output = 0;
+        let outputBytes = 0;
+        try {
+            new Uint8Array(ffi.memory.buffer, input, inputBytes.length).set(inputBytes);
+            const needed = ffi.sfstudio_glyph_json(input, inputBytes.length, scale, 400, 0, 0);
+            if (!Number.isSafeInteger(needed) || needed <= 0 || needed > 0x1fffffff) return null;
+            outputBytes = needed;
+            output = ffi.sfstudio_alloc(outputBytes);
+            if (!output) return null;
+            const written = ffi.sfstudio_glyph_json(input, inputBytes.length, scale, 400, output, outputBytes);
+            if (written !== needed) return null;
+            return new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(ffi.memory.buffer, output, written));
+        } catch (_) {
+            return null;
+        } finally {
+            if (output) ffi.sfstudio_free(output, outputBytes);
+            ffi.sfstudio_free(input, inputBytes.length);
+        }
+    })(globalThis.__sfstudioRustWasm, symbolName, scaleId)
     """,
 )
 

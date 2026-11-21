@@ -56,9 +56,11 @@ intptr_t sfstudio_symbol_json(const uint8_t *symbol_name,
  * value. Geometry contains interpolated screen-coordinate points (y down) and
  * regular/light/heavy masters in raw font coordinates (y up); bounds are tight
  * visible outline bounds in screen coordinates. JSON includes path ops, layer
- * flags, colors, tags, contours, anchors, and optical variant status. Error -6
- * means unknown symbol, -9 invalid scale, and -10 non-finite weight. Other
- * errors use the common buffer/error contract described above.
+ * flags, colors, tags, contours, anchors, and optical variant status. Layers
+ * contain readable color/tag names plus their integer colorId/tagIds for exact
+ * round-trip into the embedded catalog tables. Error -6 means unknown symbol,
+ * -9 invalid scale, and -10 non-finite weight. Other errors use the common
+ * buffer/error contract described above.
  */
 intptr_t sfstudio_glyph_json(const uint8_t *symbol_name,
                              size_t symbol_name_len, int32_t scale, float weight,

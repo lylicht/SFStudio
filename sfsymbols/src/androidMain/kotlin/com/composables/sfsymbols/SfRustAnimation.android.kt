@@ -2,6 +2,11 @@ package com.composables.sfsymbols
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import com.composables.sfsymbols.core.SfGlyph
+import com.composables.sfsymbols.core.SfScaleId
+
+internal actual fun sfRustGlyphData(name: String, scale: SfScaleId): SfGlyph? =
+    RustFfi.glyphData(name, scale)
 
 internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? =
     RustFfi.points(symbol.name, scale, weight)
@@ -31,6 +36,7 @@ private object RustFfi {
     private val available by lazy { runCatching { System.loadLibrary("sfstudio_ffi") }.isSuccess }
 
     external fun glyphPoints(name: String, scale: Int, weight: Float): FloatArray?
+    external fun glyphJson(name: String, scale: Int): ByteArray?
     external fun animationJson(input: ByteArray): ByteArray?
     external fun drawFieldJson(input: ByteArray): ByteArray?
 
@@ -43,6 +49,22 @@ private object RustFfi {
         }
         return try {
             glyphPoints(name, scaleId, weight)?.takeIf { points -> points.all { it.isFinite() } }
+        } catch (_: Exception) {
+            null
+        } catch (_: LinkageError) {
+            null
+        }
+    }
+
+    fun glyphData(name: String, scale: SfScaleId): SfGlyph? {
+        if (!available) return null
+        val scaleId = when (scale) {
+            SfScaleId.Medium -> 0
+            SfScaleId.Small -> 1
+            SfScaleId.Large -> 2
+        }
+        return try {
+            glyphJson(name, scaleId)?.decodeToString()?.let(::parseRustGlyphData)
         } catch (_: Exception) {
             null
         } catch (_: LinkageError) {

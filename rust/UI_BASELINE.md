@@ -14,13 +14,16 @@ and a 1000×680 dp minimum size.
 - Right inspector with Color, BG, and Basic info tabs, a selected-symbol
   preview, an Apple Bounce effect selector and Play action, appearance/tint
   controls, and Copy Name / Copy Code actions.
-- The search header reserves space for Windows caption buttons. The gallery
-  toolbar is below that row and uses the ordinary 18 dp pane inset.
+- The search header reserves space for Windows caption buttons. The current
+  source uses a 32 dp margin after the three-button strip; the screenshot below
+  predates that increase. The gallery toolbar is below the search row and uses
+  the ordinary 18 dp pane inset.
 
 The visible screenshot showed the caption buttons separated from the app search
 field. The screenshot was displayed and inspected in-session but was not saved
-as a repository artifact. The current lower-toolbar inset change has passed the
-JVM app suite; its branch-head cross-platform CI is running.
+as a repository artifact. The lower-toolbar and expanded caption-control inset
+changes pass the local JVM app suite; a refreshed screenshot and current
+cross-platform CI are pending.
 
 ## Appearance and remaining gate
 

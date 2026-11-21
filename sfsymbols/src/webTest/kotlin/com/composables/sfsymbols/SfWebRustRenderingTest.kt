@@ -1,13 +1,26 @@
 package com.composables.sfsymbols
 
 import androidx.compose.ui.geometry.Rect
+import com.composables.sfsymbols.core.SfData
+import com.composables.sfsymbols.core.SfScaleId
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class SfWebRustRenderingTest {
     @Test
     fun rustWasmProvidesPointsAnimationAndDrawFieldLevels() {
+        val info = SfData.all().first { it.name == "wifi" }
+        val kotlinGlyph = SfData.glyphFromKotlin(info)
+        val rustGlyph = assertNotNull(SfData.rustGlyph(info))
+        assertContentEquals(kotlinGlyph.reg, rustGlyph.reg)
+        assertContentEquals(kotlinGlyph.tree.first().contours, rustGlyph.tree.first().contours)
+        val opticalInfo = SfData.all().first { it.smallBlock >= 0 }
+        val kotlinSmall = assertNotNull(SfData.scaleGlyphFromKotlin(opticalInfo, SfScaleId.Small))
+        val rustSmall = assertNotNull(SfData.rustScaleGlyph(opticalInfo, SfScaleId.Small))
+        assertContentEquals(kotlinSmall.reg, rustSmall.reg)
+
         val symbol = SfSymbol.named("wifi") ?: error("missing fixture symbol")
         val points = assertNotNull(sfRustGlyphPoints(symbol, 400f, SfScale.Medium))
         assertEquals(symbol.pointsFromKotlinData(400f).toList(), points.toList())

@@ -235,3 +235,26 @@ to survive sudden power loss after a successful return on every filesystem.
 path, legacy JSON, round trips, malformed input, and safe replacement. The
 first local gate is Windows; the existing CI matrix runs the C ABI and JVM
 checks on Windows, macOS, and Linux.
+
+## 018 — Decode the full glyph tree from Rust behind the existing KMP API
+
+**Decision:** Keep `SfGlyph` and the published KMP API unchanged. Expose the
+existing Rust outline and Apple layer-tree data as JSON through the C ABI, then
+parse it in the private JVM, Android JNI, iOS C-interop, and JS/Wasm actuals.
+Preserve Kotlin decoding whenever Rust is unavailable or its payload fails
+validation. Include numeric `colorId` and `tagIds` in the JSON so duplicate
+human-readable names cannot change the reconstructed layer identity. Resolve
+exact catalog names before aliases to match Kotlin lookup behavior.
+
+**Reason:** The generated Kotlin blobs remain the compatibility source and
+fallback. Returning the same internal glyph model from Rust lets existing
+rendering and animation code consume Rust data without changing public callers
+or symbol assets. Browser Wasm loads asynchronously; a glyph cached from Kotlin
+on its first request remains on that fallback for the current app session.
+
+**Gate:** JVM parity compares full glyph/layer fingerprints for all 8,526
+catalog symbols and available optical variants. A JS Node smoke case checks
+Rust medium and small-scale JSON; Rust workspace tests, Clippy, Android target
+compilation, and JVM/JS Gradle checks pass locally. The new Android packaging
+and iOS C-interop actuals still await branch CI; browser runtime behavior is
+not verified.

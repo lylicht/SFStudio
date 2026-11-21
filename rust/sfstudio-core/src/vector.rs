@@ -272,11 +272,15 @@ impl VectorCatalog {
 
     /// Looks up an Apple name, generated alias, or legacy `SF...` property name.
     pub fn find(&self, name: &str) -> Option<&SymbolInfo> {
-        let canonical = self.aliases.get(name).map_or(name, String::as_str);
         let index = self
             .by_name
-            .get(canonical)
+            .get(name)
             .copied()
+            .or_else(|| {
+                self.aliases
+                    .get(name)
+                    .and_then(|canonical| self.by_name.get(canonical).copied())
+            })
             .or_else(|| self.by_legacy_name.get(name).copied())?;
         self.symbols.get(index)
     }
@@ -1000,6 +1004,15 @@ mod tests {
         let catalog = vector_catalog().expect("embedded vector sources are valid");
         assert_eq!(catalog.find("heart.fill").unwrap().name, "heart.fill");
         assert_eq!(catalog.find("SFHeartFill").unwrap().name, "heart.fill");
+        assert_eq!(catalog.find("airplayaudio").unwrap().name, "airplay.audio");
+        assert_eq!(
+            catalog.find("phone.arrow.up.right.fill").unwrap().name,
+            "phone.arrow.up.right.fill"
+        );
+        assert_eq!(
+            catalog.find("phone.fill.arrow.up.right").unwrap().name,
+            "phone.arrow.up.right.fill"
+        );
         assert_eq!(catalog.glyph("not-a-symbol").unwrap(), None);
     }
 

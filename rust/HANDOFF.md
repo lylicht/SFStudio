@@ -5,10 +5,11 @@
 The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
-Desktop caption-button clearance stays on the titlebar header; the lower gallery
-toolbar uses the content-pane inset so its controls fit at the 1000 dp minimum.
-The local JVM app suite passes this layout change; its cross-platform CI run is
-still running against the same code tree.
+The Windows titlebar header now reserves the three caption-button widths plus a
+32 dp margin; the lower gallery toolbar uses the content-pane inset so its
+controls fit at the 1000 dp minimum. The local JVM app suite passes both layout
+changes. The in-session screenshot was captured before the latest margin change;
+a refreshed visual capture remains pending.
 The observed catalog layout and unverified UI gates are recorded in
 [UI_BASELINE.md](UI_BASELINE.md); its screenshot was not saved to the repo.
 
@@ -24,8 +25,13 @@ invalid IDs and batches, and notifications. See
 
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
 filter-selection transitions, Compose snippet generation, favorite toggling,
-MCP client config generation, outline interpolation, and Apple effect rendering
-through JNA. The desktop ViewModel also resolves System/Light/Dark and clamps
+MCP client config generation, complete glyph/layer decoding, outline
+interpolation, and Apple effect rendering through JNA. Android JNI and iOS
+Kotlin/Native actuals now request the same glyph JSON with Kotlin fallback; JS
+and Wasm are wired too. Browser Wasm loads asynchronously, so a glyph first
+cached from Kotlin stays on that fallback for the app session. JVM parity now
+matches all 8,526 glyphs and available optical variants, including full layer
+trees. The desktop ViewModel also resolves System/Light/Dark and clamps
 grid scale through Rust, retaining Kotlin fallbacks; Kotlin continues to own
 Java Preferences persistence and Compose state. The latest completed
 cross-platform run [#44869413797](https://github.com/lylicht/SFStudio/actions/runs/44869413797)

@@ -2,6 +2,8 @@ package com.composables.sfsymbols
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import com.composables.sfsymbols.core.SfGlyph
+import com.composables.sfsymbols.core.SfScaleId
 import com.sun.jna.Library
 import com.sun.jna.Native
 import java.nio.file.Files
@@ -9,6 +11,15 @@ import java.nio.file.StandardCopyOption
 import java.util.concurrent.atomic.AtomicBoolean
 
 private interface NativeAnimation : Library {
+    fun sfstudio_glyph_json(
+        symbolName: ByteArray,
+        symbolNameLength: Long,
+        scale: Int,
+        weight: Float,
+        output: ByteArray?,
+        outputCapacity: Long,
+    ): Long
+
     fun sfstudio_glyph_points(
         symbolName: ByteArray,
         symbolNameLength: Long,
@@ -20,6 +31,9 @@ private interface NativeAnimation : Library {
     fun sfstudio_animation_json(input: ByteArray, inputLength: Long, output: ByteArray?, outputCapacity: Long): Long
     fun sfstudio_draw_field_json(input: ByteArray, inputLength: Long, output: ByteArray?, outputCapacity: Long): Long
 }
+
+internal actual fun sfRustGlyphData(name: String, scale: SfScaleId): SfGlyph? =
+    RustAnimation.glyphData(name, scale)
 
 internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? =
     RustAnimation.glyphPoints(symbol, weight, scale)
@@ -49,6 +63,43 @@ private object RustAnimation {
     private val warned = AtomicBoolean()
     private val native by lazy { loadNative() }
     private val output = ThreadLocal.withInitial { ByteArray(16 * 1024) }
+
+    fun glyphData(name: String, scale: SfScaleId): SfGlyph? = try {
+        val library = native ?: return null
+        val bytes = name.toByteArray(Charsets.UTF_8)
+        val scaleId = when (scale) {
+            SfScaleId.Medium -> 0
+            SfScaleId.Small -> 1
+            SfScaleId.Large -> 2
+        }
+        val required = library.sfstudio_glyph_json(
+            bytes, bytes.size.toLong(), scaleId, 400f, null, 0,
+        )
+        if (required <= 0L || required > Int.MAX_VALUE) {
+            warn("Rust glyph decoder returned $required for $name")
+            return null
+        }
+        var buffer = output.get()
+        if (required > buffer.size) {
+            buffer = ByteArray(required.toInt())
+            output.set(buffer)
+        }
+        val written = library.sfstudio_glyph_json(
+            bytes, bytes.size.toLong(), scaleId, 400f, buffer, buffer.size.toLong(),
+        )
+        if (written != required) {
+            warn("Rust glyph decoder wrote $written bytes; expected $required for $name")
+            return null
+        }
+        parseRustGlyphData(buffer.decodeToString(0, written.toInt()))
+            ?: run { warn("Rust glyph decoder returned invalid data for $name"); null }
+    } catch (error: Exception) {
+        warn(error.message ?: error::class.simpleName.orEmpty())
+        null
+    } catch (error: LinkageError) {
+        warn(error.message ?: error::class.simpleName.orEmpty())
+        null
+    }
 
     fun glyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? = try {
         val library = native ?: return null

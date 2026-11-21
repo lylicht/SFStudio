@@ -349,3 +349,26 @@ adapter checks are recorded below.
 - The Rust Wasm artifact is about 11.9 MB before transfer compression. The
   web adapter keeps Kotlin fallback while the browser fetches the module and
   after a load failure.
+
+## Rust glyph JSON integration and desktop caption spacing (2026-11-21)
+
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 47 tests pass.
+- `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings`
+  — passed.
+- `cargo check --manifest-path rust/Cargo.toml -p sfstudio-ffi --target aarch64-linux-android`
+  — passed.
+- The exhaustive JVM parity test compares Rust glyph JSON against Kotlin
+  fingerprints for every catalog symbol, complete layer tree, and available
+  optical variant. Malformed/incomplete JSON also returns to the Kotlin
+  fallback. The test passed locally.
+- `gradlew.bat :app:jvmTest :sfsymbols:jvmTest --tests com.composables.sfsymbols.SfVectorRustParityTest :sfsymbols:jsNodeTest :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true`
+  — passed. This includes JVM app tests, JS Node Rust glyph JSON smoke coverage
+  for medium and small optical scales, and Kotlin/Wasm compilation.
+- Windows, Android, and iOS now have Rust glyph JSON adapters behind the
+  existing KMP API; Android package and iOS C-interop compilation for this new
+  endpoint await the branch CI run. Browser Wasm starts loading asynchronously,
+  so glyph data cached from Kotlin on first use does not switch to Rust in that
+  session. Kotlin fallback remains active in all these cases.
+- Windows titlebar search clearance increased from 12 dp to 32 dp beyond the
+  three native caption-button widths. `:app:jvmTest` passes. The screenshot
+  baseline predates this change, so the refreshed visual check is pending.

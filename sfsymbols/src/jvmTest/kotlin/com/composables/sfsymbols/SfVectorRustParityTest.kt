@@ -7,16 +7,25 @@ import com.composables.sfsymbols.core.SfScaleId
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class SfVectorRustParityTest {
     @Test
     fun rustVectorDecoderMatchesEveryKotlinGlyphAndOpticalVariant() {
         val actual = SfData.all().joinToString(separator = "\n", postfix = "\n") { info ->
-            val glyph = SfData.glyph(info)
-            val small = SfData.scaleGlyph(info, SfScaleId.Small)?.let(::geometryHash) ?: "-"
-            val large = SfData.scaleGlyph(info, SfScaleId.Large)?.let(::geometryHash) ?: "-"
-            "${info.name}|${glyphHash(glyph)}|$small|$large"
+            val glyph = checkNotNull(SfData.rustGlyph(info)) { "Rust glyph JSON missing for ${info.name}" }
+            assertEquals("medium ${info.name}", glyphHash(SfData.glyphFromKotlin(info)), glyphHash(glyph))
+            if (info.name == "heart.fill") {
+                assertEquals(glyphHash(glyph), glyphHash(SfData.glyph(info)))
+            }
+            val smallKotlin = SfData.scaleGlyphFromKotlin(info, SfScaleId.Small)
+            val small = SfData.rustScaleGlyph(info, SfScaleId.Small)
+            assertEquals("small ${info.name}", smallKotlin?.let(::glyphHash), small?.let(::glyphHash))
+            val largeKotlin = SfData.scaleGlyphFromKotlin(info, SfScaleId.Large)
+            val large = SfData.rustScaleGlyph(info, SfScaleId.Large)
+            assertEquals("large ${info.name}", largeKotlin?.let(::glyphHash), large?.let(::glyphHash))
+            "${info.name}|${glyphHash(glyph)}|${small?.let(::geometryHash) ?: "-"}|${large?.let(::geometryHash) ?: "-"}"
         }
 
         val expected = javaClass.getResourceAsStream("/sf-vector-fingerprints.txt")
@@ -24,6 +33,12 @@ class SfVectorRustParityTest {
             ?.use { it.readText() }
             ?: error("missing Rust vector parity fingerprints")
         assertEquals(expected.replace("\r\n", "\n"), actual)
+    }
+
+    @Test
+    fun rustGlyphDataCodecRejectsMalformedAndIncompletePayloads() {
+        assertNull(parseRustGlyphData("{broken"))
+        assertNull(parseRustGlyphData("""{"geometry":{},"tree":[]}"""))
     }
 
     @Test

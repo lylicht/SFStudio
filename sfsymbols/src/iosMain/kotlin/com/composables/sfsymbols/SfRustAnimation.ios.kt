@@ -4,14 +4,45 @@ package com.composables.sfsymbols
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import com.composables.sfsymbols.core.SfGlyph
+import com.composables.sfsymbols.core.SfScaleId
 import com.composables.sfsymbols.ffi.sfstudio_animation_json
 import com.composables.sfsymbols.ffi.sfstudio_draw_field_json
+import com.composables.sfsymbols.ffi.sfstudio_glyph_json
 import com.composables.sfsymbols.ffi.sfstudio_glyph_points
 import kotlinx.cinterop.UByteVar
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
+
+internal actual fun sfRustGlyphData(name: String, scale: SfScaleId): SfGlyph? = try {
+    val bytes = name.encodeToByteArray()
+    if (bytes.isEmpty()) return null
+    val scaleId = when (scale) {
+        SfScaleId.Medium -> 0
+        SfScaleId.Small -> 1
+        SfScaleId.Large -> 2
+    }
+    bytes.usePinned { pinnedName ->
+        val namePointer = pinnedName.addressOf(0).reinterpret<UByteVar>()
+        val required = sfstudio_glyph_json(
+            namePointer, bytes.size.convert(), scaleId, 400f, null, 0uL,
+        )
+        if (required <= 0L || required > Int.MAX_VALUE.toLong()) return null
+        val response = ByteArray(required.toInt())
+        val written = response.usePinned { pinnedResponse ->
+            sfstudio_glyph_json(
+                namePointer, bytes.size.convert(), scaleId, 400f,
+                pinnedResponse.addressOf(0).reinterpret<UByteVar>(), response.size.convert(),
+            )
+        }
+        if (written != required) return null
+        parseRustGlyphData(response.decodeToString())
+    }
+} catch (_: Exception) {
+    null
+}
 
 internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? {
     val name = symbol.name.encodeToByteArray()

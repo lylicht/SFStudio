@@ -215,12 +215,14 @@ fn layer_json(
         "monoErase": node.mono_erase,
         "shapeErase": node.shape_erase,
         "hierarchical": node.hierarchical,
+        "colorId": node.color_id,
         "color": color,
         "opacity": node.opacity,
         "rootU": node.ties.first(),
         "rootV": node.ties.get(1),
         "ties": node.ties,
         "contours": node.contours,
+        "tagIds": node.tags,
         "tags": names,
         "children": children,
     })
@@ -470,6 +472,56 @@ fn android_json_jni<'local>(
         let input = env.convert_byte_array(input).ok()?;
         let output = android_json_output(&input, abi)?;
         let array: JByteArray = env.new_byte_array(output.len() as i32).ok()?;
+        let bytes: Vec<jbyte> = output.into_iter().map(|value| value as jbyte).collect();
+        env.set_byte_array_region(&array, 0, &bytes).ok()?;
+        Some(array.into_raw())
+    }));
+
+    result.ok().flatten().unwrap_or(ptr::null_mut())
+}
+
+#[cfg(target_os = "android")]
+fn android_glyph_json_output(name: &[u8], scale: i32) -> Option<Vec<u8>> {
+    use std::ptr;
+
+    // SAFETY: `name` is readable; null/zero queries the C ABI output size.
+    let required =
+        unsafe { sfstudio_glyph_json(name.as_ptr(), name.len(), scale, 400.0, ptr::null_mut(), 0) };
+    let length = usize::try_from(required).ok()?;
+    if length > 64 * 1024 * 1024 {
+        return None;
+    }
+    let mut output = vec![0; length];
+    // SAFETY: `name` is readable and `output` supplies the queried byte length.
+    let written = unsafe {
+        sfstudio_glyph_json(
+            name.as_ptr(),
+            name.len(),
+            scale,
+            400.0,
+            output.as_mut_ptr(),
+            output.len(),
+        )
+    };
+    (written == required).then_some(output)
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "system" fn Java_com_composables_sfsymbols_RustFfi_glyphJson<'local>(
+    mut env: jni::JNIEnv<'local>,
+    _receiver: jni::objects::JObject<'local>,
+    name: jni::objects::JString<'local>,
+    scale: jni::sys::jint,
+) -> jni::sys::jbyteArray {
+    use jni::objects::JByteArray;
+    use jni::sys::jbyte;
+    use std::ptr;
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let name: String = env.get_string(&name).ok()?.into();
+        let output = android_glyph_json_output(name.as_bytes(), scale)?;
+        let array: JByteArray = env.new_byte_array(output.len().try_into().ok()?).ok()?;
         let bytes: Vec<jbyte> = output.into_iter().map(|value| value as jbyte).collect();
         env.set_byte_array_region(&array, 0, &bytes).ok()?;
         Some(array.into_raw())
@@ -1713,6 +1765,9 @@ mod tests {
             medium["geometry"]["regular"].as_array().unwrap().len()
         );
         assert!(!medium["tree"].as_array().unwrap().is_empty());
+        let first_layer = medium["tree"][0].as_object().unwrap();
+        assert!(first_layer.contains_key("colorId"));
+        assert!(first_layer["tagIds"].is_array());
 
         let black = glyph_json(b"heart.fill", 0, 1000.0).unwrap();
         let points = black["geometry"]["points"].as_array().unwrap();
@@ -1729,6 +1784,10 @@ mod tests {
         assert_eq!(large["usedOpticalVariant"], true);
         assert_ne!(small["geometry"]["regular"], medium["geometry"]["regular"]);
         assert_ne!(large["geometry"]["regular"], medium["geometry"]["regular"]);
+        assert_eq!(
+            glyph_json(b"phone.arrow.up.right.fill", 0, 400.0).unwrap()["name"],
+            "phone.arrow.up.right.fill"
+        );
         assert_eq!(glyph_json(b"missing", 0, 400.0), Err(UNKNOWN_SYMBOL));
         assert_eq!(glyph_json(b"heart.fill", 3, 400.0), Err(INVALID_SCALE));
         assert_eq!(glyph_json(b"heart.fill", 0, f32::NAN), Err(INVALID_WEIGHT));
