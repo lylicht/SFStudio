@@ -60,9 +60,9 @@ class SfIosRustAnimationTest {
                 expected.forEachIndexed { field, value ->
                     val actual = rust[index * RUST_FRAME_STRIDE + field]
                     if (value.isNaN()) {
-                        assertTrue("${case.id} layer $index field $field", actual.isNaN())
+                        assertTrue(actual.isNaN(), "${case.id} layer $index field $field")
                     } else {
-                        assertEquals("${case.id} layer $index field $field", value, actual, 0.0002f)
+                        assertEquals(value, actual, 0.0002f, "${case.id} layer $index field $field")
                     }
                 }
             }
@@ -87,26 +87,26 @@ class SfIosRustAnimationTest {
                     assertEquals(1f, frames[offset + 14], 0f)
                     val color = layerColor(layer, mode, tint, palette)
                     if (color == null) {
-                        assertTrue("$name $mode layer $index should have no color", frames[offset + 13].isNaN())
+                        assertTrue(frames[offset + 13].isNaN(), "$name $mode layer $index should have no color")
                     } else {
                         listOf(color.red, color.green, color.blue, color.alpha).forEachIndexed { channel, value ->
-                            assertEquals("$name $mode layer $index color $channel", value, frames[offset + 10 + channel], 0.002f)
+                            assertEquals(value, frames[offset + 10 + channel], 0.002f, "$name $mode layer $index color $channel")
                         }
                     }
 
                     val expectedStops = color?.takeIf { gradient && it.alpha > 0f }?.let(::sfAutomaticGradient)
                     if (expectedStops == null) {
-                        assertEquals("$name $mode layer $index gradient", 0f, frames[offset + 15], 0f)
+                        assertEquals(0f, frames[offset + 15], 0f, "$name $mode layer $index gradient")
                     } else {
-                        assertEquals("$name $mode layer $index gradient", 1f, frames[offset + 15], 0f)
+                        assertEquals(1f, frames[offset + 15], 0f, "$name $mode layer $index gradient")
                         listOf(expectedStops.first, expectedStops.second).forEachIndexed { stop, stopColor ->
                             listOf(stopColor.red, stopColor.green, stopColor.blue, stopColor.alpha)
                                 .forEachIndexed { channel, value ->
                                     assertEquals(
-                                        "$name $mode layer $index stop $stop channel $channel",
                                         value,
                                         frames[offset + 16 + stop * 4 + channel],
                                         0.002f,
+                                        "$name $mode layer $index stop $stop channel $channel",
                                     )
                                 }
                         }
