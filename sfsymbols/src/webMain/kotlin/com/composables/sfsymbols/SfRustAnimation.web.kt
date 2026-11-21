@@ -121,8 +121,9 @@ private fun loadRustWasm(url: String, onReady: () -> Unit): Unit = js(
             fetch(url)
                 .then(response => { if (!response.ok) throw new Error("Rust wasm resource unavailable"); return response.arrayBuffer(); })
                 .then(bytes => WebAssembly.compile(bytes))
-                .then(module => {
-                    host.__sfstudioRustWasm = new WebAssembly.Instance(module).exports;
+                .then(module => WebAssembly.instantiate(module))
+                .then(instance => {
+                    host.__sfstudioRustWasm = instance.exports;
                     onReady();
                 })
                 .catch(() => { host.__sfstudioRustWasm = null; });

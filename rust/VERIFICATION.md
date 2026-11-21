@@ -535,3 +535,20 @@ adapter checks are recorded below.
   passed all 13 jobs, including the Windows/macOS/Linux JVM and Rust checks,
   Android packaging, iOS simulator parity, JS/Wasm gates, packaged launchers,
   and differential MCP replay.
+
+## Wasm browser runtime (2026-11-21)
+
+- The browser loader now instantiates the Rust Wasm module asynchronously.
+  Edge rejects synchronous instantiation of this large module on the main
+  thread; the Kotlin fallback remains active until the async load completes.
+- `gradlew.bat :sfsymbols:jsNodeTest :sfsymbols:wasmJsBrowserTest --no-daemon
+  --console=plain -PsfstudioUseSystemWebTools=true` — passed locally on Windows
+  x64; the browser test ran in Edge 157. It checks Rust glyph data and optical
+  scale, points, visible bounds, Apple effect frames, and draw-field levels and
+  spans. Karma now serves the staged Compose resource used by the test.
+- Wasm Node execution remains blocked before this parity test by Compose Skiko's
+  separate `skiko.wasm` loading. Published-consumer resource loading, Android
+  rendering on a device, iOS physical-device rendering, and full pixel-image
+  comparison are still unverified. The browser test exercises Rust after the
+  async load; it does not verify replacing glyph data already cached through
+  Kotlin before that load completes.

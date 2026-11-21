@@ -34,8 +34,11 @@ still rasterizes masks and materializes clip paths from those spans. JS and Wasm
 now load the shared Rust Wasm C ABI for
 weighted points, Apple effect frames, and draw-field levels/spans, with Kotlin
 fallbacks while the browser fetches the module or when loading fails. JS Node
-parity passes; the browser runtime remains unverified. Wide-gamut colors use
-Kotlin.
+parity and local Wasm browser parity in Edge 157 pass; the browser loader uses
+asynchronous instantiation for the large module. Published-consumer resource
+loading remains unverified. Glyph data cached through Kotlin before the Rust
+module finishes loading remains compatible but is not replaced in that session.
+Wide-gamut colors use Kotlin.
 
 The shared catalog search and filters, filter-selection transitions, theme
 resolution, grid-scale clamping, symbol metadata lookup, Compose code
@@ -77,10 +80,12 @@ render tests pass with Rust enabled. The draw-field bridge matches the Kotlin
 fixture for five real symbol layers, and Rust spans reconstruct those exact
 pixel levels before Compose uses them to build reveal paths. JS and Wasm bundle the shared Rust Wasm
 library and route rendering requests through the C ABI; JS Node parity covers
-points, animation frames, and draw-field levels/spans. Kotlin/Wasm sources compile,
-but the Windows Wasm Node runner fails while loading Compose's separate
-`skiko.wasm` file before the Rust parity test can run. Browser runtime coverage
-remains outstanding, so Kotlin fallbacks stay in place. The vector geometry,
+points, animation frames, and draw-field levels/spans. The Wasm browser parity
+test passes locally in Edge 157, including geometry, optical scaling, points,
+bounds, animation frames, and draw-field output. The Windows Wasm Node runner
+still fails while loading Compose's separate `skiko.wasm` file before the Rust
+parity test can run; published-consumer resource loading is also unverified.
+Kotlin fallbacks stay in place. The vector geometry,
 animation, and draw-field C ABI smoke checks passed on Windows, macOS, and Linux.
 Run #34 passed the filter-selection C ABI on those operating systems and
 retained the KMP builds.
@@ -106,8 +111,8 @@ retained the KMP builds.
 | Android | Kotlin Multiplatform + Compose | `IN_PROGRESS`; weighted outline points, animation frames, layer appearance, and draw-field levels/spans use Rust through JNI with Kotlin fallback; the four-ABI AAR and device-test sources compile in [run #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359); point parity passes on an API 36.1 x86_64 emulator; new rendering runtime parity still needs a device run |
 | JVM / desktop | Kotlin Multiplatform + Compose; packaged search, category counts, filtering, snippets, favorites, MCP config, glyph points, animation frames, draw-field levels/spans, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter, metadata lookup, and category-count ordering/value parity passed Windows/macOS/Linux in run #44888335626; Rust glyph points pass exact Kotlin parity across representative symbols, all nine weights, and three optical scales; Apple animation frames and draw-field levels/spans pass native/Kotlin parity and the Compose suite; Compose rasterizes symbol masks and materializes `Path` clips |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `IN_PROGRESS`; weighted points, Apple effect frames with sRGB layer appearance, and draw-field levels/spans use Rust C-interop; point parity across ten symbols, nine weights, and three scales passed in [run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293), animation/appearance parity passed in [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656), and the new response parser and draw-span parity passed simulator tests in [run #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359); physical-device runtime is unverified |
-| JS | Kotlin/JS + Compose | `IN_PROGRESS`; packages the Rust Wasm C ABI as a Compose web resource and uses it for points, Apple animation frames, and draw-field levels/spans; JS Node parity passes in [run #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359); browser runtime and published-package loading remain unverified |
-| Wasm JS | Kotlin/Wasm + Compose | `IN_PROGRESS`; shares the Rust Wasm web adapter and compiles with its integration test in [run #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359); Node execution is blocked before parity by Compose Skiko's `skiko.wasm` fetch, and browser runtime remains unverified |
+| JS | Kotlin/JS + Compose | `IN_PROGRESS`; packages the Rust Wasm C ABI as a Compose web resource and uses it for points, Apple animation frames, and draw-field levels/spans; JS Node parity passes locally; JS browser runtime and published-package loading remain unverified |
+| Wasm JS | Kotlin/Wasm + Compose | `IN_PROGRESS`; shares the Rust Wasm web adapter; local Edge 157 browser parity passes for geometry, scale, points, bounds, animation frames, and draw-field levels/spans; Node execution is blocked before parity by Compose Skiko's `skiko.wasm` fetch; published-package loading remains unverified |
 
 One FFI mechanism is not assumed to serve all targets. Each bridge needs an
 integration test through the existing public API on that target before any

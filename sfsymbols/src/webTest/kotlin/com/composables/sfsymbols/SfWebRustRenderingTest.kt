@@ -3,6 +3,12 @@ package com.composables.sfsymbols
 import androidx.compose.ui.geometry.Rect
 import com.composables.sfsymbols.core.SfData
 import com.composables.sfsymbols.core.SfScaleId
+import kotlin.js.JsAny
+import kotlin.js.Promise
+import kotlinx.coroutines.await
+import kotlinx.coroutines.test.runTest
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.configureWebResources
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -11,9 +17,14 @@ import kotlin.test.assertTrue
 import kotlin.math.abs
 
 class SfWebRustRenderingTest {
+    @OptIn(ExperimentalResourceApi::class, kotlin.js.ExperimentalWasmJsInterop::class)
     @Test
-    fun rustWasmProvidesPointsAnimationAndDrawFieldLevels() {
+    fun rustWasmProvidesPointsAnimationAndDrawFieldLevels() = runTest {
+        configureWebResources { resourcePathMapping { "/base/$it" } }
+
         val info = SfData.all().first { it.name == "wifi" }
+        SfData.rustGlyph(info)
+        awaitRustWasm().await<JsAny?>()
         val kotlinGlyph = SfData.glyphFromKotlin(info)
         val rustGlyph = assertNotNull(SfData.rustGlyph(info))
         assertContentEquals(kotlinGlyph.reg, rustGlyph.reg)
@@ -52,3 +63,19 @@ class SfWebRustRenderingTest {
         assertEquals(listOf(SfRustDrawRun(0, 0, 0, 0), SfRustDrawRun(47, 0, 1, 1)), field.runs)
     }
 }
+
+@OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
+private fun awaitRustWasm(): Promise<JsAny?> = js(
+    """
+    new Promise((resolve, reject) => {
+        const deadline = Date.now() + 10000;
+        const check = () => {
+            const ffi = globalThis.__sfstudioRustWasm;
+            if (ffi != null) resolve(ffi);
+            else if (Date.now() >= deadline) reject(new Error("Rust Wasm did not load"));
+            else setTimeout(check, 10);
+        };
+        check();
+    })
+    """,
+)

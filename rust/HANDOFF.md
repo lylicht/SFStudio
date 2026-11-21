@@ -21,6 +21,20 @@ flattening fallback. Full field parity passes for all 8,526 catalog symbols.
 The observed catalog layout and unverified UI gates are recorded in
 [UI_BASELINE.md](UI_BASELINE.md); its screenshot was not saved to the repo.
 
+## Latest update (2026-11-21)
+
+The Wasm browser parity test now passes locally in Edge 157. It exercises Rust
+geometry and optical scaling, outline points and bounds, Apple effect frames,
+and draw-field levels/spans through the existing Kotlin API. The browser loader
+now instantiates the large Wasm module asynchronously; Karma serves the staged
+Compose resource used by the test. `:sfsymbols:jsNodeTest` passed in the same
+run. Wasm Node execution is still blocked before Rust parity by Compose Skiko's
+separate `skiko.wasm` load. JS browser runtime, published-consumer resource
+loading, Android rendering on a device, iOS physical-device rendering, and full
+pixel-image comparison remain open. The test does not verify replacing glyph
+data already cached through Kotlin before the Wasm load completes. See
+[VERIFICATION.md](VERIFICATION.md).
+
 On Windows x64, Rust fmt, all 51 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
@@ -50,13 +64,11 @@ Run #44885280359 passed Rust/C ABI checks, JVM tests on Windows/macOS/Linux,
 Android compilation and four-ABI packaging, iOS device/simulator compilation
 and simulator tests,
 packaged MCP launchers on all three desktop OSes, JS Node parity, Wasm
-compilation, and differential MCP replay. Wasm runtime and browser validation
-remain pending because of the Compose Skiko loader and Karma resource-serving
-issues described below.
+compilation, and differential MCP replay. At that point, Wasm browser runtime
+had not yet been exercised; the latest local browser result is recorded above.
 The web bridge’s JS parameter collision is fixed and the JS Node parity test now
-passes. Kotlin/Wasm compilation passes in CI; runtime execution is still open
-because Skiko fails before Wasm Node tests and the Karma browser runner returns
-404 for the packaged Compose resource.
+passes. Kotlin/Wasm compilation passes in CI; the Windows Node runner still
+fails before Wasm tests because Skiko cannot load `skiko.wasm`.
 The Android instrumentation source for effect, appearance, and draw-field
 parity compiled; runtime execution remains a device gate. Local Rust,
 Python `ctypes`, JVM, desktop app, and JS Node checks pass. Rust Wasm-backed JS
@@ -80,8 +92,9 @@ iOS Apple effect frames and sRGB layer appearance now pass simulator parity in
 [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656).
 iOS draw-field C-interop checks passed in [run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638).
 Physical-device runtime remains unverified. JS and Wasm now bundle the Rust
-Wasm library behind the existing APIs with Kotlin fallback; browser runtime and
-published-package loading remain unverified. Compose still rasterizes the mask
+Wasm library behind the existing APIs with Kotlin fallback; local Wasm browser
+parity passes in Edge, while published-package loading remains unverified.
+Compose still rasterizes the mask
 and materializes platform `Path` clips from Rust-generated horizontal reveal
 spans. The Kotlin reveal-level and path-building fallback remains in place.
 The Rust draw-field response now adds horizontal spans without removing its
@@ -89,7 +102,8 @@ existing `levels` array. Local Rust and JVM/JS/Wasm checks pass; [run
 #44885280359](https://github.com/lylicht/SFStudio/actions/runs/44885280359)
 passed the full desktop, Android packaging, iOS simulator, JS/Wasm, and MCP
 matrix with this change. Android rendering still needs a device, iOS physical-
-device rendering remains unverified, and browser Wasm runtime is still open.
+device rendering, published-package loading, and full pixel-image comparison
+remain unverified.
 
 The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
 `arm64-v8a`, `x86`, and `x86_64`. The local AAR contains all four libraries

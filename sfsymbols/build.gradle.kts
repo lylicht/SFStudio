@@ -124,8 +124,16 @@ kotlin {
 
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmJs {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                    useConfigDirectory(file("karma.config.d"))
+                }
+            }
+        }
         nodejs()
+        binaries.executable()
     }
 
     sourceSets {
@@ -146,6 +154,7 @@ kotlin {
 
         webTest.dependencies {
             implementation(kotlin("test"))
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${libs.versions.kotlinxCoroutinesCore.get()}")
         }
 
         jvmTest.dependencies {
@@ -169,6 +178,13 @@ kotlin {
         }
     }
 }
+
+val stageRustWasmForBrowserTests by tasks.registering(Sync::class) {
+    dependsOn("wasmJsTestTestDevelopmentExecutableCompileSync", "wasmJsProcessResources")
+    from(layout.buildDirectory.dir("processedResources/wasmJs/main/composeResources"))
+    into(rootProject.layout.buildDirectory.dir("wasm/packages/${rootProject.name}-${project.name}-test/composeResources"))
+}
+tasks.named("wasmJsBrowserTest").configure { dependsOn(stageRustWasmForBrowserTests) }
 
 val buildRustAndroidFfi = tasks.register<BuildRustAndroidFfi>("buildRustAndroidFfi") {
     outputDirectory.set(layout.buildDirectory.dir("generated/android/jniLibs"))

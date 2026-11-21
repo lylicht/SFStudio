@@ -169,8 +169,12 @@ jobs:
           corepack enable yarn --install-directory "$RUNNER_TEMP/yarn-shims"
           corepack prepare yarn@1.22.22 --activate
           echo "$RUNNER_TEMP/yarn-shims" >> "$GITHUB_PATH"
-      - name: JS runtime test and Wasm compilation
-        run: ./gradlew :sfsymbols:jsNodeTest :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true
+      - uses: browser-actions/setup-chrome@v2
+        id: setup-chrome
+      - name: JS and Wasm browser parity tests
+        env:
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: ./gradlew :sfsymbols:jsNodeTest :sfsymbols:wasmJsBrowserTest --no-daemon -PsfstudioUseSystemWebTools=true
 
   kmp-android:
     name: Android target and Rust JNI
