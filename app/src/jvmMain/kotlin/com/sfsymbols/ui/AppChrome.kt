@@ -89,7 +89,8 @@ private fun BrandMark(modifier: Modifier = Modifier) {
 private fun GalleryToolbar(viewModel: CatalogViewModel) {
     val cs = MacosTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().padding(start = 18.dp, end = WINDOW_CONTROLS_END_PADDING, top = 8.dp, bottom = 8.dp),
+        // Only the header shares a row with the native caption buttons.
+        Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
