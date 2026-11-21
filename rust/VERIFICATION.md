@@ -212,12 +212,11 @@ Last local check: 2026-11-20, Windows x64, branch
   test passed on an Android 16 / API 36.1 x86_64 emulator, comparing the Rust
   and Kotlin renderers across ten symbols, all nine weights, and all three
   optical scales. Android effect frames, appearance, and draw-field behavior
-  remain on Kotlin. Linux-hosted emulator attempts could not complete the device
-  test with software CPU emulation: one failed during APK installation with a
-  broken pipe and SwiftShader color-buffer errors, and the GPU-off retry stalled
-  beyond twenty minutes. The Android device job now runs an ARM64 emulator on
-  macOS, where native Hypervisor.Framework acceleration is available; hosted
-  device verification is pending.
+  remain on Kotlin. Standard GitHub-hosted runners cannot provide the nested
+  virtualization required by this emulator action: Linux software-emulation
+  attempts failed or stalled, and the Apple Silicon runner reported
+  `HV_UNSUPPORTED`. CI continues to compile and package all Android ABIs; device
+  runtime parity is covered by the local x86_64 emulator test only.
 
 ## Not yet verified
 

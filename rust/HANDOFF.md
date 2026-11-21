@@ -39,11 +39,11 @@ The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
 `arm64-v8a`, `x86`, and `x86_64`. The local AAR contains all four libraries
 and the consumer R8 keep rule. Its Android device parity test passed on the
 local Android 16 / API 36.1 x86_64 emulator for ten symbols across all nine
-weights and all three optical scales. The first hosted emulator attempt failed
-without hardware acceleration; enabling TCG let a later run boot, but its
-package manager failed during APK installation with a broken pipe, and a GPU-off
-retry stalled. The Android device gate now uses an ARM64 emulator on macOS to
-use native Hypervisor.Framework acceleration.
+weights and all three optical scales. Hosted Linux software emulation failed or
+stalled, and the Apple Silicon runner reported `HV_UNSUPPORTED`; standard hosted
+Actions runners do not provide the nested virtualization this device test needs.
+CI therefore verifies Android compilation and four-ABI packaging, while the
+JNI runtime parity test remains a locally verified device gate.
 Building the Android target now requires Android NDK `28.2.13676358` and
 `cargo-ndk` `4.1.2`; CI installs both before assembling the KMP AAR.
 
