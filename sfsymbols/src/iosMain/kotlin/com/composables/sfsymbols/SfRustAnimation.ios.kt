@@ -5,6 +5,7 @@ package com.composables.sfsymbols
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import com.composables.sfsymbols.ffi.sfstudio_glyph_points
+import kotlinx.cinterop.UByteVar
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.reinterpret
@@ -20,7 +21,7 @@ internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: Sf
     }
     return try {
         name.usePinned { pinnedName ->
-            val namePointer = pinnedName.addressOf(0).reinterpret()
+            val namePointer = pinnedName.addressOf(0).reinterpret<UByteVar>()
             val required = sfstudio_glyph_points(
                 namePointer, name.size.convert(), scaleId, weight, null, 0uL,
             )
