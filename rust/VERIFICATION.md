@@ -229,14 +229,25 @@ Last local check: 2026-11-21, Windows x64, branch
   passed Android main/device-test compilation and four-ABI packaging. Device
   runtime parity remains pending.
 
+## iOS weighted outline points
+
+- The iOS `SfSymbol.points()` path now calls `sfstudio_glyph_points` through
+  Kotlin/Native C interop, keeping Kotlin fallback behavior for failures. The
+  Rust static archives, device and simulator Kotlin/Native compilations, and
+  simulator parity passed in [GitHub Actions run
+  #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293).
+  The parity test compares ten symbols, all nine weights, and all three optical
+  scales. Physical-device runtime is unverified; animation and draw-field calls
+  still use Kotlin.
+
 ## Not yet verified
 
 - Remaining Android, Kotlin/Native, Swift, JS, and Wasm bindings for the shared
   Rust API. Android weighted outline points are JNI-backed and pass on x86_64;
   Android effects, appearance, and draw-field JNI adapters are implemented but
   pass CI compilation and await runtime parity on a device. The iOS point
-  adapter and simulator parity test are implemented, but macOS cinterop
-  compilation/linking and test execution remain pending.
+  adapter and simulator parity pass, but physical-device runtime, iOS animation,
+  and draw-field adapters remain unverified.
   JVM consumes Rust points, effect frames, appearance, gradients, and draw-field
   reveal levels. JS and Wasm compilation passed locally; those targets still
   use Kotlin adapters.
@@ -246,10 +257,11 @@ Last local check: 2026-11-21, Windows x64, branch
   cross-OS CI coverage, but target-specific bindings remain untested.
 - Rust desktop application behavior; a Rust desktop UI does not exist yet.
 
-The passing CI run verifies the existing Kotlin Multiplatform targets remain
-buildable. Local JVM parity verifies the public desktop renderer uses Rust
+The passing [CI run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293)
+verifies the existing Kotlin Multiplatform targets remain buildable and the iOS
+simulator point parity. Local JVM parity verifies the public desktop renderer uses Rust
 frames when the native library is available, and the Android emulator test
 verifies Rust outline points through the existing KMP renderer. The Android
 rendering adapters pass the hosted compile gate and still need a device run; the
-new iOS adapter still needs a macOS build and simulator run; JS and Wasm
-continue to use Kotlin.
+iOS point bridge still needs physical-device validation; JS and Wasm continue to
+use Kotlin.

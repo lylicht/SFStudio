@@ -181,6 +181,8 @@ until their separate parity gates pass.
 
 **Gate:** Rust `cargo check` passes for `aarch64-apple-ios` and
 `aarch64-apple-ios-sim`. An iOS simulator test compares the native points with
-Kotlin across ten symbols, all nine weights, and all three scales. The Windows
-host cannot run Kotlin/Native Apple cinterop; macOS CI compilation, linking, and
-simulator parity remain pending.
+Kotlin across ten symbols, all nine weights, and all three scales. Device and
+simulator compilation plus simulator parity passed in [Actions run
+#44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293).
+Physical-device runtime remains unverified; effects and Draw On/Off stay on
+Kotlin.
