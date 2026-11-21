@@ -1255,9 +1255,10 @@ pub unsafe extern "C" fn sfstudio_animation_json(
 ///
 /// Input JSON contains a row-major zero/one mask, two-value origin, positive
 /// cell, four-value symbolBounds, and normalized coordinate-pair ties.
-/// Output levels is row-major with values 0..47 and 255 outside the layer;
-/// it is null when the mask is empty. The caller rasterizes the path so its
-/// platform's antialiasing threshold remains authoritative.
+/// Output levels is row-major with values 0..47 and 255 outside the layer.
+/// Runs contain `[level, y, x_start, x_end]` with inclusive x bounds. Both
+/// outputs are null when the mask is empty. The caller rasterizes the path so
+/// its platform's antialiasing threshold remains authoritative.
 ///
 /// # Safety
 /// For nonzero input_len, input must point to that many readable UTF-8
@@ -1294,10 +1295,15 @@ pub unsafe extern "C" fn sfstudio_draw_field_json(
             &request.ties,
         )
         .map_err(|_| INVALID_DRAW_FIELD)?;
+        let (levels, runs) = match field {
+            Some(field) => (Some(field.levels), Some(field.runs)),
+            None => (None, None),
+        };
         serde_json::to_vec(&serde_json::json!({
             "width": sfstudio_core::draw::GRID,
             "height": sfstudio_core::draw::GRID,
-            "levels": field.map(|field| field.levels),
+            "levels": levels,
+            "runs": runs,
         }))
         .map_err(|_| INTERNAL_ERROR)
     })) {

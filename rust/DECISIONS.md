@@ -208,7 +208,9 @@ Physical-device runtime and iOS draw-field integration remain unverified.
 **Decision:** Keep the KMP API and Kotlin fallback. Call the existing
 `sfstudio_draw_field_json` endpoint through Kotlin/Native C interop, sharing
 request encoding and response validation with JVM and Android. Compose remains
-responsible for rasterizing each layer mask and constructing reveal clip paths.
+responsible for rasterizing each layer mask and materializing platform paths.
+Decision 019 moves the compact horizontal run encoding used to create those
+paths into Rust.
 
 **Gate:** The iOS simulator adapter returns the Kotlin reference levels for a
 two-pixel mask, including 255 outside the mask, and returns `null` for empty or
@@ -260,3 +262,23 @@ and iOS device/simulator compilation plus simulator tests passed in [run
 #44873269421](https://github.com/lylicht/SFStudio/actions/runs/44873269421).
 Direct full-glyph parity is exhaustive on JVM and smoke-tested on JS Node; the
 browser cache and mobile physical-device behavior remain unverified.
+
+## 019 — Generate Draw On/Off clip spans in Rust
+
+**Decision:** Extend the existing draw-field JSON response with horizontal
+pixel runs `[level, y, x_start, x_end]`, preserving the existing `levels`
+array. The common KMP renderer validates that runs reconstruct those levels,
+then materializes its existing Compose `Path` clips from the Rust runs. Keep
+the Kotlin run builder as fallback when the Rust bridge is unavailable or its
+payload is invalid. Compose continues to rasterize vector masks so each
+platform's antialiasing remains authoritative.
+
+**Reason:** The previous renderer scanned the full 112×112 level grid for each
+of 48 reveal frames. Encoding horizontal runs once in Rust removes that repeated
+scan while retaining the same cell extents, fill geometry, public KMP API, and
+fallback behavior. The additive JSON field preserves existing `levels` readers.
+
+**Gate:** Rust runs must reconstruct Kotlin's stored pixel-level fixtures;
+JVM bridge tests validate the JSON runs and the Compose rendering suite passes.
+Android, iOS, JS, and Wasm use the same response parser through their existing
+bridges; each target's CI compilation/runtime gate remains separate.

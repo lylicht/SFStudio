@@ -122,9 +122,10 @@ intptr_t sfstudio_animation_json(const uint8_t *input, size_t input_len,
  * binary mask. Input JSON: {"mask":[0,1,...],"origin":[x,y],"cell":size,
  * "symbolBounds":[left,top,right,bottom],"ties":[u,v,...]}. The caller
  * rasterizes the path to preserve its platform's antialiasing. Output JSON
- * contains row-major levels (0..47; 255 outside the shape), or null for an
- * empty mask. Invalid draw requests return -12; other errors use the common
- * buffer/error contract described above.
+ * contains row-major levels (0..47; 255 outside the shape) and horizontal
+ * spans [level,y,x_start,x_end] with inclusive x bounds, or null for an empty
+ * mask. Invalid draw requests return -12; other errors use the common buffer/
+ * error contract described above.
  */
 intptr_t sfstudio_draw_field_json(const uint8_t *input, size_t input_len,
                                   uint8_t *output, size_t output_capacity);

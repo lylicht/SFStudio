@@ -62,17 +62,17 @@ internal actual fun sfRustAnimationFrames(
     parseRustAnimationFrames(invokeRustJson("sfstudio_animation_json", request) ?: return null, symbol.layers.size)
 }.getOrNull()
 
-internal actual fun sfRustDrawFieldLevels(
+internal actual fun sfRustDrawField(
     mask: ByteArray,
     originX: Float,
     originY: Float,
     cell: Float,
     symbolBounds: Rect,
     ties: FloatArray,
-): ByteArray? = runCatching {
+): SfRustDrawField? = runCatching {
     if (!ensureRustWasm()) return null
     val request = buildRustDrawFieldRequest(mask, originX, originY, cell, symbolBounds, ties).decodeToString()
-    parseRustDrawFieldLevels(invokeRustJson("sfstudio_draw_field_json", request) ?: return null, mask.size)
+    parseRustDrawField(invokeRustJson("sfstudio_draw_field_json", request) ?: return null, mask.size)
 }.getOrNull()
 
 @OptIn(ExperimentalResourceApi::class)

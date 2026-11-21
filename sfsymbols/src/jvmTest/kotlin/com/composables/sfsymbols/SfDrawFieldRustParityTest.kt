@@ -15,13 +15,27 @@ class SfDrawFieldRustParityTest {
         mask[0] = 1
         mask[1] = 1
 
-        val levels = sfRustDrawFieldLevels(mask, 0f, 0f, 1f, Rect(0f, 0f, 112f, 112f), FloatArray(0))
+        val field = sfRustDrawField(mask, 0f, 0f, 1f, Rect(0f, 0f, 112f, 112f), FloatArray(0))
 
-        assertNotNull("Rust draw-field C ABI should be available in JVM tests", levels)
-        val actual = checkNotNull(levels)
-        assertEquals(0, actual[0].toInt() and 0xff)
-        assertEquals(47, actual[1].toInt() and 0xff)
-        assertEquals(255, actual[2].toInt() and 0xff)
+        assertNotNull("Rust draw-field C ABI should be available in JVM tests", field)
+        val actual = checkNotNull(field)
+        assertEquals(
+            listOf(SfRustDrawRun(0, 0, 0, 0), SfRustDrawRun(47, 0, 1, 1)),
+            actual.runs,
+        )
+        assertEquals(0, actual.levels[0].toInt() and 0xff)
+        assertEquals(47, actual.levels[1].toInt() and 0xff)
+        assertEquals(255, actual.levels[2].toInt() and 0xff)
+    }
+
+    @Test
+    fun drawFieldCodecRejectsRunsThatDoNotReconstructTheLevels() {
+        val levels = IntArray(GRID * GRID) { 255 }.apply { this[0] = 0 }.joinToString(",")
+        val valid = """{"levels":[$levels],"runs":[[0,0,0,0]]}"""
+        val invalid = """{"levels":[$levels],"runs":[[0,0,1,1]]}"""
+
+        assertNotNull(parseRustDrawField(valid, GRID * GRID))
+        assertEquals(null, parseRustDrawField(invalid, GRID * GRID))
     }
 
     @Test
@@ -88,7 +102,7 @@ class SfDrawFieldRustParityTest {
     }
 
     private companion object {
-        const val GRID = 112
+        const val GRID = RUST_DRAW_GRID
         const val LEVEL_CODES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkl"
     }
 }

@@ -12,7 +12,7 @@ import kotlin.math.min
 /** Number of reveal steps a stroke is drawn in. */
 internal const val DRAW_LEVELS = 48
 
-private const val GRID = 112
+private const val GRID = RUST_DRAW_GRID
 private const val SQRT2 = 1.4142135f
 
 /**
@@ -22,14 +22,14 @@ private const val SQRT2 = 1.4142135f
  */
 internal class SfDrawField(val levels: Array<Path>)
 
-internal expect fun sfRustDrawFieldLevels(
+internal expect fun sfRustDrawField(
     mask: ByteArray,
     originX: Float,
     originY: Float,
     cell: Float,
     symbolBounds: Rect,
     ties: FloatArray,
-): ByteArray?
+): SfRustDrawField?
 
 private class MinHeap(cap: Int) {
     private val k = FloatArray(cap)
@@ -97,20 +97,20 @@ internal fun buildDrawField(
     val mask = BooleanArray(GRID * GRID) { (px[it] ushr 24) >= 110 }
     if (mask.none { it }) return null
 
-    val rustLevels = sfRustDrawFieldLevels(
+    val rustField = sfRustDrawField(
         ByteArray(mask.size) { if (mask[it]) 1 else 0 },
         x0,
         y0,
         cell,
         symbolBounds,
         ties,
-    )?.takeIf { levels ->
-        levels.size == mask.size && levels.indices.all { index ->
-            val level = levels[index].toInt() and 0xff
+    )?.takeIf { field ->
+        field.levels.size == mask.size && field.levels.indices.all { index ->
+            val level = field.levels[index].toInt() and 0xff
             if (mask[index]) level < DRAW_LEVELS else level == 0xff
         }
     }
-    val pixelLevels = rustLevels ?: run {
+    val pixelLevels = rustField?.levels ?: run {
         val dist = FloatArray(GRID * GRID) { Float.MAX_VALUE }
         val comp = IntArray(GRID * GRID) { -1 }
         val compMax = ArrayList<Float>()
@@ -182,20 +182,34 @@ internal fun buildDrawField(
     }
     val levels = Array(DRAW_LEVELS) { Path() }
     val half = cell / 2f
-    for (lv in 0 until DRAW_LEVELS) {
-        val p = levels[lv]
-        if (lv > 0) p.addPath(levels[lv - 1])
-        for (y in 0 until GRID) {
-            var x = 0
-            while (x < GRID) {
-                if (mask[y * GRID + x] && (pixelLevels[y * GRID + x].toInt() and 0xff) == lv) {
-                    var e = x
-                    while (e + 1 < GRID && mask[y * GRID + e + 1] &&
-                        (pixelLevels[y * GRID + e + 1].toInt() and 0xff) == lv
-                    ) e++
-                    p.addRect(Rect(x0 + x * cell - half, y0 + y * cell - half, x0 + (e + 1) * cell + half, y0 + (y + 1) * cell + half))
-                    x = e + 1
-                } else x++
+    if (rustField != null) {
+        rustField.runs.forEach { run ->
+            levels[run.level].addRect(
+                Rect(
+                    x0 + run.startX * cell - half,
+                    y0 + run.y * cell - half,
+                    x0 + (run.endX + 1) * cell + half,
+                    y0 + (run.y + 1) * cell + half,
+                ),
+            )
+        }
+        for (lv in 1 until DRAW_LEVELS) levels[lv].addPath(levels[lv - 1])
+    } else {
+        for (lv in 0 until DRAW_LEVELS) {
+            val p = levels[lv]
+            if (lv > 0) p.addPath(levels[lv - 1])
+            for (y in 0 until GRID) {
+                var x = 0
+                while (x < GRID) {
+                    if (mask[y * GRID + x] && (pixelLevels[y * GRID + x].toInt() and 0xff) == lv) {
+                        var e = x
+                        while (e + 1 < GRID && mask[y * GRID + e + 1] &&
+                            (pixelLevels[y * GRID + e + 1].toInt() and 0xff) == lv
+                        ) e++
+                        p.addRect(Rect(x0 + x * cell - half, y0 + y * cell - half, x0 + (e + 1) * cell + half, y0 + (y + 1) * cell + half))
+                        x = e + 1
+                    } else x++
+                }
             }
         }
     }

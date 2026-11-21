@@ -153,14 +153,14 @@ private object RustAnimation {
     }
 }
 
-internal actual fun sfRustDrawFieldLevels(
+internal actual fun sfRustDrawField(
     mask: ByteArray,
     originX: Float,
     originY: Float,
     cell: Float,
     symbolBounds: Rect,
     ties: FloatArray,
-): ByteArray? = try {
+): SfRustDrawField? = try {
     val request = buildRustDrawFieldRequest(mask, originX, originY, cell, symbolBounds, ties)
     request.usePinned { pinnedRequest ->
         val requestPointer = pinnedRequest.addressOf(0).reinterpret<UByteVar>()
@@ -176,7 +176,7 @@ internal actual fun sfRustDrawFieldLevels(
             )
         }
         if (written != required) return null
-        parseRustDrawFieldLevels(response.decodeToString(), mask.size)
+        parseRustDrawField(response.decodeToString(), mask.size)
     }
 } catch (_: Exception) {
     null

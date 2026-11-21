@@ -105,11 +105,12 @@ class SfAndroidRustRenderingTest {
         val mask = ByteArray(112 * 112)
         mask[0] = 1
         mask[1] = 1
-        val levels = sfRustDrawFieldLevels(mask, 0f, 0f, 1f, Rect(0f, 0f, 112f, 112f), FloatArray(0))
-        assertNotNull("Rust draw-field levels unavailable", levels)
-        val actual = checkNotNull(levels)
-        assertEquals(0, actual[0].toInt() and 0xff)
-        assertEquals(47, actual[1].toInt() and 0xff)
-        assertEquals(255, actual[2].toInt() and 0xff)
+        val field = sfRustDrawField(mask, 0f, 0f, 1f, Rect(0f, 0f, 112f, 112f), FloatArray(0))
+        assertNotNull("Rust draw-field result unavailable", field)
+        val actual = checkNotNull(field)
+        assertEquals(0, actual.levels[0].toInt() and 0xff)
+        assertEquals(47, actual.levels[1].toInt() and 0xff)
+        assertEquals(255, actual.levels[2].toInt() and 0xff)
+        assertEquals(listOf(SfRustDrawRun(0, 0, 0, 0), SfRustDrawRun(47, 0, 1, 1)), actual.runs)
     }
 }

@@ -62,14 +62,14 @@ internal actual fun sfRustAnimationFrames(
     gradient: Boolean,
 ): FloatArray? = RustAnimation.frames(symbol, effect, time, rtl, variableValue, mode, tint, palette, gradient)
 
-internal actual fun sfRustDrawFieldLevels(
+internal actual fun sfRustDrawField(
     mask: ByteArray,
     originX: Float,
     originY: Float,
     cell: Float,
     symbolBounds: Rect,
     ties: FloatArray,
-): ByteArray? = RustAnimation.drawFieldLevels(mask, originX, originY, cell, symbolBounds, ties)
+): SfRustDrawField? = RustAnimation.drawField(mask, originX, originY, cell, symbolBounds, ties)
 
 private object RustAnimation {
     private val warned = AtomicBoolean()
@@ -204,14 +204,14 @@ private object RustAnimation {
         null
     }
 
-    fun drawFieldLevels(
+    fun drawField(
         mask: ByteArray,
         originX: Float,
         originY: Float,
         cell: Float,
         symbolBounds: Rect,
         ties: FloatArray,
-    ): ByteArray? = try {
+    ): SfRustDrawField? = try {
         val library = native ?: return null
         val request = buildRustDrawFieldRequest(mask, originX, originY, cell, symbolBounds, ties)
 
@@ -228,7 +228,7 @@ private object RustAnimation {
         }
         val written = library.sfstudio_draw_field_json(request, request.size.toLong(), buffer, buffer.size.toLong())
         if (written != size) return null
-        parseRustDrawFieldLevels(buffer.decodeToString(0, written.toInt()), mask.size) ?: return null
+        parseRustDrawField(buffer.decodeToString(0, written.toInt()), mask.size) ?: return null
     } catch (error: Exception) {
         warn(error.message ?: error::class.simpleName.orEmpty())
         null

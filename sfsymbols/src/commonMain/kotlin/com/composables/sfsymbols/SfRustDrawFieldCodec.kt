@@ -11,6 +11,12 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
+internal const val RUST_DRAW_GRID = 112
+
+internal data class SfRustDrawRun(val level: Int, val y: Int, val startX: Int, val endX: Int)
+
+internal data class SfRustDrawField(val levels: ByteArray, val runs: List<SfRustDrawRun>)
+
 internal fun buildRustDrawFieldRequest(
     mask: ByteArray,
     originX: Float,
@@ -28,12 +34,36 @@ internal fun buildRustDrawFieldRequest(
     put("ties", buildJsonArray { ties.forEach { add(it) } })
 }.toString().encodeToByteArray()
 
-internal fun parseRustDrawFieldLevels(response: String, maskSize: Int): ByteArray? {
-    val values = Json.parseToJsonElement(response).jsonObject["levels"]
-        ?.takeUnless { it == JsonNull }?.jsonArray ?: return null
+internal fun parseRustDrawField(response: String, maskSize: Int): SfRustDrawField? {
+    val grid = Json.parseToJsonElement(response).jsonObject
+    if (maskSize != RUST_DRAW_GRID * RUST_DRAW_GRID) return null
+    val values = grid["levels"]?.takeUnless { it == JsonNull }?.jsonArray ?: return null
     if (values.size != maskSize) return null
-    return ByteArray(values.size) { index ->
-        val value = values[index].jsonPrimitive.content.toIntOrNull()?.takeIf { it in 0..255 } ?: return null
-        value.toByte()
+    val levels = ByteArray(values.size) { index ->
+        val level = values[index].jsonPrimitive.content.toIntOrNull()?.takeIf { it in 0..255 } ?: return null
+        if (level != 0xff && level !in 0 until 48) return null
+        level.toByte()
     }
+    val runValues = grid["runs"]?.takeUnless { it == JsonNull }?.jsonArray ?: return null
+    val reconstructed = ByteArray(maskSize) { 0xff.toByte() }
+    val runs = ArrayList<SfRustDrawRun>(runValues.size)
+    runValues.forEach { value ->
+        val fields = value.jsonArray
+        if (fields.size != 4) return null
+        val run = IntArray(4) { index ->
+            fields[index].jsonPrimitive.content.toIntOrNull() ?: return null
+        }
+        val (level, y, startX, endX) = run
+        if (level !in 0 until 48 || y !in 0 until RUST_DRAW_GRID ||
+            startX !in 0 until RUST_DRAW_GRID || endX !in startX until RUST_DRAW_GRID
+        ) return null
+        for (x in startX..endX) {
+            val index = y * RUST_DRAW_GRID + x
+            if ((reconstructed[index].toInt() and 0xff) != 0xff) return null
+            reconstructed[index] = level.toByte()
+        }
+        runs += SfRustDrawRun(level, y, startX, endX)
+    }
+    if (!levels.contentEquals(reconstructed)) return null
+    return SfRustDrawField(levels, runs)
 }

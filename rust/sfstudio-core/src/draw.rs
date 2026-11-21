@@ -9,6 +9,8 @@ const SQRT2: f32 = std::f32::consts::SQRT_2;
 pub struct DrawField {
     /// Row-major reveal level per pixel; 255 marks pixels outside the rasterized layer.
     pub levels: Vec<u8>,
+    /// Horizontal row runs as `[level, y, x_start, x_end]`, with inclusive x bounds.
+    pub runs: Vec<[u8; 4]>,
 }
 
 /// Builds reveal levels from the target renderer's binary raster mask.
@@ -86,7 +88,30 @@ pub fn build_draw_field(
         };
         levels[index] = ((progress * LEVELS as f32) as usize).min(LEVELS - 1) as u8;
     }
-    Ok(Some(DrawField { levels }))
+    let runs = encode_runs(&levels);
+    Ok(Some(DrawField { levels, runs }))
+}
+
+fn encode_runs(levels: &[u8]) -> Vec<[u8; 4]> {
+    let mut runs = Vec::new();
+    for y in 0..GRID {
+        let row = y * GRID;
+        let mut x = 0;
+        while x < GRID {
+            let level = levels[row + x];
+            if level == OUTSIDE {
+                x += 1;
+                continue;
+            }
+            let start = x;
+            while x + 1 < GRID && levels[row + x + 1] == level {
+                x += 1;
+            }
+            runs.push([level, y as u8, start as u8, x as u8]);
+            x += 1;
+        }
+    }
+    runs
 }
 
 fn nearest_unvisited(
@@ -300,6 +325,15 @@ mod tests {
     }
 
     #[test]
+    fn groups_adjacent_pixels_with_the_same_level_into_inclusive_runs() {
+        let mut levels = vec![OUTSIDE; GRID * GRID];
+        levels[2 * GRID + 4..2 * GRID + 7].fill(3);
+        levels[2 * GRID + 8] = 4;
+
+        assert_eq!(encode_runs(&levels), vec![[3, 2, 4, 6], [4, 2, 8, 8]]);
+    }
+
+    #[test]
     fn draw_levels_match_kotlin_rasterized_symbol_fixtures() {
         const REFERENCE: &str =
             include_str!("../../../sfsymbols/src/jvmTest/resources/sf-draw-fingerprints.txt");
@@ -351,6 +385,19 @@ mod tests {
             assert_eq!(
                 field.levels, expected,
                 "Rust reveal levels differ from Kotlin for {} layer {}",
+                fields[0], fields[1]
+            );
+            let mut reconstructed = vec![OUTSIDE; GRID * GRID];
+            for [level, y, start, end] in field.runs {
+                for x in start..=end {
+                    let index = y as usize * GRID + x as usize;
+                    assert_eq!(reconstructed[index], OUTSIDE, "overlapping Rust draw runs");
+                    reconstructed[index] = level;
+                }
+            }
+            assert_eq!(
+                reconstructed, expected,
+                "Rust draw runs differ for {} layer {}",
                 fields[0], fields[1]
             );
         }

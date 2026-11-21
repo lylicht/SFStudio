@@ -436,3 +436,28 @@ adapter checks are recorded below.
   parity test because Compose Skiko cannot fetch `skiko.wasm`; the Karma browser
   test receives 404s for packaged Compose resources. CI now runs JS Node parity
   plus Wasm compilation; Wasm runtime remains unverified.
+
+## Rust Draw On/Off clip spans (2026-11-21)
+
+- Rust `DrawField` now returns horizontal runs alongside its unchanged 112×112
+  level array. Kotlin validates that the runs reconstruct every level before
+  using them to build the existing cumulative Compose clip paths; malformed or
+  unavailable Rust data uses the Kotlin fallback.
+- Rust fixture tests compare levels against the stored Kotlin raster output and
+  verify that Rust runs reconstruct the exact same pixels without overlap.
+  The JVM bridge test checks run decoding and rejects a run payload that does
+  not reproduce the level array.
+- `cargo test --workspace` — passed all 49 Rust tests. `cargo fmt --all
+  -- --check` and `cargo clippy --workspace --all-targets -- -D warnings`
+  passed.
+- `gradlew.bat :sfsymbols:jvmTest :sfsymbols:compileKotlinJs
+  :sfsymbols:compileKotlinWasmJs --no-daemon --console=plain
+  -PsfstudioUseSystemWebTools=true` — passed, including Compose renderer and
+  JVM Rust-bridge parity checks.
+- `gradlew.bat :sfsymbols:jsNodeTest --no-daemon --console=plain
+  -PsfstudioUseSystemWebTools=true` — passed. The task emitted nonfatal Wasm
+  loader warnings; browser runtime and published-package loading remain
+  unverified.
+- Android four-ABI/device-test compilation and iOS simulator parity for this
+  response change await the CI run for this commit. Android effect/draw runtime,
+  iOS physical-device rendering, and full pixel-image comparison remain open.

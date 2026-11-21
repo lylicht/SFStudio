@@ -47,7 +47,8 @@ class SfWebRustRenderingTest {
         assertEquals(symbol.layers.size * RUST_FRAME_STRIDE, frames.size)
 
         val mask = ByteArray(112 * 112).apply { this[0] = 1; this[1] = 1 }
-        val levels = assertNotNull(sfRustDrawFieldLevels(mask, 0f, 0f, 1f, Rect(0f, 0f, 112f, 112f), FloatArray(0)))
-        assertEquals(listOf(0, 47, 255), listOf(levels[0], levels[1], levels[2]).map { it.toInt() and 0xff })
+        val field = assertNotNull(sfRustDrawField(mask, 0f, 0f, 1f, Rect(0f, 0f, 112f, 112f), FloatArray(0)))
+        assertEquals(listOf(0, 47, 255), listOf(field.levels[0], field.levels[1], field.levels[2]).map { it.toInt() and 0xff })
+        assertEquals(listOf(SfRustDrawRun(0, 0, 0, 0), SfRustDrawRun(47, 0, 1, 1)), field.runs)
     }
 }

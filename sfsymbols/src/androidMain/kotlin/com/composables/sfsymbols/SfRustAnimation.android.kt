@@ -26,14 +26,14 @@ internal actual fun sfRustAnimationFrames(
     gradient: Boolean,
 ): FloatArray? = RustFfi.frames(symbol, effect, time, rtl, variableValue, mode, tint, palette, gradient)
 
-internal actual fun sfRustDrawFieldLevels(
+internal actual fun sfRustDrawField(
     mask: ByteArray,
     originX: Float,
     originY: Float,
     cell: Float,
     symbolBounds: Rect,
     ties: FloatArray,
-): ByteArray? = RustFfi.drawFieldLevels(mask, originX, originY, cell, symbolBounds, ties)
+): SfRustDrawField? = RustFfi.drawField(mask, originX, originY, cell, symbolBounds, ties)
 
 private object RustFfi {
     private val available by lazy { runCatching { System.loadLibrary("sfstudio_ffi") }.isSuccess }
@@ -115,18 +115,18 @@ private object RustFfi {
         null
     }
 
-    fun drawFieldLevels(
+    fun drawField(
         mask: ByteArray,
         originX: Float,
         originY: Float,
         cell: Float,
         symbolBounds: Rect,
         ties: FloatArray,
-    ): ByteArray? = try {
+    ): SfRustDrawField? = try {
         if (!available) return null
         val request = buildRustDrawFieldRequest(mask, originX, originY, cell, symbolBounds, ties)
         val response = drawFieldJson(request) ?: return null
-        parseRustDrawFieldLevels(response.decodeToString(), mask.size) ?: return null
+        parseRustDrawField(response.decodeToString(), mask.size) ?: return null
     } catch (_: Exception) {
         null
     } catch (_: LinkageError) {

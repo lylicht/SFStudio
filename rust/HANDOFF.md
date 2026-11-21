@@ -18,7 +18,7 @@ flattening fallback. Full field parity passes for all 8,526 catalog symbols.
 The observed catalog layout and unverified UI gates are recorded in
 [UI_BASELINE.md](UI_BASELINE.md); its screenshot was not saved to the repo.
 
-On Windows x64, Rust fmt, all 47 workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 49 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
 8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
@@ -39,16 +39,17 @@ matches all 8,526 glyphs and available optical variants, including full layer
 trees. The desktop ViewModel also resolves System/Light/Dark and clamps
 grid scale through Rust, retaining Kotlin fallbacks; Kotlin continues to own
 Java Preferences persistence and Compose state. The latest completed
-cross-platform run [#44873269421](https://github.com/lylicht/SFStudio/actions/runs/44873269421)
+cross-platform run [#44883198772](https://github.com/lylicht/SFStudio/actions/runs/44883198772)
 passed Rust/C ABI checks, JVM tests on Windows/macOS/Linux, Android compilation
 and four-ABI packaging, iOS device/simulator compilation and simulator tests,
-packaged MCP launchers on all three desktop OSes, and differential MCP replay.
-Its `jsNodeTest` passed; `wasmJsNodeTest` failed while Skiko tried to fetch its
-`skiko.wasm` runtime. Browser runtime validation remains pending.
+packaged MCP launchers on all three desktop OSes, JS Node parity, Wasm
+compilation, and differential MCP replay. Wasm runtime and browser validation
+remain pending because of the Compose Skiko loader and Karma resource-serving
+issues described below.
 The web bridge’s JS parameter collision is fixed and the JS Node parity test now
-passes. Kotlin/Wasm compilation remains gated in CI; runtime execution is still
-open because Skiko fails before Wasm Node tests and the Karma browser runner
-returns 404 for the packaged Compose resource.
+passes. Kotlin/Wasm compilation passes in CI; runtime execution is still open
+because Skiko fails before Wasm Node tests and the Karma browser runner returns
+404 for the packaged Compose resource.
 The Android instrumentation source for effect, appearance, and draw-field
 parity compiled; runtime execution remains a device gate. Local Rust,
 Python `ctypes`, JVM, desktop app, and JS Node checks pass. Rust Wasm-backed JS
@@ -74,7 +75,8 @@ iOS draw-field C-interop checks passed in [run #44859231638](https://github.com/
 Physical-device runtime remains unverified. JS and Wasm now bundle the Rust
 Wasm library behind the existing APIs with Kotlin fallback; browser runtime and
 published-package loading remain unverified. Compose still rasterizes the mask
-and constructs clip paths.
+and materializes platform `Path` clips from Rust-generated horizontal reveal
+spans. The Kotlin reveal-level and path-building fallback remains in place.
 
 The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
 `arm64-v8a`, `x86`, and `x86_64`. The local AAR contains all four libraries
@@ -145,9 +147,10 @@ user path and JSON contract remain unchanged.
 
 1. Execute the Android animation, appearance, and draw-field parity cases on a
    device; verify the JS/Wasm bridge in browsers and published packages.
-2. Continue porting the shared vector renderer, including path/clip generation
-   and pixel-level comparison, while preserving Compose as the public UI until
-   a Rust-native frontend meets the existing screenshot and interaction gates.
+2. Continue porting the shared vector renderer beyond Rust-generated horizontal
+   clip spans; add pixel-level comparison for the resulting clip geometry while
+   preserving Compose as the public UI until a Rust-native frontend meets the
+   existing screenshot and interaction gates.
 3. Compare current Rust UI frameworks against desktop visual/interaction
    baselines before implementing a cutover candidate.
 4. Preserve existing user data and package identities; test upgrade behavior
