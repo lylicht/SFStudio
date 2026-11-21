@@ -8,6 +8,12 @@
 extern "C" {
 #endif
 
+/* Allocate a writable byte buffer for a C ABI call; null means size is zero or allocation failed. */
+uint8_t *sfstudio_alloc(size_t size);
+
+/* Free a buffer returned by sfstudio_alloc using the same size. */
+void sfstudio_free(uint8_t *buffer, size_t size);
+
 /*
  * Search ranked SF Symbols metadata and encode Apple symbol names as UTF-8 JSON.
  * Returns the required/written byte length, or a negative error code. Call with

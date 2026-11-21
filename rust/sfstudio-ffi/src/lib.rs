@@ -1,5 +1,6 @@
 //! C ABI for calling SFStudio's shared Rust catalog, code generation, and favorites from other languages.
 
+use std::alloc::{alloc, dealloc, Layout};
 use std::collections::HashSet;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
@@ -61,6 +62,38 @@ unsafe fn write_f32s(output: *mut f32, output_capacity: usize, values: &[f32]) -
     // SAFETY: The caller provides `output_capacity` writable floats, and this branch proves the copy fits.
     unsafe { std::ptr::copy_nonoverlapping(values.as_ptr(), output, values.len()) };
     required
+}
+
+/// Allocate a byte buffer that can be passed to another `sfstudio_*` C ABI function.
+/// The returned region is writable for exactly `size` bytes; null means the
+/// size is zero, invalid, or could not be allocated.
+#[no_mangle]
+pub extern "C" fn sfstudio_alloc(size: usize) -> *mut u8 {
+    if size == 0 {
+        return std::ptr::null_mut();
+    }
+    let Ok(layout) = Layout::from_size_align(size, std::mem::align_of::<u128>()) else {
+        return std::ptr::null_mut();
+    };
+    // SAFETY: `layout` is valid and its exact size is returned to `sfstudio_free`.
+    unsafe { alloc(layout) }
+}
+
+/// Free a buffer returned by [`sfstudio_alloc`].
+///
+/// # Safety
+/// For nonzero `size`, `buffer` must be a live pointer returned by
+/// `sfstudio_alloc(size)` and must not have been freed already.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_free(buffer: *mut u8, size: usize) {
+    if buffer.is_null() || size == 0 {
+        return;
+    }
+    let Ok(layout) = Layout::from_size_align(size, std::mem::align_of::<u128>()) else {
+        return;
+    };
+    // SAFETY: The caller guarantees this pointer and exact layout came from `sfstudio_alloc`.
+    unsafe { dealloc(buffer, layout) };
 }
 
 /// Search the SF Symbols catalog and write a JSON array of Apple symbol names.
@@ -1358,6 +1391,22 @@ fn parse_magic_replace(value: &serde_json::Value) -> Option<MagicReplaceRequest>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn exported_buffer_allocator_uses_the_matching_layout() {
+        let bytes = b"sfstudio wasm";
+        assert!(sfstudio_alloc(0).is_null());
+
+        let buffer = sfstudio_alloc(bytes.len());
+        assert!(!buffer.is_null());
+        // SAFETY: `buffer` is writable for `bytes.len()` bytes from this allocator call.
+        unsafe { std::ptr::copy_nonoverlapping(bytes.as_ptr(), buffer, bytes.len()) };
+        // SAFETY: The allocation remains live and has exactly `bytes.len()` bytes.
+        let copy = unsafe { std::slice::from_raw_parts(buffer, bytes.len()).to_vec() };
+        // SAFETY: This is the same pointer and exact size returned by `sfstudio_alloc`.
+        unsafe { sfstudio_free(buffer, bytes.len()) };
+        assert_eq!(bytes.as_slice(), copy.as_slice());
+    }
 
     fn glyph_json(name: &[u8], scale: i32, weight: f32) -> Result<serde_json::Value, isize> {
         // SAFETY: Input remains alive for both calls; output has the queried size.

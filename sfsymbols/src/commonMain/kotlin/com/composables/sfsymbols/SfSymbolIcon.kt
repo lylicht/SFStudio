@@ -103,7 +103,8 @@ public fun SfSymbolIcon(
     val time = remember { mutableFloatStateOf(-1f) }
     LaunchedEffect(effect, trigger, active, repeat, current) { runEffect(time, effect, current, repeat, active) }
 
-    val geo = remember(current, weight, scale) { SfGeometry(current, weight, scale) }
+    val rustRevision = SfRustWasmRuntime.revision.intValue
+    val geo = remember(current, weight, scale, rustRevision) { SfGeometry(current, weight, scale) }
     val outGeo = outgoing?.let { o -> remember(o, weight, scale) { SfGeometry(o, weight, scale) } }
 
     val sem = if (contentDescription != null) {

@@ -28,7 +28,10 @@ outline points and Apple effect frames with sRGB layer appearance. Point
 parity passed in run #44854205293, and simulator animation/appearance parity
 passed in [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656).
 iOS draw-field levels now use the Rust C ABI; Compose still rasterizes masks and
-constructs clip paths. JS and Wasm still use Kotlin. Wide-gamut colors use
+constructs clip paths. JS and Wasm now load the shared Rust Wasm C ABI for
+weighted points, Apple effect frames, and draw-field levels, with Kotlin
+fallbacks while the browser fetches the module or when loading fails. JS Node
+parity passes; the browser runtime remains unverified. Wide-gamut colors use
 Kotlin.
 
 The shared catalog search and filters, filter-selection transitions, symbol
@@ -60,8 +63,12 @@ binding passed parity checks on Windows, macOS, and Linux in run #20. Rust
 animation frames match the Kotlin evaluator in JVM parity tests; sRGB appearance
 and gradients pass differential checks in all four rendering modes, and Compose
 render tests pass with Rust enabled. The draw-field bridge matches the Kotlin
-fixture for five real symbol layers. JS and Wasm consumers still use Kotlin until
-target-specific Rust/Wasm adapters pass their tests. The vector geometry,
+fixture for five real symbol layers. JS and Wasm bundle the shared Rust Wasm
+library and route rendering requests through the C ABI; JS Node parity covers
+points, animation frames, and draw-field levels. Kotlin/Wasm sources compile,
+but the Windows Wasm Node runner fails while loading Compose's separate
+`skiko.wasm` file before the Rust parity test can run. Browser runtime coverage
+remains outstanding, so Kotlin fallbacks stay in place. The vector geometry,
 animation, and draw-field C ABI smoke checks passed on Windows, macOS, and Linux.
 Run #34 passed the filter-selection C ABI on those operating systems and
 retained the KMP builds.
@@ -87,8 +94,8 @@ retained the KMP builds.
 | Android | Kotlin Multiplatform + Compose | `IN_PROGRESS`; weighted outline points, animation frames, layer appearance, and draw-field levels use Rust through JNI with Kotlin fallback; the four-ABI AAR and Android device-test compilation pass CI; point parity passes on an API 36.1 x86_64 emulator; new rendering runtime parity still needs a device run |
 | JVM / desktop | Kotlin Multiplatform + Compose; packaged search, filtering, snippets, favorites, MCP config, glyph points, animation frames, draw-field levels, and `--mcp` use Rust when available | `IN_PROGRESS`; JNA search/snippet/favorite/filter and metadata lookup parity passed Windows/macOS/Linux; Rust glyph points pass exact Kotlin parity across representative symbols, all nine weights, and three optical scales; Apple animation frames and draw-field levels pass native/Kotlin parity and the Compose suite; Compose still constructs paths and rasterizes symbol shapes |
 | iOS device and simulator | Kotlin Multiplatform + Compose | `IN_PROGRESS`; weighted points, Apple effect frames with sRGB layer appearance, and draw-field levels use Rust C-interop; point parity across ten symbols, nine weights, and three scales passed in [run #44854205293](https://github.com/lylicht/SFStudio/actions/runs/44854205293), animation/appearance parity passed in [run #44857761656](https://github.com/lylicht/SFStudio/actions/runs/44857761656), and draw-field C-interop cases passed in [run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638); physical-device runtime is unverified |
-| JS | Kotlin/JS + Compose | `NOT_STARTED`; evaluate wasm-bindgen or a JS-compatible interface |
-| Wasm JS | Kotlin/Wasm + Compose | `NOT_STARTED`; evaluate a Wasm-compatible interface |
+| JS | Kotlin/JS + Compose | `IN_PROGRESS`; packages the Rust Wasm C ABI as a Compose web resource and uses it for points, Apple animation frames, and draw-field levels; JS Node parity passes; browser runtime and published-package loading remain unverified |
+| Wasm JS | Kotlin/Wasm + Compose | `IN_PROGRESS`; shares the Rust Wasm web adapter and compiles with its integration test; Windows Node execution is blocked before the test by Compose Skiko's `skiko.wasm` fetch, and browser runtime remains unverified |
 
 One FFI mechanism is not assumed to serve all targets. Each bridge needs an
 integration test through the existing public API on that target before any
@@ -121,7 +128,7 @@ uses the Rust C ABI for cached reveal levels; platform path rasterization and
 Compose clip geometry remain in Kotlin. Android runtime parity for the new
 animation, appearance, and draw-field adapters; iOS physical-device runtime;
 pixel-by-pixel Rust/Kotlin rendering comparison;
-broader morph fixtures; and JS/Wasm adapters are outstanding.
+broader morph fixtures; and JS/Wasm browser runtime validation are outstanding.
 The published symbol definitions and KMP API remain available. Do not extract
 or redistribute Apple-owned symbol assets beyond the repository's existing
 permitted scope.

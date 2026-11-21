@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.Sync
 import com.sfstudio.build.BuildRustAndroidFfi
 import com.sfstudio.tasks.BuildRustIosFfi
 
@@ -55,6 +56,39 @@ val iosRustBuilds = mapOf(
     }
 }
 
+val rustWasmBinary = rootProject.file("rust/target/wasm32-unknown-unknown/release/sfstudio_ffi.wasm")
+val rustWasmResources = layout.buildDirectory.dir("generated/rust-wasm-resources")
+val buildRustWasmFfi by tasks.registering(Exec::class) {
+    group = "build"
+    description = "Build the Rust C ABI for Kotlin/JS and Kotlin/Wasm"
+    workingDir(rootProject.projectDir)
+    commandLine("cargo", "build", "--manifest-path", "rust/Cargo.toml", "-p", "sfstudio-ffi", "--release", "--target", "wasm32-unknown-unknown")
+    inputs.files(
+        fileTree(rootProject.file("rust")) { include("**/*.rs", "**/*.toml"); exclude("target/**") },
+        rootProject.file("rust/Cargo.lock"),
+        rootProject.file("sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"),
+        fileTree(rootProject.file("sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/core/data")) { include("**/*.kt") },
+        rootProject.file("app/src/jvmMain/resources/symbol_tags.txt"),
+    )
+    outputs.file(rustWasmBinary)
+}
+
+val stageRustWasmResources by tasks.registering(Sync::class) {
+    dependsOn(buildRustWasmFfi)
+    from(rustWasmBinary)
+    into(rustWasmResources.map { it.dir("files") })
+    rename { "sfstudio_ffi.wasm" }
+}
+
+compose.resources {
+    generateResClass = always
+    packageOfResClass = "com.composables.sfsymbols.resources"
+    customDirectory(
+        sourceSetName = "webMain",
+        directoryProvider = stageRustWasmResources.map { rustWasmResources.get() },
+    )
+}
+
 kotlin {
     android {
         namespace = "com.composables.sfsymbols"
@@ -99,6 +133,7 @@ kotlin {
             api(libs.compose.ui)
             api(libs.compose.ui.graphics)
             implementation(libs.kotlinx.serialization.json)
+            implementation("org.jetbrains.compose.components:components-resources:${libs.versions.composeMultiplatform.get()}")
         }
 
         jvmMain.dependencies {
@@ -106,6 +141,10 @@ kotlin {
         }
 
         iosTest.dependencies {
+            implementation(kotlin("test"))
+        }
+
+        webTest.dependencies {
             implementation(kotlin("test"))
         }
 

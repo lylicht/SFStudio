@@ -260,14 +260,16 @@ Last local check: 2026-11-21, Windows x64, branch
 ## Not yet verified
 
 - Remaining platform gaps are Android rendering runtime parity, Kotlin/Native
-  physical-device runtime, Swift bindings, and JS/Wasm adapters. Android
+  physical-device runtime, Swift bindings, and JS/Wasm browser runtime coverage. Android
   weighted outline points are JNI-backed and pass on x86_64; Android effects,
   appearance, and draw-field JNI adapters pass CI compilation and await runtime
   parity on a device. The iOS point, animation, and draw-field adapters pass
   simulator checks, but physical-device runtime remains unverified.
   JVM consumes Rust points, effect frames, appearance, gradients, and draw-field
-  reveal levels. JS and Wasm compilation passed locally; those targets still
-  use Kotlin adapters.
+  reveal levels. JS Node parity now exercises Rust Wasm points, animation, and
+  draw-field adapters. Kotlin/Wasm sources compile; the Windows Wasm Node test
+  runner currently fails before the test while Compose Skiko fetches its own
+  `skiko.wasm` runtime.
 - Pixel-by-pixel rendering parity, installer upgrades, user-data migration,
   and performance baselines. Kotlin still rasterizes the source paths and
   constructs Compose clip geometry; geometry and draw-field C ABIs have
@@ -282,5 +284,27 @@ verifies iOS point parity. Local JVM parity verifies the public desktop renderer
 frames when the native library is available, and the Android emulator test
 verifies Rust outline points through the existing KMP renderer. The Android
 rendering adapters pass the hosted compile gate and still need a device run; the
-iOS adapters still need physical-device validation; JS and Wasm continue to
-use Kotlin.
+iOS adapters still need physical-device validation. The latest local web
+adapter checks are recorded below.
+
+## Rust Wasm rendering bridge (2026-11-21)
+
+- `cargo test --manifest-path rust/Cargo.toml -p sfstudio-ffi` — 12 tests pass,
+  including allocator/free layout parity.
+- `cargo clippy --manifest-path rust/Cargo.toml -p sfstudio-ffi --all-targets -- -D warnings`
+  and `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi --target wasm32-unknown-unknown`
+  — passed.
+- `gradlew.bat :sfsymbols:jsNodeTest --no-daemon -PsfstudioUseSystemWebTools=true`
+  — passed Rust Wasm parity for weighted glyph points, Apple pulse frames, and
+  draw-field reveal levels through the existing Kotlin APIs.
+- `gradlew.bat :sfsymbols:compileTestKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true`
+  — passed.
+- `gradlew.bat :app:compileKotlinJvm --no-daemon -PsfstudioUseSystemWebTools=true`
+  — passed with generated Compose resource collectors available on the JVM path.
+- `gradlew.bat :sfsymbols:wasmJsNodeTest` — does not reach the Rust parity test
+  on this Windows host; Compose Skiko cannot fetch its separate `skiko.wasm`
+  runtime under the installed Node 24 runner. Browser execution and published
+  package loading remain unverified.
+- The Rust Wasm artifact is about 11.9 MB before transfer compression. The
+  web adapter keeps Kotlin fallback while the browser fetches the module and
+  after a load failure.
