@@ -32,10 +32,10 @@ import dev.nucleusframework.macoscompose.theme.MacosTheme
 
 private val GRID_SIZE_OPTIONS = listOf("50%", "70%", "100%", "130%", "160%")
 private val GRID_SIZE_SCALES = listOf(0.5f, 0.7f, 1f, 1.3f, 1.6f)
-// Windows uses three 46 dp caption buttons; leave a 32 dp clear margin after them.
+// Windows uses three 46 dp caption buttons; leave a 64 dp clear margin after them.
 private val WINDOW_CONTROLS_END_PADDING = when {
     System.getProperty("os.name").contains("Mac", ignoreCase = true) -> 18.dp
-    System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> 46.dp * 3 + 32.dp
+    System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> 46.dp * 3 + 64.dp
     else -> 136.dp
 }
 

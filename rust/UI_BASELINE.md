@@ -15,7 +15,7 @@ and a 1000×680 dp minimum size.
   preview, an Apple Bounce effect selector and Play action, appearance/tint
   controls, and Copy Name / Copy Code actions.
 - The search header reserves space for Windows caption buttons. The current
-  source uses a 32 dp margin after the three-button strip; the screenshot below
+  source uses a 64 dp margin after the three-button strip; the screenshot below
   predates that increase. The gallery toolbar is below the search row and uses
   the ordinary 18 dp pane inset.
 

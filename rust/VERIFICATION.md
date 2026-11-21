@@ -397,6 +397,7 @@ adapter checks are recorded below.
   physical-device runtime remain unverified. Browser Wasm starts loading
   asynchronously, so glyph data cached from Kotlin on first use does not switch
   to Rust in that session. Kotlin fallback remains active in all these cases.
-- Windows titlebar search clearance increased from 12 dp to 32 dp beyond the
-  three native caption-button widths. `:app:jvmTest` passes. The screenshot
-  baseline predates this change, so the refreshed visual check is pending.
+- Windows titlebar search clearance increased from 12 dp to 64 dp beyond the
+  three native caption-button widths. `:app:compileKotlinJvm` passes after the
+  change; the JVM test suite was not rerun. The screenshot baseline predates
+  this change, so the refreshed visual check is pending.

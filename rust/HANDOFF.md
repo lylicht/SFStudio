@@ -6,10 +6,11 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 The Windows titlebar header now reserves the three caption-button widths plus a
-32 dp margin; the lower gallery toolbar uses the content-pane inset so its
-controls fit at the 1000 dp minimum. The local JVM app suite passes both layout
-changes. The in-session screenshot was captured before the latest margin change;
-a refreshed visual capture remains pending.
+64 dp margin; the lower gallery toolbar uses the content-pane inset so its
+controls fit at the 1000 dp minimum. The local JVM app suite passed the toolbar
+layout change; `:app:compileKotlinJvm` passes after the latest titlebar spacing
+change. The in-session screenshot predates that change; a refreshed visual
+capture remains pending.
 The observed catalog layout and unverified UI gates are recorded in
 [UI_BASELINE.md](UI_BASELINE.md); its screenshot was not saved to the repo.
 
