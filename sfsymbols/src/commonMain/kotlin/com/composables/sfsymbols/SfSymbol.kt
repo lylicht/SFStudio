@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathNode
 import androidx.compose.ui.unit.dp
+import com.composables.sfsymbols.core.SfAnimationLayer
 import com.composables.sfsymbols.core.SfData
 import com.composables.sfsymbols.core.SfGlyph
 import com.composables.sfsymbols.core.SfInfo
@@ -133,13 +134,36 @@ public class SfSymbol internal constructor(private val info: SfInfo) {
     public val hasExactLayers: Boolean get() = glyph.layersExact
     internal val backToFront: Boolean get() = glyph.backToFront
 
-    public val layers: List<SfLayer> by lazy { flatten(glyph.tree) }
+    public val layers: List<SfLayer> by lazy {
+        glyph.animationLayers?.map(::toSfLayer) ?: layersFromKotlinData()
+    }
 
     /** Number of animation groups: layers sharing a group move together, others are staggered. */
     internal val groupCount: Int by lazy { (layers.maxOfOrNull { it.group } ?: 0) + 1 }
 
     /** Erase layers (knock-outs) need layered drawing even in plain monochrome. */
     internal val hasErasers: Boolean by lazy { layers.any { it.erases } }
+
+    /** Kotlin compatibility path and independent reference for the Rust layer decoder. */
+    internal fun layersFromKotlinData(): List<SfLayer> = flatten(glyph.tree)
+
+    private fun toSfLayer(layer: SfAnimationLayer) = SfLayer(
+        layer.contours,
+        layer.hierarchical,
+        layer.erases,
+        SfData.colorName(layer.colorId),
+        layer.opacity,
+        layer.canPulse,
+        layer.canRotate,
+        layer.autoVariable,
+        layer.variableDraw,
+        layer.rootU,
+        layer.rootV,
+        layer.ties,
+        layer.strokeLength,
+        layer.group,
+        layer.tags.map { SfData.tag(it) }.toSet(),
+    )
 
     private fun flatten(tree: List<SfNode>): List<SfLayer> {
         val lengths = contourLengths()

@@ -51,7 +51,9 @@ intptr_t sfstudio_symbol_json(const uint8_t *symbol_name,
                               size_t output_capacity);
 
 /*
- * Decode a symbol's geometry, animation hints, and layer tree as UTF-8 JSON.
+ * Decode a symbol's geometry, animation hints, hierarchical layer tree, and
+ * Rust-flattened animation layers as UTF-8 JSON. Flat layers include contours,
+ * group, tie points, and stroke length for the existing Kotlin layer API.
  * scale: 0 medium, 1 small, 2 large. weight is the variable font wght axis
  * value. Geometry contains interpolated screen-coordinate points (y down) and
  * regular/light/heavy masters in raw font coordinates (y up); bounds are tight

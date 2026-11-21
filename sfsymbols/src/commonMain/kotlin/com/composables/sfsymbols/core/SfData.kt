@@ -68,6 +68,25 @@ internal class SfNode(
     val children: List<SfNode>,
 )
 
+/** Rust-flattened leaf data used directly by the public symbol layer model. */
+internal class SfAnimationLayer(
+    val contours: IntArray,
+    val hierarchical: Int,
+    val erases: Boolean,
+    val colorId: Int,
+    val opacity: Float,
+    val canPulse: Boolean,
+    val canRotate: Boolean,
+    val autoVariable: Boolean,
+    val variableDraw: Boolean,
+    val rootU: Float,
+    val rootV: Float,
+    val ties: FloatArray,
+    val strokeLength: Float,
+    val group: Int,
+    val tags: IntArray,
+)
+
 /** Raw outline of one optical size: 3 weight masters (wght 400 / 1 / 1000). */
 internal class SfGeom(val ops: ByteArray, val reg: FloatArray, val lo: FloatArray, val hi: FloatArray)
 
@@ -87,11 +106,12 @@ internal class SfGlyph(
     val rotation: Int,
     val anchors: FloatArray,
     val tree: List<SfNode>,
+    val animationLayers: List<SfAnimationLayer>? = null,
 ) {
     /** Same layer data over a different optical size's outline. */
     fun withGeometry(g: SfGeom) = SfGlyph(
         g.ops, g.reg, g.lo, g.hi, layersExact, backToFront, gapless, defaultVariableRendering,
-        wiggle, wiggleAngle, rotation, anchors, tree,
+        wiggle, wiggleAngle, rotation, anchors, tree, animationLayers,
     )
 }
 

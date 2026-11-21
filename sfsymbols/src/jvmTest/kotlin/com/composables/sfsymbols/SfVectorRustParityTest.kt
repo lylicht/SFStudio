@@ -36,9 +36,56 @@ class SfVectorRustParityTest {
     }
 
     @Test
+    fun rustFlattenedAnimationLayersMatchKotlinForEverySymbol() {
+        for (info in SfData.all()) {
+            val glyph = SfData.glyph(info)
+            val actual = glyph.animationLayers
+            assertNotNull("Rust animation layers missing for ${info.name}", actual)
+            val symbol = SfSymbol(info)
+            val expected = symbol.layersFromKotlinData()
+            val exposed = symbol.layers
+            assertEquals("${info.name} layer count", expected.size, actual!!.size)
+            assertEquals("${info.name} exposed layer count", actual.size, exposed.size)
+            for ((index, layer) in actual.withIndex()) {
+                val reference = expected[index]
+                val publicLayer = exposed[index]
+                val label = "${info.name} layer $index"
+                assertArrayEquals("$label contours", reference.contours, layer.contours)
+                assertEquals("$label hierarchy", reference.hierarchicalLevel, layer.hierarchical)
+                assertEquals("$label erases", reference.erases, layer.erases)
+                assertEquals("$label color", reference.colorName, SfData.colorName(layer.colorId))
+                assertEquals("$label opacity", reference.opacity, layer.opacity, 0f)
+                assertEquals("$label pulse", reference.canPulse, layer.canPulse)
+                assertEquals("$label rotate", reference.canRotate, layer.canRotate)
+                assertEquals("$label auto variable", reference.autoVariable, layer.autoVariable)
+                assertEquals("$label variable draw", reference.variableDraw, layer.variableDraw)
+                assertEquals("$label root U", reference.rootU, layer.rootU, 0f)
+                assertEquals("$label root V", reference.rootV, layer.rootV, 0f)
+                assertArrayEquals("$label ties", reference.ties, layer.ties, 0f)
+                assertEquals("$label stroke length", reference.strokeLength, layer.strokeLength, 0.0002f)
+                assertEquals("$label group", reference.group, layer.group)
+                assertEquals("$label tags", reference.tags, layer.tags.map { SfData.tag(it) }.toSet())
+                assertEquals("$label public stroke length", layer.strokeLength, publicLayer.strokeLength, 0f)
+            }
+        }
+    }
+
+    @Test
     fun rustGlyphDataCodecRejectsMalformedAndIncompletePayloads() {
         assertNull(parseRustGlyphData("{broken"))
         assertNull(parseRustGlyphData("""{"geometry":{},"tree":[]}"""))
+    }
+
+    @Test
+    fun rustLayerCodecKeepsLegacyFallbackAndRejectsInvalidFlattenedLayers() {
+        val legacy = checkNotNull(parseRustGlyphData(singleLayerGlyphJson()))
+        assertNull(legacy.animationLayers)
+
+        val layer = """[{"contours":[0],"hierarchical":0,"erases":false,"colorId":null,"opacity":1.0,"canPulse":false,"canRotate":false,"autoVariable":false,"variableDraw":false,"rootU":null,"rootV":null,"ties":[],"strokeLength":10.0,"group":0,"tags":[]}]"""
+        val decoded = checkNotNull(parseRustGlyphData(singleLayerGlyphJson(layer)))
+        assertEquals(1, decoded.animationLayers?.size)
+        assertNull(parseRustGlyphData(singleLayerGlyphJson("[]")))
+        assertNull(parseRustGlyphData(singleLayerGlyphJson(layer.replace("10.0", "-1.0"))))
     }
 
     @Test
@@ -119,6 +166,19 @@ class SfVectorRustParityTest {
             }
         }
     }
+}
+
+private fun singleLayerGlyphJson(animationLayers: String? = null): String {
+    val animationLayerField = animationLayers?.let { "\"animationLayers\":$it," }.orEmpty()
+    return """
+        {
+          "geometry":{"ops":[0,1,3],"regular":[0,0,10,0],"light":[0,0,10,0],"heavy":[0,0,10,0]},
+          "anchors":[],
+          "tree":[{"isGroup":false,"canPulse":false,"canRotate":false,"clearBehind":false,"animateTogether":false,"variableDraw":false,"autoVariable":false,"monoErase":false,"shapeErase":false,"hierarchical":0,"colorId":null,"opacity":1.0,"rootU":null,"rootV":null,"ties":[],"contours":[0],"tagIds":[],"children":[]}],
+          $animationLayerField
+          "layersExact":false,"backToFront":true,"gapless":false,"defaultVariableRendering":0,"wiggle":0,"wiggleAngle":0,"rotation":0
+        }
+    """.trimIndent()
 }
 
 private class Fingerprint {

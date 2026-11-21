@@ -42,8 +42,10 @@ generator, ordered favorite toggle, glyph
 geometry decoder and point interpolator, and animation evaluator export C ABI entry points without
 exposing Rust types. The header is
 `include/sfstudio.h`; `sfstudio_glyph_json` returns raw weight masters, points
-interpolated at a requested `wght` value, and tight visible bounds at an optical
-scale; `sfstudio_glyph_points` returns just the interpolated screen-coordinate
+interpolated at a requested `wght` value, tight visible bounds at an optical
+scale, the hierarchical layer tree, and Rust-flattened animation-layer records
+including contours, group assignments, tie points, and stroke lengths;
+`sfstudio_glyph_points` returns just the interpolated screen-coordinate
 points through a typed float buffer for renderer use. `sfstudio_animation_json` evaluates Apple-style effect frames and can
 optionally resolve per-layer monochrome, hierarchical, palette, or multicolor
 appearance plus automatic gradient stops, including Draw On/Off By Layer and
@@ -125,7 +127,10 @@ retains its Kotlin fallback when JNI is unavailable.
 `sfstudio_glyph_bounds` supplies tight visible bounds in `[left, top, right,
 bottom]` order; the public KMP `SfSymbol.bounds()` keeps its Kotlin fallback
 and cache behavior while using the Rust result when the platform bridge is
-available.
+available. `sfstudio_glyph_json` also supplies the flattened animation-layer
+records used by the unchanged public `SfSymbol.layers` property. Its Kotlin
+tree-flattening path remains the fallback when an older or unavailable bridge
+does not provide those records.
 Selected Kotlin differential fixtures cover effect timing and layer
 transforms, and the JVM renderer consumes Rust points, frames, sRGB layer
 colors, and gradient stops while Compose continues to build/rasterize paths

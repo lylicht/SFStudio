@@ -1,5 +1,6 @@
 package com.composables.sfsymbols
 
+import com.composables.sfsymbols.core.SfAnimationLayer
 import com.composables.sfsymbols.core.SfData
 import com.composables.sfsymbols.core.SfGlyph
 import com.composables.sfsymbols.core.SfNode
@@ -38,6 +39,10 @@ internal fun parseRustGlyphData(response: String): SfGlyph? = try {
     val treeJson = root["tree"]?.jsonArray ?: return null
     val tree = ArrayList<SfNode>(treeJson.size)
     for (item in treeJson) tree += parseRustNode(item, contourCount) ?: return null
+    val animationLayers = if (root.containsKey("animationLayers")) {
+        parseRustAnimationLayers(root["animationLayers"], contourCount) ?: return null
+    } else null
+    if (animationLayers != null && animationLayers.size != tree.sumOf(::leafCount)) return null
 
     SfGlyph(
         ops = ByteArray(ops.size) { ops[it].toByte() },
@@ -53,10 +58,52 @@ internal fun parseRustGlyphData(response: String): SfGlyph? = try {
         rotation = root.int("rotation") ?: return null,
         anchors = anchors,
         tree = tree,
+        animationLayers = animationLayers,
     )
 } catch (_: Exception) {
     null
 }
+
+private fun parseRustAnimationLayers(element: JsonElement?, contourCount: Int): List<SfAnimationLayer>? {
+    val values = element as? JsonArray ?: return null
+    val layers = ArrayList<SfAnimationLayer>(values.size)
+    for (value in values) {
+        val layer = value.jsonObject
+        val contours = layer["contours"].ints() ?: return null
+        if (contours.any { it !in 0 until contourCount }) return null
+        val tags = layer["tags"].ints() ?: return null
+        if (tags.any { it !in 0 until SfData.tagCount() }) return null
+        val ties = layer["ties"].floats() ?: return null
+        if (ties.size % 2 != 0) return null
+        val colorId = when (val color = layer["colorId"]) {
+            JsonNull -> -1
+            null -> return null
+            else -> color.jsonPrimitive.content.toIntOrNull()
+                ?.takeIf { it in 0 until SfData.colorCount() } ?: return null
+        }
+        layers += SfAnimationLayer(
+            contours = contours,
+            hierarchical = layer.int("hierarchical")?.takeIf { it in -1..2 } ?: return null,
+            erases = layer.bool("erases") ?: return null,
+            colorId = colorId,
+            opacity = layer.float("opacity")?.takeIf { it in 0f..1f } ?: return null,
+            canPulse = layer.bool("canPulse") ?: return null,
+            canRotate = layer.bool("canRotate") ?: return null,
+            autoVariable = layer.bool("autoVariable") ?: return null,
+            variableDraw = layer.bool("variableDraw") ?: return null,
+            rootU = layer.nullableFloat("rootU") ?: return null,
+            rootV = layer.nullableFloat("rootV") ?: return null,
+            ties = ties,
+            strokeLength = layer.float("strokeLength")?.takeIf { it >= 0f } ?: return null,
+            group = layer.int("group")?.takeIf { it >= 0 } ?: return null,
+            tags = tags,
+        )
+    }
+    return layers
+}
+
+private fun leafCount(node: SfNode): Int =
+    if (node.children.isEmpty()) 1 else node.children.sumOf(::leafCount)
 
 private fun parseRustNode(element: JsonElement, contourCount: Int): SfNode? {
     val node = element.jsonObject

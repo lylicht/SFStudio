@@ -228,7 +228,8 @@ fn layer_json(
     })
 }
 
-/// Decode one symbol's weighted vector masters, layers, and optical-size outline.
+/// Decode one symbol's weighted vector masters, hierarchical layer tree, flat
+/// animation layers, and optical-size outline.
 ///
 /// `scale` is 0 for medium, 1 for small, and 2 for large. `weight` is the
 /// variable font's `wght` axis value. The JSON includes raw masters, points
@@ -277,6 +278,15 @@ pub unsafe extern "C" fn sfstudio_glyph_json(
         let geometry = catalog
             .geometry_at_scale(symbol, &glyph, scale)
             .map_err(|_| INTERNAL_ERROR)?;
+        let animation_geometry = if scale == sfstudio_core::vector::OpticalScale::Medium {
+            geometry.clone()
+        } else {
+            catalog
+                .geometry_at_scale(symbol, &glyph, sfstudio_core::vector::OpticalScale::Medium)
+                .map_err(|_| INTERNAL_ERROR)?
+        };
+        let animation_layers =
+            sfstudio_core::animation::AnimationSymbol::from_glyph(&glyph, &animation_geometry);
         let bounds = sfstudio_core::vector::visible_bounds(&glyph, &geometry, weight)
             .map_err(|_| INTERNAL_ERROR)?;
         let scale_name = match scale {
@@ -293,6 +303,29 @@ pub unsafe extern "C" fn sfstudio_glyph_json(
             .tree
             .iter()
             .map(|node| layer_json(node, catalog.tags(), catalog.colors()))
+            .collect();
+        let animation_layers: Vec<_> = animation_layers
+            .layers
+            .iter()
+            .map(|layer| {
+                serde_json::json!({
+                    "contours": layer.contours,
+                    "hierarchical": layer.hierarchical,
+                    "erases": layer.erases,
+                    "colorId": layer.color_id,
+                    "opacity": layer.opacity,
+                    "canPulse": layer.can_pulse,
+                    "canRotate": layer.can_rotate,
+                    "autoVariable": layer.auto_variable,
+                    "variableDraw": layer.variable_draw,
+                    "rootU": layer.root_u,
+                    "rootV": layer.root_v,
+                    "ties": layer.ties,
+                    "strokeLength": layer.stroke_length,
+                    "group": layer.group,
+                    "tags": layer.tags,
+                })
+            })
             .collect();
         serde_json::to_vec(&serde_json::json!({
             "name": symbol.name,
@@ -321,6 +354,7 @@ pub unsafe extern "C" fn sfstudio_glyph_json(
             "rotation": glyph.rotation,
             "anchors": glyph.anchors,
             "tree": tree,
+            "animationLayers": animation_layers,
         }))
         .map_err(|_| INTERNAL_ERROR)
     })) {
@@ -1901,6 +1935,12 @@ mod tests {
         let first_layer = medium["tree"][0].as_object().unwrap();
         assert!(first_layer.contains_key("colorId"));
         assert!(first_layer["tagIds"].is_array());
+        let animation_layers = medium["animationLayers"].as_array().unwrap();
+        assert!(!animation_layers.is_empty());
+        assert!(animation_layers[0]["contours"].is_array());
+        assert!(animation_layers[0]["ties"].is_array());
+        assert!(animation_layers[0]["strokeLength"].as_f64().unwrap() >= 0.0);
+        assert!(animation_layers[0]["group"].as_u64().is_some());
 
         let black = glyph_json(b"heart.fill", 0, 1000.0).unwrap();
         let points = black["geometry"]["points"].as_array().unwrap();
@@ -1917,6 +1957,8 @@ mod tests {
         assert_eq!(large["usedOpticalVariant"], true);
         assert_ne!(small["geometry"]["regular"], medium["geometry"]["regular"]);
         assert_ne!(large["geometry"]["regular"], medium["geometry"]["regular"]);
+        assert_eq!(small["animationLayers"], medium["animationLayers"]);
+        assert_eq!(large["animationLayers"], medium["animationLayers"]);
         assert_eq!(
             glyph_json(b"phone.arrow.up.right.fill", 0, 400.0).unwrap()["name"],
             "phone.arrow.up.right.fill"

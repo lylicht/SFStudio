@@ -401,3 +401,23 @@ adapter checks are recorded below.
   three native caption-button widths. `:app:compileKotlinJvm` passes after the
   change; the JVM test suite was not rerun. The screenshot baseline predates
   this change, so the refreshed visual check is pending.
+
+## Rust-flattened animation layers (2026-11-21)
+
+- `cargo test --workspace` — passed all 48 Rust unit tests; `cargo clippy
+  --workspace --all-targets -- -D warnings` and `cargo fmt --all -- --check`
+  passed.
+- `:sfsymbols:jvmTest --tests
+  com.composables.sfsymbols.SfVectorRustParityTest` — passed. The parity check
+  compares every flattened layer field against the retained Kotlin algorithm
+  for all 8,526 symbols. Codec checks cover absent legacy fields and malformed
+  flattened records.
+- `:sfsymbols:jvmTest` and `:app:jvmTest` — passed, including existing Apple
+  effect-frame and Compose rendering coverage.
+- `:sfsymbols:compileKotlinJs` and `:sfsymbols:compileKotlinWasmJs` — passed.
+  Android and iOS runtime checks were not run on this Windows host; Wasm Node
+  execution remains blocked before Rust tests by Skiko's `skiko.wasm` loading.
+- `sfstudio_glyph_json` now returns Rust-flattened animation-layer records,
+  and the unchanged KMP `SfSymbol.layers` property consumes them when present.
+  Kotlin tree flattening remains the compatibility fallback when the bridge
+  is absent or returns an older payload.

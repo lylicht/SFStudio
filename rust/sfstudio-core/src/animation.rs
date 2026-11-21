@@ -124,6 +124,8 @@ pub struct AnimationLayer {
     pub color_id: Option<usize>,
     pub opacity: f32,
     pub root_u: f32,
+    pub root_v: f32,
+    pub ties: Vec<f32>,
     pub stroke_length: f32,
     pub group: usize,
     pub contours: Vec<usize>,
@@ -912,8 +914,8 @@ fn flatten(
         let length = node
             .contours
             .iter()
-            .filter_map(|&c| lengths.get(c))
-            .sum::<f32>()
+            .filter_map(|&c| lengths.get(c).map(|length| f64::from(*length)))
+            .sum::<f64>() as f32
             / 2.0
             / 2048.0
             * 100.0;
@@ -927,6 +929,8 @@ fn flatten(
             color_id: node.color_id,
             opacity: node.opacity,
             root_u: node.ties.first().copied().unwrap_or(f32::NAN),
+            root_v: node.ties.get(1).copied().unwrap_or(f32::NAN),
+            ties: node.ties.clone(),
             stroke_length: length,
             group: assigned_group,
             contours: node.contours.clone(),
@@ -978,6 +982,8 @@ mod tests {
             color_id: None,
             opacity: 1.0,
             root_u: 0.0,
+            root_v: 0.0,
+            ties: Vec::new(),
             stroke_length,
             group,
             contours: Vec::new(),

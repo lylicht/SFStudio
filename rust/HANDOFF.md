@@ -11,6 +11,9 @@ controls fit at the 1000 dp minimum. The local JVM app suite passed the toolbar
 layout change; `:app:compileKotlinJvm` passes after the latest titlebar spacing
 change. The in-session screenshot predates that change; a refreshed visual
 capture remains pending.
+The existing KMP `SfSymbol.layers` API now uses Rust-flattened animation layer
+records from the glyph JSON bridge when available and keeps the Kotlin tree
+flattening fallback. Full field parity passes for all 8,526 catalog symbols.
 The observed catalog layout and unverified UI gates are recorded in
 [UI_BASELINE.md](UI_BASELINE.md); its screenshot was not saved to the repo.
 
