@@ -6,7 +6,7 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all 42 workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 46 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
 8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
@@ -19,7 +19,9 @@ invalid IDs and batches, and notifications. See
 The Rust C ABI is loaded by packaged JVM search, category/favorites filtering,
 filter-selection transitions, Compose snippet generation, favorite toggling,
 MCP client config generation, outline interpolation, and Apple effect rendering
-through JNA. The latest completed Rust migration [GitHub Actions run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638)
+through JNA. The desktop ViewModel also resolves System/Light/Dark and clamps
+grid scale through Rust, retaining Kotlin fallbacks; Kotlin continues to own
+Java Preferences persistence and Compose state. The latest completed Rust migration [GitHub Actions run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638)
 passed Rust/C ABI checks on Windows/macOS/Linux, JVM tests on Windows/macOS/Linux,
 Android main/device-test compilation and four-ABI packaging, iOS, JS/Wasm,
 packaged MCP launchers on all three desktop OSes, and differential MCP replay.
@@ -90,6 +92,11 @@ the change across the Rust/C ABI, JVM, and packaged MCP matrix.
 The category/favorites/all filter-selection transition passes Rust, Python C
 ABI, and JVM ViewModel checks locally, plus Windows/macOS/Linux and KMP matrix
 coverage in [run #34](https://github.com/lylicht/SFStudio/actions/runs/44805912613).
+
+The desktop ViewModel now resolves System/Light/Dark mode and clamps the grid
+scale through Rust with Kotlin fallbacks. Java Preferences persistence and
+Compose state remain Kotlin; this settings bridge has only been validated on
+the Windows JVM target.
 
 ## Existing work inherited from PR #7
 

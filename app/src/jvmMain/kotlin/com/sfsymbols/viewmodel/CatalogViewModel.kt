@@ -231,8 +231,30 @@ public class CatalogViewModel(
         }
     }
 
+    public fun resolveDarkTheme(systemIsDark: Boolean): Boolean {
+        val rustResult = try {
+            RustCatalogSearch.themeModeIsDark(themeMode, systemIsDark)
+        } catch (error: Exception) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        } catch (error: LinkageError) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        }
+        return rustResult ?: themeMode.isDark(systemIsDark)
+    }
+
     public fun updateGridScale(scale: Float) {
-        gridScale = scale.coerceIn(0.5f, 1.6f)
+        val rustScale = try {
+            RustCatalogSearch.clampGridScale(scale)
+        } catch (error: Exception) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        } catch (error: LinkageError) {
+            RustCatalogSearch.reportFailure(error)
+            null
+        }
+        gridScale = rustScale ?: scale.coerceIn(0.5f, 1.6f)
     }
 
     public fun toggleFavorite(meta: SfSymbolMetadata) {

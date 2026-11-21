@@ -10,6 +10,7 @@ pub mod draw;
 pub mod favorites;
 pub mod mcp_config;
 pub mod rendering;
+pub mod settings;
 pub mod vector;
 pub mod view_state;
 

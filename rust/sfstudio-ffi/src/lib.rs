@@ -18,6 +18,7 @@ const INVALID_ANIMATION: isize = -11;
 const INVALID_DRAW_FIELD: isize = -12;
 const INVALID_MCP_CONFIG: isize = -13;
 const INVALID_FILTER_SELECTION: isize = -14;
+const INVALID_THEME_MODE: i32 = -15;
 
 unsafe fn read_utf8<'a>(input: *const u8, input_len: usize) -> Result<&'a str, isize> {
     if input_len == 0 {
@@ -1087,6 +1088,29 @@ pub unsafe extern "C" fn sfstudio_filter_selection_json(
     }
 }
 
+/// Resolve a theme mode to dark or light appearance.
+///
+/// Theme IDs are 0 = system, 1 = light, and 2 = dark. `system_is_dark` must
+/// be 0 or 1. Returns 0 for light, 1 for dark, or -15 for invalid arguments.
+#[no_mangle]
+pub extern "C" fn sfstudio_theme_mode_is_dark(theme_mode: i32, system_is_dark: i32) -> i32 {
+    let Some(theme_mode) = sfstudio_core::settings::ThemeMode::from_id(theme_mode) else {
+        return INVALID_THEME_MODE;
+    };
+    let system_is_dark = match system_is_dark {
+        0 => false,
+        1 => true,
+        _ => return INVALID_THEME_MODE,
+    };
+    i32::from(theme_mode.is_dark(system_is_dark))
+}
+
+/// Clamp the symbol grid scale to the existing desktop range [0.5, 1.6].
+#[no_mangle]
+pub extern "C" fn sfstudio_grid_scale_clamp(scale: f32) -> f32 {
+    sfstudio_core::settings::clamp_grid_scale(scale)
+}
+
 struct DrawFieldRequest {
     mask: Vec<u8>,
     origin: [f32; 2],
@@ -1914,5 +1938,20 @@ mod tests {
                 INVALID_FILTER_SELECTION
             );
         }
+    }
+
+    #[test]
+    fn exposes_theme_resolution_and_grid_scale_settings() {
+        assert_eq!(sfstudio_theme_mode_is_dark(0, 1), 1);
+        assert_eq!(sfstudio_theme_mode_is_dark(0, 0), 0);
+        assert_eq!(sfstudio_theme_mode_is_dark(1, 1), 0);
+        assert_eq!(sfstudio_theme_mode_is_dark(2, 0), 1);
+        assert_eq!(sfstudio_theme_mode_is_dark(3, 0), INVALID_THEME_MODE);
+        assert_eq!(sfstudio_theme_mode_is_dark(0, 2), INVALID_THEME_MODE);
+
+        assert_eq!(sfstudio_grid_scale_clamp(0.2), 0.5);
+        assert_eq!(sfstudio_grid_scale_clamp(1.0), 1.0);
+        assert_eq!(sfstudio_grid_scale_clamp(2.0), 1.6);
+        assert!(sfstudio_grid_scale_clamp(f32::NAN).is_nan());
     }
 }

@@ -14,9 +14,9 @@ the default MCP endpoint and continues to use the existing favorite file at
 `~/.sf-symbols-catalog/pins.json`. Packaged `--mcp` invocations delegate to
 the bundled Rust MCP process; development classpath launches fall back to
 Kotlin. Packaged desktop search, snippet generation, favorite toggling,
-filter-selection transitions, and MCP client configuration call the Rust C ABI
-through JNA, with Kotlin fallbacks.
-Kotlin still owns favorite file reads and writes.
+filter-selection transitions, MCP client configuration, theme resolution, and
+grid-scale clamping call the Rust C ABI through JNA, with Kotlin fallbacks.
+Kotlin still owns preference and favorite persistence.
 
 The JVM implementation of the public `SfSymbolIcon` obtains weighted outline
 points, Apple effect frames, and Draw On/Off reveal levels through the Rust C
@@ -34,8 +34,9 @@ fallbacks while the browser fetches the module or when loading fails. JS Node
 parity passes; the browser runtime remains unverified. Wide-gamut colors use
 Kotlin.
 
-The shared catalog search and filters, filter-selection transitions, symbol
-metadata lookup, Compose code generator, ordered favorite toggle, glyph
+The shared catalog search and filters, filter-selection transitions, theme
+resolution, grid-scale clamping, symbol metadata lookup, Compose code
+generator, ordered favorite toggle, glyph
 geometry decoder and point interpolator, and animation evaluator export C ABI entry points without
 exposing Rust types. The header is
 `include/sfstudio.h`; `sfstudio_glyph_json` returns raw weight masters, points
@@ -58,7 +59,8 @@ native library is available; Android calls the point, animation, and draw-field
 endpoints through JNI; iOS calls the typed glyph-points and animation endpoints
 through Kotlin/Native C interop. The desktop JVM app calls search, code generation, favorite toggling,
 category/favorites filtering, filter-selection transitions, MCP client
-configuration, and effect evaluation through JNA. The JNA metadata lookup
+configuration, theme resolution, grid-scale clamping, and effect evaluation
+through JNA. The JNA metadata lookup
 binding passed parity checks on Windows, macOS, and Linux in run #20. Rust
 animation frames match the Kotlin evaluator in JVM parity tests; sRGB appearance
 and gradients pass differential checks in all four rendering modes, and Compose

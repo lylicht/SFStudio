@@ -82,6 +82,10 @@ internal interface NativeSearch : Library {
         output: ByteArray?,
         outputCapacity: Long,
     ): Long
+
+    fun sfstudio_theme_mode_is_dark(themeMode: Int, systemIsDark: Int): Int
+
+    fun sfstudio_grid_scale_clamp(scale: Float): Float
 }
 
 internal object RustCatalogSearch {
@@ -95,6 +99,22 @@ internal object RustCatalogSearch {
     fun available(): Boolean = native != null
 
     fun reportFailure(error: Throwable) = warn(error)
+
+    fun themeModeIsDark(mode: ThemeMode, systemIsDark: Boolean): Boolean? {
+        val library = native ?: return null
+        val modeId = when (mode) {
+            ThemeMode.System -> 0
+            ThemeMode.Light -> 1
+            ThemeMode.Dark -> 2
+        }
+        return when (val result = library.sfstudio_theme_mode_is_dark(modeId, if (systemIsDark) 1 else 0)) {
+            0 -> false
+            1 -> true
+            else -> error("Rust theme resolver failed with code $result")
+        }
+    }
+
+    fun clampGridScale(scale: Float): Float? = native?.sfstudio_grid_scale_clamp(scale)
 
     fun filterSelection(action: FilterAction, category: String? = null): Pair<String?, Boolean>? {
         val library = native ?: return null

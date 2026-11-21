@@ -9,7 +9,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.sfsymbols.data.ThemeMode
 import com.sfsymbols.ui.theme.AppTheme
 import com.sfsymbols.viewmodel.CatalogViewModel
 import dev.nucleusframework.macoscompose.theme.MacosTheme
@@ -21,8 +20,12 @@ import dev.nucleusframework.macoscompose.theme.MacosTheme
 @Composable
 public fun SfSymbolsCatalogApp() {
     val viewModel = remember { CatalogViewModel() }
+    val systemIsDark = isSystemInDarkTheme()
+    val darkTheme = remember(viewModel.themeMode, systemIsDark) {
+        viewModel.resolveDarkTheme(systemIsDark)
+    }
     AppTheme(
-        darkTheme = viewModel.themeMode.isDark(isSystemInDarkTheme()),
+        darkTheme = darkTheme,
     ) {
         Box(
             modifier = Modifier

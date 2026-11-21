@@ -120,6 +120,23 @@ Last local check: 2026-11-21, Windows x64, branch
   on native-library errors or absence. The JVM selection-path test passed
   locally and on Windows/macOS/Linux in [Actions run #44](https://github.com/lylicht/SFStudio/actions/runs/44832738954).
 
+## Rust-backed desktop preferences (2026-11-21)
+
+- Rust owns the System/Light/Dark resolution rule and the desktop grid-scale
+  clamp through the C ABI/JNA path. Existing Kotlin resolution/clamping remain
+  as fallbacks; Java Preferences persistence and Compose state remain Kotlin.
+- `cargo fmt --manifest-path rust/Cargo.toml --all --check`, workspace Clippy,
+  and `cargo test --manifest-path rust/Cargo.toml --workspace` — passed; 46 Rust
+  unit tests passed.
+- `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` and
+  `python scripts/test_rust_ffi.py` — passed, including `ctypes` checks for
+  theme modes, invalid inputs, grid boundaries, and NaN behavior.
+- `gradlew.bat :app:jvmTest --no-daemon --console=plain -PsfstudioUseSystemWebTools=true`
+  — passed, including Kotlin/Rust preference parity.
+- This desktop preferences slice was validated on Windows JVM only. Other
+  platform settings callers and physical/browser runtime are not verified by
+  these checks.
+
 ## Rust-backed outline interpolation
 
 - `sfstudio_glyph_points` exports weight- and optical-scale-interpolated screen

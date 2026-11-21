@@ -140,6 +140,14 @@ intptr_t sfstudio_filter_selection_json(int32_t action,
                                         uint8_t *output,
                                         size_t output_capacity);
 
+/* Resolve theme mode: 0 system, 1 light, 2 dark. Returns 0 light, 1 dark,
+ * or -15 for an invalid mode/system-dark value. */
+int32_t sfstudio_theme_mode_is_dark(int32_t theme_mode,
+                                    int32_t system_is_dark);
+
+/* Clamp the desktop symbol grid scale to the existing [0.5, 1.6] range. */
+float sfstudio_grid_scale_clamp(float scale);
+
 /*
  * Returns raw UTF-8 Kotlin source for the snippet, using the same required-size
  * buffer contract. Mode: 0 dualtone, 1 monochrome. Boolean arguments use

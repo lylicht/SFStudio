@@ -3,6 +3,7 @@
 import argparse
 import ctypes
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -58,6 +59,12 @@ def main():
         ctypes.c_void_p, ctypes.c_size_t,
     ]
     filter_selection_json.restype = ctypes.c_ssize_t
+    theme_mode_is_dark = library.sfstudio_theme_mode_is_dark
+    theme_mode_is_dark.argtypes = [ctypes.c_int32, ctypes.c_int32]
+    theme_mode_is_dark.restype = ctypes.c_int32
+    grid_scale_clamp = library.sfstudio_grid_scale_clamp
+    grid_scale_clamp.argtypes = [ctypes.c_float]
+    grid_scale_clamp.restype = ctypes.c_float
     search_filtered_json = library.sfstudio_search_filtered_json
     search_filtered_json.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                                      ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
@@ -314,6 +321,17 @@ def main():
     assert filter_selection(2) == [None, False]
     assert filter_selection_json(3, None, 0, 0, None, 0) == -14
 
+    assert theme_mode_is_dark(0, 1) == 1
+    assert theme_mode_is_dark(0, 0) == 0
+    assert theme_mode_is_dark(1, 1) == 0
+    assert theme_mode_is_dark(2, 0) == 1
+    assert theme_mode_is_dark(3, 0) == -15
+    assert theme_mode_is_dark(0, 2) == -15
+    assert grid_scale_clamp(0.2) == 0.5
+    assert grid_scale_clamp(1.0) == 1.0
+    assert math.isclose(grid_scale_clamp(2.0), 1.6, rel_tol=1e-6)
+    assert math.isnan(grid_scale_clamp(float("nan")))
+
     def filtered_search(query, category, favorites, limit):
         encoded_query = query.encode("utf-8")
         encoded_category = category.encode("utf-8") if category is not None else b""
@@ -403,7 +421,7 @@ def main():
     assert toggle_favorites(broken_json, 7, ctypes.create_string_buffer(b"gear"), 4,
                             None, 0) == -8
 
-    print("Rust C ABI search, metadata, vectors, Apple animations, draw fields, MCP config, filtering, codegen, and favorites smoke test passed (Python ctypes)")
+    print("Rust C ABI search, metadata, vectors, animations, settings, MCP config, filtering, codegen, and favorites smoke test passed (Python ctypes)")
 
 
 if __name__ == "__main__":
