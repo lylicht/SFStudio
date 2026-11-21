@@ -7,7 +7,8 @@ PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 Desktop caption-button clearance stays on the titlebar header; the lower gallery
 toolbar uses the content-pane inset so its controls fit at the 1000 dp minimum.
-The local JVM app suite passes this layout change; branch-head CI is running.
+The local JVM app suite passes this layout change; its cross-platform CI run is
+still running against the same code tree.
 The observed catalog layout and unverified UI gates are recorded in
 [UI_BASELINE.md](UI_BASELINE.md); its screenshot was not saved to the repo.
 
