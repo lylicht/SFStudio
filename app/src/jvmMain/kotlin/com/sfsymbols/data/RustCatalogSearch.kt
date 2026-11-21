@@ -73,6 +73,20 @@ internal interface NativeSearch : Library {
         outputCapacity: Long,
     ): Long
 
+    fun sfstudio_favorites_load_json(
+        path: ByteArray?,
+        pathLength: Long,
+        output: ByteArray?,
+        outputCapacity: Long,
+    ): Long
+
+    fun sfstudio_favorites_save_json(
+        path: ByteArray?,
+        pathLength: Long,
+        favoritesJson: ByteArray?,
+        favoritesJsonLength: Long,
+    ): Long
+
     fun sfstudio_mcp_client_config_json(
         appPath: ByteArray?,
         appPathLength: Long,
@@ -312,6 +326,38 @@ internal object RustCatalogSearch {
         )
         check(written == required) { "Rust favorites wrote $written bytes; expected $required" }
         return output.decodeToString()
+    }
+
+    fun loadFavorites(path: String): String? {
+        val library = native ?: return null
+        val pathBytes = path.toByteArray(Charsets.UTF_8)
+        val required = library.sfstudio_favorites_load_json(pathBytes, pathBytes.size.toLong(), null, 0)
+        check(required >= 0) { "Rust favorites load failed with code $required" }
+        check(required <= Int.MAX_VALUE) { "Rust favorites file is too large for the JVM" }
+
+        val output = ByteArray(required.toInt())
+        val written = library.sfstudio_favorites_load_json(
+            pathBytes,
+            pathBytes.size.toLong(),
+            output,
+            output.size.toLong(),
+        )
+        check(written == required) { "Rust favorites load wrote $written bytes; expected $required" }
+        return output.decodeToString()
+    }
+
+    fun saveFavorites(path: String, favoritesJson: String): Boolean {
+        val library = native ?: return false
+        val pathBytes = path.toByteArray(Charsets.UTF_8)
+        val jsonBytes = favoritesJson.toByteArray(Charsets.UTF_8)
+        val status = library.sfstudio_favorites_save_json(
+            pathBytes,
+            pathBytes.size.toLong(),
+            jsonBytes,
+            jsonBytes.size.toLong(),
+        )
+        check(status == 0L) { "Rust favorites save failed with code $status" }
+        return true
     }
 
     fun mcpClientConfig(appPath: String?, developmentLibPath: String): String? {

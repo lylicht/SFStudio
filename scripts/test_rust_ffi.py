@@ -6,6 +6,7 @@ import json
 import math
 from pathlib import Path
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -80,6 +81,14 @@ def main():
     toggle_favorites.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                                  ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
     toggle_favorites.restype = ctypes.c_ssize_t
+    load_favorites = library.sfstudio_favorites_load_json
+    load_favorites.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
+                               ctypes.c_size_t]
+    load_favorites.restype = ctypes.c_ssize_t
+    save_favorites = library.sfstudio_favorites_save_json
+    save_favorites.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
+                               ctypes.c_size_t]
+    save_favorites.restype = ctypes.c_ssize_t
 
     def search(query, limit):
         encoded = query.encode("utf-8")
@@ -421,7 +430,53 @@ def main():
     assert toggle_favorites(broken_json, 7, ctypes.create_string_buffer(b"gear"), 4,
                             None, 0) == -8
 
-    print("Rust C ABI search, metadata, vectors, animations, settings, MCP config, filtering, codegen, and favorites smoke test passed (Python ctypes)")
+    def load_favorites_file(path):
+        encoded_path = str(path).encode("utf-8")
+        path_buffer = ctypes.create_string_buffer(encoded_path)
+        required = load_favorites(path_buffer, len(encoded_path), None, 0)
+        if required < 0:
+            return required
+        output = ctypes.create_string_buffer(required)
+        written = load_favorites(path_buffer, len(encoded_path), output, required)
+        assert written == required
+        return json.loads(output.raw[:written])
+
+    def save_favorites_file(path, favorites_json):
+        encoded_path = str(path).encode("utf-8")
+        encoded_json = favorites_json.encode("utf-8")
+        path_buffer = ctypes.create_string_buffer(encoded_path)
+        json_buffer = ctypes.create_string_buffer(encoded_json)
+        return save_favorites(
+            path_buffer, len(encoded_path), json_buffer, len(encoded_json),
+        )
+
+    assert load_favorites(None, 0, None, 0) == -16
+    assert load_favorites(None, 1, None, 0) == -1
+    invalid_path = ctypes.create_string_buffer(b"\xff")
+    assert load_favorites(invalid_path, 1, None, 0) == -2
+    with tempfile.TemporaryDirectory() as directory:
+        favorites_path = Path(directory) / "pins café" / "pins.json"
+        assert load_favorites_file(favorites_path) == []
+        assert favorites_path.parent.is_dir()
+        assert save_favorites_file(
+            favorites_path, '["heart.fill","heart.fill","star"]',
+        ) == 0
+        expected_json = '[\n  "heart.fill",\n  "star"\n]'
+        assert favorites_path.read_text(encoding="utf-8") == expected_json
+        assert load_favorites_file(favorites_path) == ["heart.fill", "star"]
+
+        path_bytes = str(favorites_path).encode("utf-8")
+        path_buffer = ctypes.create_string_buffer(path_bytes)
+        short = ctypes.create_string_buffer(b"\xa5", 1)
+        required = load_favorites(path_buffer, len(path_bytes), short, 1)
+        assert required > 1 and short.raw == b"\xa5"
+
+        assert save_favorites_file(favorites_path, "{broken") == -8
+        assert favorites_path.read_text(encoding="utf-8") == expected_json
+        favorites_path.write_text("{broken", encoding="utf-8")
+        assert load_favorites_file(favorites_path) == -8
+
+    print("Rust C ABI search, metadata, vectors, animations, settings, MCP config, filtering, codegen, and favorites persistence smoke test passed (Python ctypes)")
 
 
 if __name__ == "__main__":

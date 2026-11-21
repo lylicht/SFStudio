@@ -60,9 +60,10 @@ need adapters and parity gates. Removing a target or changing a public Compose
 signature would break downstream consumers.
 
 **Current boundary:** The published library and UI still use Kotlin. Packaged
-desktop search, filtering, code generation, favorites toggling, MCP config, and
-`--mcp` use Rust through JNA or the bundled Rust server. Kotlin fallbacks remain
-available when the desktop native library or MCP process cannot load.
+desktop search, filtering, code generation, favorites toggling and persistence,
+MCP config, and `--mcp` use Rust through JNA or the bundled Rust server. Kotlin
+fallbacks remain available when the desktop native library or MCP process
+cannot load.
 
 ## 007 — Decode existing vector data in Rust before rendering cutover
 
@@ -214,3 +215,23 @@ two-pixel mask, including 255 outside the mask, and returns `null` for empty or
 invalid masks. Device/simulator compilation and these checks passed in [Actions
 run #44859231638](https://github.com/lylicht/SFStudio/actions/runs/44859231638).
 Physical-device runtime remains unverified.
+
+## 017 — Persist desktop favorites through Rust without changing their contract
+
+**Decision:** Keep Kotlin responsible for resolving the existing
+`~/.sf-symbols-catalog/pins.json` path and as a fallback. Use the Rust C ABI for
+desktop load, JSON validation, ordered deduplication, serialization, and writes
+through a same-directory temporary file. Preserve existing regular-file
+permissions and fall back to Kotlin for symlink destinations.
+
+**Reason:** Favorites are user data and the current ordered JSON array is
+already consumed by Kotlin and Rust. Moving the portable file codec and default
+write path to Rust reduces duplicate persistence behavior while keeping the
+path, contents, and fallback unchanged. Directory metadata sync is not portable
+through the current cross-platform implementation, so the write is not claimed
+to survive sudden power loss after a successful return on every filesystem.
+
+**Gate:** Rust and Python C ABI checks plus a JVM test exercise the existing
+path, legacy JSON, round trips, malformed input, and safe replacement. The
+first local gate is Windows; the existing CI matrix runs the C ABI and JVM
+checks on Windows, macOS, and Linux.

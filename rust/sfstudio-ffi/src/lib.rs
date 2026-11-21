@@ -2,7 +2,11 @@
 
 use std::alloc::{alloc, dealloc, Layout};
 use std::collections::HashSet;
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+use std::io::Write;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+use std::path::Path;
 
 const UNKNOWN_SYMBOL: isize = -6;
 const INVALID_MODE: isize = -7;
@@ -19,6 +23,10 @@ const INVALID_DRAW_FIELD: isize = -12;
 const INVALID_MCP_CONFIG: isize = -13;
 const INVALID_FILTER_SELECTION: isize = -14;
 const INVALID_THEME_MODE: i32 = -15;
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+const INVALID_FAVORITES_PATH: isize = -16;
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+const FAVORITES_IO_ERROR: isize = -17;
 
 unsafe fn read_utf8<'a>(input: *const u8, input_len: usize) -> Result<&'a str, isize> {
     if input_len == 0 {
@@ -656,6 +664,138 @@ pub unsafe extern "C" fn sfstudio_favorites_toggle_json(
             .map_err(|_| INTERNAL_ERROR)
     })) {
         Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+fn favorites_parent(path: &Path) -> &Path {
+    path.parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."))
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+fn write_favorites(path: &Path, json: &[u8]) -> Result<(), isize> {
+    use std::fs;
+
+    let parent = favorites_parent(path);
+    fs::create_dir_all(parent).map_err(|_| FAVORITES_IO_ERROR)?;
+    let permissions = match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => return Err(FAVORITES_IO_ERROR),
+        Ok(metadata) if metadata.is_file() => {
+            let permissions = metadata.permissions();
+            if permissions.readonly() {
+                return Err(FAVORITES_IO_ERROR);
+            }
+            Some(permissions)
+        }
+        Ok(_) => return Err(FAVORITES_IO_ERROR),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(_) => return Err(FAVORITES_IO_ERROR),
+    };
+
+    let mut temporary = tempfile::NamedTempFile::new_in(parent).map_err(|_| FAVORITES_IO_ERROR)?;
+    temporary.write_all(json).map_err(|_| FAVORITES_IO_ERROR)?;
+    temporary
+        .as_file()
+        .sync_all()
+        .map_err(|_| FAVORITES_IO_ERROR)?;
+    if let Some(permissions) = permissions {
+        temporary
+            .as_file()
+            .set_permissions(permissions)
+            .map_err(|_| FAVORITES_IO_ERROR)?;
+    }
+    // shortcut: parent-directory sync is not portable here; add platform-specific sync if power-loss durability becomes a requirement.
+    temporary.persist(path).map_err(|_| FAVORITES_IO_ERROR)?;
+    Ok(())
+}
+
+/// Load and normalize a desktop favorites JSON file. A missing file is `[]`.
+/// Returns UTF-8 JSON through the common required-size buffer contract.
+/// Errors: -1 invalid path pointer, -2 invalid UTF-8, -3 invalid output
+/// pointer, -8 malformed favorites JSON, -16 empty path, -17 file I/O error.
+///
+/// # Safety
+/// Nonzero input lengths must point to that many readable bytes; a nonzero
+/// output capacity must point to that many writable bytes.
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_favorites_load_json(
+    path: *const u8,
+    path_len: usize,
+    output: *mut u8,
+    output_capacity: usize,
+) -> isize {
+    let path = match unsafe { read_utf8(path, path_len) } {
+        Ok(path) if !path.is_empty() => Path::new(path),
+        Ok(_) => return INVALID_FAVORITES_PATH,
+        Err(code) => return code,
+    };
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let parent = favorites_parent(path);
+        std::fs::create_dir_all(parent).map_err(|_| FAVORITES_IO_ERROR)?;
+        let json = match std::fs::read_to_string(path) {
+            Ok(json) => json,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return sfstudio_core::favorites::Favorites::default()
+                    .to_json()
+                    .map(String::into_bytes)
+                    .map_err(|_| INTERNAL_ERROR);
+            }
+            Err(_) => return Err(FAVORITES_IO_ERROR),
+        };
+        sfstudio_core::favorites::Favorites::from_json(&json)
+            .map_err(|_| INVALID_FAVORITES_JSON)?
+            .to_json()
+            .map(String::into_bytes)
+            .map_err(|_| INTERNAL_ERROR)
+    })) {
+        Ok(Ok(json)) => unsafe { write_bytes(output, output_capacity, &json) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
+/// Validate and atomically replace a desktop favorites JSON file.
+/// Returns 0 on success. Errors: -1 invalid input pointer, -2 invalid UTF-8,
+/// -8 malformed favorites JSON, -16 empty path, -17 file I/O error. Existing
+/// file permissions are retained. Symlink destinations return -17 so a
+/// compatibility caller can use its existing follow-symlink write behavior.
+///
+/// # Safety
+/// Nonzero input lengths must point to that many readable bytes.
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_favorites_save_json(
+    path: *const u8,
+    path_len: usize,
+    favorites_json: *const u8,
+    favorites_json_len: usize,
+) -> isize {
+    let path = match unsafe { read_utf8(path, path_len) } {
+        Ok(path) if !path.is_empty() => Path::new(path),
+        Ok(_) => return INVALID_FAVORITES_PATH,
+        Err(code) => return code,
+    };
+    let favorites_json = match unsafe { read_utf8(favorites_json, favorites_json_len) } {
+        Ok(json) => json,
+        Err(code) => return code,
+    };
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let favorites = sfstudio_core::favorites::Favorites::from_json(favorites_json)
+            .map_err(|_| INVALID_FAVORITES_JSON)?;
+        let json = favorites.to_json().map_err(|_| INTERNAL_ERROR)?;
+        write_favorites(path, json.as_bytes())
+    })) {
+        Ok(Ok(())) => 0,
         Ok(Err(code)) => code,
         Err(_) => INTERNAL_ERROR,
     }
@@ -1896,6 +2036,105 @@ mod tests {
                 INVALID_FAVORITES_JSON
             );
         }
+    }
+
+    #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+    #[test]
+    fn favorites_file_storage_round_trips_and_preserves_existing_data_on_error() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("nested café").join("pins.json");
+        let path = path.to_string_lossy().into_owned();
+        let path_bytes = path.as_bytes();
+
+        // SAFETY: The path slice is valid and the output call is a size query.
+        assert_eq!(
+            unsafe {
+                sfstudio_favorites_load_json(
+                    path_bytes.as_ptr(),
+                    path_bytes.len(),
+                    std::ptr::null_mut(),
+                    0,
+                )
+            },
+            2
+        );
+        let mut empty = [0; 2];
+        // SAFETY: The path and two-byte output slices are valid for their lengths.
+        assert_eq!(
+            unsafe {
+                sfstudio_favorites_load_json(
+                    path_bytes.as_ptr(),
+                    path_bytes.len(),
+                    empty.as_mut_ptr(),
+                    empty.len(),
+                )
+            },
+            2
+        );
+        assert_eq!(&empty, b"[]");
+
+        let initial = br#"["heart.fill","heart.fill","star"]"#;
+        // SAFETY: Both inputs are valid byte slices.
+        assert_eq!(
+            unsafe {
+                sfstudio_favorites_save_json(
+                    path_bytes.as_ptr(),
+                    path_bytes.len(),
+                    initial.as_ptr(),
+                    initial.len(),
+                )
+            },
+            0
+        );
+        let expected = "[\n  \"heart.fill\",\n  \"star\"\n]";
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), expected);
+
+        let original_permissions = std::fs::metadata(&path).unwrap().permissions();
+        let mut permissions = original_permissions.clone();
+        permissions.set_readonly(true);
+        std::fs::set_permissions(&path, permissions).unwrap();
+        // SAFETY: Both inputs are valid byte slices.
+        assert_eq!(
+            unsafe {
+                sfstudio_favorites_save_json(
+                    path_bytes.as_ptr(),
+                    path_bytes.len(),
+                    initial.as_ptr(),
+                    initial.len(),
+                )
+            },
+            FAVORITES_IO_ERROR
+        );
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), expected);
+        std::fs::set_permissions(&path, original_permissions).unwrap();
+
+        let malformed = b"{broken";
+        // SAFETY: Both inputs are valid byte slices.
+        assert_eq!(
+            unsafe {
+                sfstudio_favorites_save_json(
+                    path_bytes.as_ptr(),
+                    path_bytes.len(),
+                    malformed.as_ptr(),
+                    malformed.len(),
+                )
+            },
+            INVALID_FAVORITES_JSON
+        );
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), expected);
+        std::fs::write(&path, malformed).unwrap();
+        // SAFETY: The path is valid and the output call is a size query.
+        assert_eq!(
+            unsafe {
+                sfstudio_favorites_load_json(
+                    path_bytes.as_ptr(),
+                    path_bytes.len(),
+                    std::ptr::null_mut(),
+                    0,
+                )
+            },
+            INVALID_FAVORITES_JSON
+        );
     }
 
     #[test]

@@ -22,16 +22,32 @@ public object PinnedSymbols {
     public fun load(): Set<String> {
         return runCatching {
             val file = pinsFile()
-            if (!file.exists()) return emptySet()
-            val text = file.readText()
+            val rustText = try {
+                RustCatalogSearch.loadFavorites(file.absolutePath)
+            } catch (error: Exception) {
+                RustCatalogSearch.reportFailure(error)
+                null
+            } catch (error: LinkageError) {
+                RustCatalogSearch.reportFailure(error)
+                null
+            }
+            if (rustText == null && !file.exists()) return emptySet()
+            val text = rustText ?: file.readText()
             json.decodeFromString(SetSerializer(String.serializer()), text)
         }.getOrDefault(emptySet())
     }
 
     public fun save(pinned: Set<String>) {
-        runCatching {
-            pinsFile().writeText(json.encodeToString(serializer, pinned))
+        val file = pinsFile()
+        val text = json.encodeToString(serializer, pinned)
+        try {
+            if (RustCatalogSearch.saveFavorites(file.absolutePath, text)) return
+        } catch (error: Exception) {
+            RustCatalogSearch.reportFailure(error)
+        } catch (error: LinkageError) {
+            RustCatalogSearch.reportFailure(error)
         }
+        runCatching { file.writeText(text) }
     }
 
     public fun toggle(pinned: Set<String>, appleName: String): Set<String> {

@@ -6,8 +6,8 @@ Last local check: 2026-11-21, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 42 Rust tests
-  passed (28 core, 11 C ABI, and 3 MCP), including Rust fingerprints for every
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 47 Rust tests
+  passed (30 core, 14 C ABI, and 3 MCP), including Rust fingerprints for every
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo check --manifest-path rust/Cargo.toml -p sfstudio-ffi --target aarch64-linux-android` — passed; Android JNI exports type-check for the Android target.
@@ -132,10 +132,31 @@ Last local check: 2026-11-21, Windows x64, branch
   `python scripts/test_rust_ffi.py` — passed, including `ctypes` checks for
   theme modes, invalid inputs, grid boundaries, and NaN behavior.
 - `gradlew.bat :app:jvmTest --no-daemon --console=plain -PsfstudioUseSystemWebTools=true`
-  — passed, including Kotlin/Rust preference parity.
+  — passed, including Kotlin/Rust preference and favorites-storage parity.
 - This desktop preferences slice was validated on Windows JVM only. Other
   platform settings callers and physical/browser runtime are not verified by
   these checks.
+
+## Rust-backed desktop favorite persistence (2026-11-21)
+
+- The desktop C ABI loads and validates the existing ordered JSON file and
+  saves it through a same-directory temporary file, preserving the current
+  path and regular-file permissions. Symlink destinations and Rust I/O errors
+  fall back to the prior Kotlin writer. The parent directory is not synced, so
+  sudden power-loss durability is not claimed for every filesystem.
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — passed; 47 tests
+  passed, including missing-file, Unicode-path, order/deduplication, malformed
+  JSON, read-only protection, and failed-save data-retention cases.
+- `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings`,
+  `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi`, and
+  `python scripts/test_rust_ffi.py` — passed.
+- `gradlew.bat :app:jvmTest --no-daemon --console=plain -PsfstudioUseSystemWebTools=true`
+  — passed, including the existing user path and Kotlin set round trip.
+- Rust FFI `cargo check` passed for Windows x64, Android ARM64, iOS device and
+  simulator, and Wasm. File-storage exports are intentionally desktop-only;
+  the mobile and Wasm targets retain their current APIs.
+- Cross-OS runtime checks for the new file operations will run in the existing
+  Windows/macOS/Linux CI matrix after this change is pushed.
 
 ## Rust-backed outline interpolation
 

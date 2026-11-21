@@ -172,6 +172,20 @@ intptr_t sfstudio_favorites_toggle_json(const uint8_t *favorites_json,
                                         size_t symbol_name_len, uint8_t *output,
                                         size_t output_capacity);
 
+/* Windows/macOS/Linux desktop persistence for a UTF-8 filesystem path.
+ * Loading a missing file returns an empty JSON array and uses the common output
+ * buffer contract. Saving returns 0 on success and persists through a
+ * same-directory temporary file where supported, preserving regular-file
+ * permissions. Errors: -1 invalid input pointer, -2 invalid UTF-8, -3 invalid
+ * load output pointer, -8 invalid JSON, -16 empty path, -17 I/O failure. A
+ * symlink destination returns -17 for Kotlin fallback. */
+intptr_t sfstudio_favorites_load_json(const uint8_t *path, size_t path_len,
+                                      uint8_t *output,
+                                      size_t output_capacity);
+intptr_t sfstudio_favorites_save_json(const uint8_t *path, size_t path_len,
+                                      const uint8_t *favorites_json,
+                                      size_t favorites_json_len);
+
 #ifdef __cplusplus
 }
 #endif

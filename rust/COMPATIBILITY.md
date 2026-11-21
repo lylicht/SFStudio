@@ -13,10 +13,12 @@ The desktop application is Kotlin/Compose on JVM. The installed app remains
 the default MCP endpoint and continues to use the existing favorite file at
 `~/.sf-symbols-catalog/pins.json`. Packaged `--mcp` invocations delegate to
 the bundled Rust MCP process; development classpath launches fall back to
-Kotlin. Packaged desktop search, snippet generation, favorite toggling,
-filter-selection transitions, MCP client configuration, theme resolution, and
-grid-scale clamping call the Rust C ABI through JNA, with Kotlin fallbacks.
-Kotlin still owns preference and favorite persistence.
+Kotlin. Packaged desktop search, snippet generation, favorite toggling and file
+storage, filter-selection transitions, MCP client configuration, theme
+resolution, and grid-scale clamping call the Rust C ABI through JNA, with
+Kotlin fallbacks. Kotlin resolves the existing favorites path and keeps the
+fallback; Rust reads and writes the same ordered JSON format when available.
+Kotlin still owns Java Preferences persistence.
 
 The JVM implementation of the public `SfSymbolIcon` obtains weighted outline
 points, Apple effect frames, and Draw On/Off reveal levels through the Rust C
@@ -60,7 +62,9 @@ endpoints through JNI; iOS calls the typed glyph-points and animation endpoints
 through Kotlin/Native C interop. The desktop JVM app calls search, code generation, favorite toggling,
 category/favorites filtering, filter-selection transitions, MCP client
 configuration, theme resolution, grid-scale clamping, and effect evaluation
-through JNA. The JNA metadata lookup
+through JNA. Desktop favorite-file I/O also uses the C ABI on Windows, macOS,
+and Linux, while Kotlin continues to resolve the existing path and provides
+the fallback. The JNA metadata lookup
 binding passed parity checks on Windows, macOS, and Linux in run #20. Rust
 animation frames match the Kotlin evaluator in JVM parity tests; sRGB appearance
 and gradients pass differential checks in all four rendering modes, and Compose

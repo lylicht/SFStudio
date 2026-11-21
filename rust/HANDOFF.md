@@ -6,7 +6,7 @@ The working branch is `migration/rust-max-coverage-2026-11-20`, created from
 PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 
-On Windows x64, Rust fmt, all 46 workspace tests, Clippy, Gradle JVM tests,
+On Windows x64, Rust fmt, all 47 workspace tests, Clippy, Gradle JVM tests,
 JS/Wasm compilation, MCP assembly, the Windows MSI build, and MCP stdio smoke
 tests against both Kotlin and Rust passed. The Rust vector decoder matches all
 8,526 Kotlin glyph fingerprints and available optical variants; its C ABI
@@ -97,6 +97,13 @@ The desktop ViewModel now resolves System/Light/Dark mode and clamps the grid
 scale through Rust with Kotlin fallbacks. Java Preferences persistence and
 Compose state remain Kotlin; this settings bridge has only been validated on
 the Windows JVM target.
+
+Desktop favorites now load and save through Rust at the same user-home path
+when the native library is available. Rust keeps the ordered JSON array,
+normalizes duplicates, preserves regular-file permissions, and replaces via a
+same-directory temporary file. Kotlin still resolves the path and retains its
+fallback, including symlink writes. Rust, Python, and JVM checks pass locally;
+cross-OS CI for the new file operations is pending.
 
 ## Existing work inherited from PR #7
 
