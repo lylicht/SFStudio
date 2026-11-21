@@ -36,7 +36,7 @@ private val GRID_SIZE_SCALES = listOf(0.5f, 0.7f, 1f, 1.3f, 1.6f)
 // Keep a clear margin so the search field stays outside the native hit areas.
 private val WINDOW_CONTROLS_END_PADDING = when {
     System.getProperty("os.name").contains("Mac", ignoreCase = true) -> 18.dp
-    System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> 46.dp * 3 + 80.dp
+    System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> 46.dp * 3 + 128.dp
     else -> 136.dp
 }
 

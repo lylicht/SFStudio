@@ -403,6 +403,9 @@ adapter checks are recorded below.
   to 80 dp. `:app:compileKotlinJvm` passed and the refreshed default-size
   Windows screenshot shows about 78 px of clearance. The minimum-size layout
   and JVM test suite were not rerun.
+- After a further report of caption buttons crowding the app controls, the
+  Windows header margin increased from 80 dp to 128 dp. `:app:compileKotlinJvm`
+  passed; visual validation at the minimum size and high DPI is still pending.
 
 ## Rust-flattened animation layers (2026-11-21)
 

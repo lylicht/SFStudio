@@ -14,10 +14,11 @@ and a 1000×680 dp minimum size.
 - Right inspector with Color, BG, and Basic info tabs, a selected-symbol
   preview, an Apple Bounce effect selector and Play action, appearance/tint
   controls, and Copy Name / Copy Code actions.
-- The search header reserves space for Windows caption buttons. The current
-  source uses an 80 dp margin after the three-button strip because the live
-  display showed only a narrow gap with the previous 64 dp margin. The gallery
-  toolbar is below the search row and uses the ordinary 18 dp pane inset.
+- The search header reserves space for Windows caption buttons. At the time of
+  this capture, source used an 80 dp margin after the three-button strip. After
+  a further overlap report, the source margin was raised to 128 dp; that update
+  compiled, but the app has not yet been relaunched for a new capture. The
+  gallery toolbar is below the search row and uses the ordinary 18 dp pane inset.
 
 The refreshed screenshot shows about 78 px between the search field and the
 caption-button strip at the default window size. It was inspected in-session but
