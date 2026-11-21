@@ -39,12 +39,13 @@ cached from Kotlin stays on that fallback for the app session. JVM parity now
 matches all 8,526 glyphs and available optical variants, including full layer
 trees. The desktop ViewModel also resolves System/Light/Dark and clamps
 grid scale through Rust, retaining Kotlin fallbacks; Kotlin continues to own
-Java Preferences persistence and Compose state. The latest completed
-cross-platform run [#44886962212](https://github.com/lylicht/SFStudio/actions/runs/44886962212)
-passed all 13 jobs for the caption-spacing change; category-count changes are
-local-only and await CI. Run #44885280359 passed Rust/C ABI checks, JVM tests on
-Windows/macOS/Linux, Android compilation
-and four-ABI packaging, iOS device/simulator compilation and simulator tests,
+Java Preferences persistence and Compose state. The latest cross-platform run
+[#44888335626](https://github.com/lylicht/SFStudio/actions/runs/44888335626)
+passed all 13 jobs, including category-count parity. The caption-spacing change
+also passed all 13 jobs in [run #44886962212](https://github.com/lylicht/SFStudio/actions/runs/44886962212).
+Run #44885280359 passed Rust/C ABI checks, JVM tests on Windows/macOS/Linux,
+Android compilation and four-ABI packaging, iOS device/simulator compilation
+and simulator tests,
 packaged MCP launchers on all three desktop OSes, JS Node parity, Wasm
 compilation, and differential MCP replay. Wasm runtime and browser validation
 remain pending because of the Compose Skiko loader and Karma resource-serving

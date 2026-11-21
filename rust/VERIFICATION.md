@@ -485,6 +485,7 @@ adapter checks are recorded below.
 - `gradlew.bat :app:jvmTest --no-daemon --console=plain
   -PsfstudioUseSystemWebTools=true` — passed. The new ViewModel test compares
   the complete Rust/JNA category list against Kotlin's existing stable ordering.
-- Cross-OS CI for this category-count change is pending; the preceding
-  caption-spacing change passed all 13 jobs in [run
-  #44886962212](https://github.com/lylicht/SFStudio/actions/runs/44886962212).
+- GitHub Actions [run #44888335626](https://github.com/lylicht/SFStudio/actions/runs/44888335626)
+  passed all 13 jobs, including the Windows/macOS/Linux JVM and Rust checks,
+  Android packaging, iOS simulator parity, JS/Wasm gates, packaged launchers,
+  and differential MCP replay.

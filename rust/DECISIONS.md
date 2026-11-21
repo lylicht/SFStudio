@@ -298,4 +298,5 @@ Stable sorting preserves Kotlin's first-seen order when counts tie.
 **Gate:** A Rust fixture checks tie order, the C ABI checks JSON and sizing
 behavior, and JVM parity compares the full ordered result with Kotlin's
 `flatMap`/`groupingBy`/stable sort. Windows local Rust, Clippy, and JVM checks
-pass; cross-OS CI is pending.
+pass; all 13 cross-platform CI jobs passed in [run
+#44888335626](https://github.com/lylicht/SFStudio/actions/runs/44888335626).

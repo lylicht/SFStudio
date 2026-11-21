@@ -7,7 +7,8 @@ portable logic behind the installed desktop entry points.
 ## What has been ported
 
 - `sfstudio-core`: the SFStudio catalog index, typo-tolerant search algorithm,
-  category/favorites filtering, and catalog filter-selection transitions
+  category counts, category/favorites filtering, and catalog filter-selection
+  transitions
   originally split across `FuzzySearch.kt` and `CatalogViewModel.kt`.
 - `sfstudio-core::codegen`: Compose snippet generation ported against shared
   Kotlin/Rust golden fixtures and exposed through the C ABI; the packaged JVM
@@ -41,7 +42,8 @@ portable logic behind the installed desktop entry points.
   remain in Kotlin.
 - `sfstudio-mcp`: a native, newline-delimited JSON-RPC/MCP stdio executable
   providing the existing `search_symbols` and `get_symbol` tools.
-- `sfstudio-ffi`: a language-neutral C ABI for catalog search/filtering,
+- `sfstudio-ffi`: a language-neutral C ABI for catalog search, category counts,
+  and filtering,
   filter-selection transitions, symbol metadata lookup, glyph geometry at a
   requested weight and optical scale, typed `f32` outline points, animation
   frames, Draw On/Off levels, MCP configuration, Compose code
