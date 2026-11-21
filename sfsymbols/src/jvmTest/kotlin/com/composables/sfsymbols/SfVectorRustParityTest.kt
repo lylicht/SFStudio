@@ -59,11 +59,22 @@ class SfVectorRustParityTest {
             for (name in names) {
                 val symbol = SfSymbol.named(name) ?: error("unknown SF Symbol $name")
                 for (weight in SfWeight.values()) for (scale in SfScale.values()) {
+                    val expectedBounds = symbol.boundsFromKotlinData(weight, scale)
                     append(name).append('|')
                         .append(weight.wght).append('|')
                         .append(scale.name.lowercase()).append('|')
-                        .append(boundsHash(symbol.bounds(weight, scale)))
+                        .append(boundsHash(expectedBounds))
                         .append('\n')
+                    val rust = checkNotNull(sfRustGlyphBounds(symbol, weight.wght, scale)) {
+                        "Rust bounds missing for $name ${weight.name} ${scale.name}"
+                    }
+                    assertArrayEquals(
+                        "$name ${weight.name} ${scale.name}",
+                        floatArrayOf(expectedBounds.left, expectedBounds.top, expectedBounds.right, expectedBounds.bottom),
+                        rust,
+                        0f,
+                    )
+                    assertEquals(expectedBounds, symbol.bounds(weight, scale))
                 }
             }
         }

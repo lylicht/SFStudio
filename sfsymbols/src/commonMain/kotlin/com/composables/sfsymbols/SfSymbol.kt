@@ -256,52 +256,61 @@ public class SfSymbol internal constructor(private val info: SfInfo) {
      */
     public fun bounds(weight: SfWeight = SfWeight.Regular, scale: SfScale = SfScale.Medium): Rect =
         boundsCache.getOrPut(Triple(this, weight, scale)) {
-            val g = glyphAt(scale)
-            val p = points(weight, scale)
-            val drawn = HashSet<Int>()
-            for (l in layers) if (!l.erases) for (c in l.contours) drawn += c
-            val all = drawn.isEmpty()
-            var l = Float.MAX_VALUE; var t = Float.MAX_VALUE; var r = -Float.MAX_VALUE; var b = -Float.MAX_VALUE
-            var contour = 0
-            var skip = !all && contour !in drawn
-            fun add(x: Float, y: Float) {
-                if (skip) return
-                if (x < l) l = x; if (x > r) r = x
-                if (y < t) t = y; if (y > b) b = y
+            val native = sfRustGlyphBounds(this, weight.wght, scale)?.takeIf {
+                it.size == 4 && it.all(Float::isFinite) && it[0] <= it[2] && it[1] <= it[3]
             }
-            // extrema of a cubic on one axis: roots of the derivative in (0,1)
-            fun cubicAxis(p0: Float, p1: Float, p2: Float, p3: Float, out: (Float) -> Unit) {
-                val a = -p0 + 3 * p1 - 3 * p2 + p3
-                val bb = 2 * (p0 - 2 * p1 + p2)
-                val c = p1 - p0
-                fun at(t: Float): Float { val u = 1 - t; return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3 }
-                if (kotlin.math.abs(a) < 1e-6f) {
-                    if (kotlin.math.abs(bb) > 1e-9f) { val tt = -c / bb; if (tt > 0f && tt < 1f) out(at(tt)) }
-                } else {
-                    val disc = bb * bb - 4 * a * c
-                    if (disc >= 0f) {
-                        val sq = kotlin.math.sqrt(disc)
-                        for (tt in floatArrayOf((-bb + sq) / (2 * a), (-bb - sq) / (2 * a))) if (tt > 0f && tt < 1f) out(at(tt))
-                    }
-                }
-            }
-            var k = 0
-            var cx = 0f; var cy = 0f
-            for (op in g.ops) {
-                when (op.toInt()) {
-                    0, 1 -> { cx = p[k]; cy = p[k + 1]; add(cx, cy); k += 2 }
-                    2 -> {
-                        val x1 = p[k]; val y1 = p[k + 1]; val x2 = p[k + 2]; val y2 = p[k + 3]; val x3 = p[k + 4]; val y3 = p[k + 5]
-                        add(x3, y3)
-                        cubicAxis(cx, x1, x2, x3) { add(it, cy) }
-                        cubicAxis(cy, y1, y2, y3) { add(cx, it) }
-                        cx = x3; cy = y3; k += 6
-                    }
-                    else -> { contour++; skip = !all && contour !in drawn }
-                }
-            }
-            Rect(l, t, r, b)
+            if (native != null) return@getOrPut Rect(native[0], native[1], native[2], native[3])
+            boundsFromKotlinData(weight, scale)
         }
+
+    /** Kotlin-backed compatibility path and independent parity reference. */
+    internal fun boundsFromKotlinData(weight: SfWeight, scale: SfScale): Rect {
+        val g = glyphAt(scale)
+        val p = pointsFromKotlinData(weight.wght, scale)
+        val drawn = HashSet<Int>()
+        for (l in layers) if (!l.erases) for (c in l.contours) drawn += c
+        val all = drawn.isEmpty()
+        var l = Float.MAX_VALUE; var t = Float.MAX_VALUE; var r = -Float.MAX_VALUE; var b = -Float.MAX_VALUE
+        var contour = 0
+        var skip = !all && contour !in drawn
+        fun add(x: Float, y: Float) {
+            if (skip) return
+            if (x < l) l = x; if (x > r) r = x
+            if (y < t) t = y; if (y > b) b = y
+        }
+        // extrema of a cubic on one axis: roots of the derivative in (0,1)
+        fun cubicAxis(p0: Float, p1: Float, p2: Float, p3: Float, out: (Float) -> Unit) {
+            val a = -p0 + 3 * p1 - 3 * p2 + p3
+            val bb = 2 * (p0 - 2 * p1 + p2)
+            val c = p1 - p0
+            fun at(t: Float): Float { val u = 1 - t; return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3 }
+            if (kotlin.math.abs(a) < 1e-6f) {
+                if (kotlin.math.abs(bb) > 1e-9f) { val tt = -c / bb; if (tt > 0f && tt < 1f) out(at(tt)) }
+            } else {
+                val disc = bb * bb - 4 * a * c
+                if (disc >= 0f) {
+                    val sq = kotlin.math.sqrt(disc)
+                    for (tt in floatArrayOf((-bb + sq) / (2 * a), (-bb - sq) / (2 * a))) if (tt > 0f && tt < 1f) out(at(tt))
+                }
+            }
+        }
+        var k = 0
+        var cx = 0f; var cy = 0f
+        for (op in g.ops) {
+            when (op.toInt()) {
+                0, 1 -> { cx = p[k]; cy = p[k + 1]; add(cx, cy); k += 2 }
+                2 -> {
+                    val x1 = p[k]; val y1 = p[k + 1]; val x2 = p[k + 2]; val y2 = p[k + 3]; val x3 = p[k + 4]; val y3 = p[k + 5]
+                    add(x3, y3)
+                    cubicAxis(cx, x1, x2, x3) { add(it, cy) }
+                    cubicAxis(cy, y1, y2, y3) { add(cx, it) }
+                    cx = x3; cy = y3; k += 6
+                }
+                else -> { contour++; skip = !all && contour !in drawn }
+            }
+        }
+        return Rect(l, t, r, b)
+    }
 
     /**
      * Static monochrome [ImageVector] for APIs that need one (e.g. Material `Icon`). Use
@@ -348,6 +357,8 @@ public class SfSymbol internal constructor(private val info: SfInfo) {
             "ur", "ka", "km", "lo", "si", "ne", "sat", "ps", "sd",
         )
         private val boundsCache = HashMap<Triple<SfSymbol, SfWeight, SfScale>, Rect>()
+
+        internal fun clearCachedBounds() = boundsCache.clear()
         private val symbols: Map<SfInfo, SfSymbol> by lazy { SfData.all().associateWith { SfSymbol(it) } }
         private val categoryList: List<SfCategory> by lazy {
             val k = SfData.categoryKeys(); val l = SfData.categoryLabels(); val i = SfData.categoryIcons()

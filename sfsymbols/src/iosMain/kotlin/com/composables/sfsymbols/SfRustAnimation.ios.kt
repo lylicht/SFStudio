@@ -9,6 +9,7 @@ import com.composables.sfsymbols.core.SfScaleId
 import com.composables.sfsymbols.ffi.sfstudio_animation_json
 import com.composables.sfsymbols.ffi.sfstudio_draw_field_json
 import com.composables.sfsymbols.ffi.sfstudio_glyph_json
+import com.composables.sfsymbols.ffi.sfstudio_glyph_bounds
 import com.composables.sfsymbols.ffi.sfstudio_glyph_points
 import kotlinx.cinterop.UByteVar
 import kotlinx.cinterop.addressOf
@@ -70,6 +71,36 @@ internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: Sf
                 if (written != required) return null
             }
             points.takeIf { result -> result.all { it.isFinite() } }
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
+
+internal actual fun sfRustGlyphBounds(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? {
+    val name = symbol.name.encodeToByteArray()
+    if (name.isEmpty()) return null
+    val scaleId = when (scale) {
+        SfScale.Medium -> 0
+        SfScale.Small -> 1
+        SfScale.Large -> 2
+    }
+    return try {
+        name.usePinned { pinnedName ->
+            val namePointer = pinnedName.addressOf(0).reinterpret<UByteVar>()
+            val required = sfstudio_glyph_bounds(
+                namePointer, name.size.convert(), scaleId, weight, null, 0uL,
+            )
+            if (required != 4L) return null
+            val bounds = FloatArray(4)
+            bounds.usePinned { pinnedBounds ->
+                val written = sfstudio_glyph_bounds(
+                    namePointer, name.size.convert(), scaleId, weight,
+                    pinnedBounds.addressOf(0), bounds.size.convert(),
+                )
+                if (written != required) return null
+            }
+            bounds.takeIf { result -> result.all { it.isFinite() } && result[0] <= result[2] && result[1] <= result[3] }
         }
     } catch (_: Exception) {
         null

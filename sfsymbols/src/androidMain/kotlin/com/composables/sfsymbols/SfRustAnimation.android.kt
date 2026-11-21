@@ -11,6 +11,9 @@ internal actual fun sfRustGlyphData(name: String, scale: SfScaleId): SfGlyph? =
 internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? =
     RustFfi.points(symbol.name, scale, weight)
 
+internal actual fun sfRustGlyphBounds(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? =
+    RustFfi.bounds(symbol.name, scale, weight)
+
 internal actual fun sfRustAnimationFrames(
     symbol: SfSymbol,
     effect: SfSymbolEffect,
@@ -36,6 +39,7 @@ private object RustFfi {
     private val available by lazy { runCatching { System.loadLibrary("sfstudio_ffi") }.isSuccess }
 
     external fun glyphPoints(name: String, scale: Int, weight: Float): FloatArray?
+    external fun glyphBounds(name: String, scale: Int, weight: Float): FloatArray?
     external fun glyphJson(name: String, scale: Int): ByteArray?
     external fun animationJson(input: ByteArray): ByteArray?
     external fun drawFieldJson(input: ByteArray): ByteArray?
@@ -49,6 +53,24 @@ private object RustFfi {
         }
         return try {
             glyphPoints(name, scaleId, weight)?.takeIf { points -> points.all { it.isFinite() } }
+        } catch (_: Exception) {
+            null
+        } catch (_: LinkageError) {
+            null
+        }
+    }
+
+    fun bounds(name: String, scale: SfScale, weight: Float): FloatArray? {
+        if (!available) return null
+        val scaleId = when (scale) {
+            SfScale.Medium -> 0
+            SfScale.Small -> 1
+            SfScale.Large -> 2
+        }
+        return try {
+            glyphBounds(name, scaleId, weight)?.takeIf {
+                it.size == 4 && it.all(Float::isFinite) && it[0] <= it[2] && it[1] <= it[3]
+            }
         } catch (_: Exception) {
             null
         } catch (_: LinkageError) {

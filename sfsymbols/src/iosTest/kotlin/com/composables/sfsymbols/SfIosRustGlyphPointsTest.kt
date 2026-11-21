@@ -33,6 +33,19 @@ class SfIosRustGlyphPointsTest {
                     rust.contentEquals(symbol.points(weight.wght, scale)),
                     "The iOS renderer must use Rust points when available",
                 )
+                val expectedBounds = symbol.boundsFromKotlinData(weight, scale)
+                val rustBounds = checkNotNull(sfRustGlyphBounds(symbol, weight.wght, scale)) {
+                    "Rust bounds missing for $name ${weight.name} ${scale.name}"
+                }
+                assertTrue(
+                    floatArrayOf(expectedBounds.left, expectedBounds.top, expectedBounds.right, expectedBounds.bottom)
+                        .contentEquals(rustBounds),
+                    "Rust and Kotlin bounds differ for $name ${weight.name} ${scale.name}",
+                )
+                assertTrue(
+                    expectedBounds == symbol.bounds(weight, scale),
+                    "The iOS renderer must use Rust bounds when available",
+                )
             }
         }
     }

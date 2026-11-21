@@ -29,8 +29,21 @@ internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: Sf
         SfScale.Small -> 1
         SfScale.Large -> 2
     }
-    val response = rustGlyphPointsJson(symbol.name, scaleId, weight) ?: return null
+    val response = rustGlyphFloatArrayJson("sfstudio_glyph_points", symbol.name, scaleId, weight) ?: return null
     parseRustGlyphPoints(response)
+}.getOrNull()
+
+internal actual fun sfRustGlyphBounds(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? = runCatching {
+    if (!ensureRustWasm()) return null
+    val scaleId = when (scale) {
+        SfScale.Medium -> 0
+        SfScale.Small -> 1
+        SfScale.Large -> 2
+    }
+    val response = rustGlyphFloatArrayJson("sfstudio_glyph_bounds", symbol.name, scaleId, weight) ?: return null
+    parseRustGlyphPoints(response)?.takeIf {
+        it.size == 4 && it.all(Float::isFinite) && it[0] <= it[2] && it[1] <= it[3]
+    }
 }.getOrNull()
 
 internal actual fun sfRustAnimationFrames(
@@ -70,6 +83,7 @@ private fun ensureRustWasm(): Boolean {
         runCatching {
             val url = if (isNodeRuntime()) "" else Res.getUri("files/sfstudio_ffi.wasm")
             loadRustWasm(url) {
+                SfSymbol.clearCachedBounds()
                 SfRustWasmRuntime.revision.intValue++
             }
         }
@@ -119,9 +133,14 @@ private fun loadRustWasm(url: String, onReady: () -> Unit): Unit = js(
     """,
 )
 
-private fun rustGlyphPointsJson(symbolName: String, scaleId: Int, requestedWeight: Float): String? = js(
+private fun rustGlyphFloatArrayJson(
+    exportName: String,
+    symbolName: String,
+    scaleId: Int,
+    requestedWeight: Float,
+): String? = js(
     """
-    ((ffi, name, scale, weight) => {
+    ((ffi, exportName, name, scale, weight) => {
         if (!ffi) return null;
         const inputBytes = new TextEncoder().encode(name);
         const input = ffi.sfstudio_alloc(inputBytes.length);
@@ -130,13 +149,13 @@ private fun rustGlyphPointsJson(symbolName: String, scaleId: Int, requestedWeigh
         let outputBytes = 0;
         try {
             new Uint8Array(ffi.memory.buffer, input, inputBytes.length).set(inputBytes);
-            const needed = ffi.sfstudio_glyph_points(input, inputBytes.length, scale, weight, 0, 0);
+            const needed = ffi[exportName](input, inputBytes.length, scale, weight, 0, 0);
             if (!Number.isSafeInteger(needed) || needed < 0 || needed > 0x1fffffff) return null;
             if (needed === 0) return "[]";
             outputBytes = needed * Float32Array.BYTES_PER_ELEMENT;
             output = ffi.sfstudio_alloc(outputBytes);
             if (!output) return null;
-            const written = ffi.sfstudio_glyph_points(input, inputBytes.length, scale, weight, output, needed);
+            const written = ffi[exportName](input, inputBytes.length, scale, weight, output, needed);
             if (written !== needed) return null;
             return JSON.stringify(Array.from(new Float32Array(ffi.memory.buffer, output, needed)));
         } catch (_) {
@@ -145,7 +164,7 @@ private fun rustGlyphPointsJson(symbolName: String, scaleId: Int, requestedWeigh
             if (output) ffi.sfstudio_free(output, outputBytes);
             ffi.sfstudio_free(input, inputBytes.length);
         }
-    })(globalThis.__sfstudioRustWasm, symbolName, scaleId, requestedWeight)
+    })(globalThis.__sfstudioRustWasm, exportName, symbolName, scaleId, requestedWeight)
     """,
 )
 

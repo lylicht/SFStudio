@@ -28,6 +28,15 @@ private interface NativeAnimation : Library {
         output: FloatArray?,
         outputCapacity: Long,
     ): Long
+
+    fun sfstudio_glyph_bounds(
+        symbolName: ByteArray,
+        symbolNameLength: Long,
+        scale: Int,
+        weight: Float,
+        output: FloatArray?,
+        outputCapacity: Long,
+    ): Long
     fun sfstudio_animation_json(input: ByteArray, inputLength: Long, output: ByteArray?, outputCapacity: Long): Long
     fun sfstudio_draw_field_json(input: ByteArray, inputLength: Long, output: ByteArray?, outputCapacity: Long): Long
 }
@@ -37,6 +46,9 @@ internal actual fun sfRustGlyphData(name: String, scale: SfScaleId): SfGlyph? =
 
 internal actual fun sfRustGlyphPoints(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? =
     RustAnimation.glyphPoints(symbol, weight, scale)
+
+internal actual fun sfRustGlyphBounds(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? =
+    RustAnimation.glyphBounds(symbol, weight, scale)
 
 internal actual fun sfRustAnimationFrames(
     symbol: SfSymbol,
@@ -124,6 +136,29 @@ private object RustAnimation {
             return null
         }
         points
+    } catch (error: Exception) {
+        warn(error.message ?: error::class.simpleName.orEmpty())
+        null
+    } catch (error: LinkageError) {
+        warn(error.message ?: error::class.simpleName.orEmpty())
+        null
+    }
+
+    fun glyphBounds(symbol: SfSymbol, weight: Float, scale: SfScale): FloatArray? = try {
+        val library = native ?: return null
+        val name = symbol.name.toByteArray(Charsets.UTF_8)
+        val scaleId = when (scale) {
+            SfScale.Medium -> 0
+            SfScale.Small -> 1
+            SfScale.Large -> 2
+        }
+        val required = library.sfstudio_glyph_bounds(name, name.size.toLong(), scaleId, weight, null, 0)
+        if (required != 4L) return null
+        val bounds = FloatArray(4)
+        val written = library.sfstudio_glyph_bounds(
+            name, name.size.toLong(), scaleId, weight, bounds, bounds.size.toLong(),
+        )
+        bounds.takeIf { written == required && it.all(Float::isFinite) && it[0] <= it[2] && it[1] <= it[3] }
     } catch (error: Exception) {
         warn(error.message ?: error::class.simpleName.orEmpty())
         null

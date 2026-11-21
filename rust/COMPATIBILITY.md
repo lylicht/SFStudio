@@ -122,6 +122,10 @@ coordinates, which the JVM and Android `SfSymbol.points()` implementations
 now use with exact Kotlin parity across ten representative symbols, all nine
 weights, and all three optical scales. Android packages four ABI variants and
 retains its Kotlin fallback when JNI is unavailable.
+`sfstudio_glyph_bounds` supplies tight visible bounds in `[left, top, right,
+bottom]` order; the public KMP `SfSymbol.bounds()` keeps its Kotlin fallback
+and cache behavior while using the Rust result when the platform bridge is
+available.
 Selected Kotlin differential fixtures cover effect timing and layer
 transforms, and the JVM renderer consumes Rust points, frames, sRGB layer
 colors, and gradient stops while Compose continues to build/rasterize paths

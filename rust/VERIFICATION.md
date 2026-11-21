@@ -6,8 +6,8 @@ Last local check: 2026-11-21, Windows x64, branch
 ## Passed locally
 
 - `cargo fmt --manifest-path rust/Cargo.toml --all -- --check` — passed.
-- `cargo test --manifest-path rust/Cargo.toml --workspace` — 47 Rust tests
-  passed (30 core, 14 C ABI, and 3 MCP), including Rust fingerprints for every
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — 48 Rust tests
+  passed (30 core, 15 C ABI, and 3 MCP), including Rust fingerprints for every
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo check --manifest-path rust/Cargo.toml -p sfstudio-ffi --target aarch64-linux-android` — passed; Android JNI exports type-check for the Android target.
@@ -30,7 +30,9 @@ Last local check: 2026-11-21, Windows x64, branch
 - `gradlew.bat :sfsymbols:jvmTest --no-daemon` — passed on JDK 25 after wiring
   the Rust draw-field C ABI into the JVM renderer. The direct bridge check
   confirms the native library returns levels, and the Kotlin-generated fixture
-  still matches Rust reveal levels for five real symbol layers.
+  still matches Rust reveal levels for five real symbol layers. The bounds C ABI
+  and public `SfSymbol.bounds()` path also match the Kotlin reference for ten
+  symbols, all nine weights, and all three optical scales.
 - `gradlew.bat :app:jvmTest :sfsymbols:compileKotlinJs :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true`
   — passed after the shared renderer change.
 - `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon -PsfstudioUseSystemWebTools=true --rerun-tasks`
@@ -178,6 +180,23 @@ Last local check: 2026-11-21, Windows x64, branch
   enabled. [GitHub Actions run #42](https://github.com/lylicht/SFStudio/actions/runs/44831150701)
   passed the Windows/macOS/Linux, Android, iOS, JS/Wasm, packaged launcher, and
   MCP differential matrix.
+
+## Rust-backed visible bounds
+
+- `sfstudio_glyph_bounds` writes `[left, top, right, bottom]` through the same
+  validated typed-buffer ABI as weighted outline points. Rust tests compare its
+  output with `sfstudio-core::vector::visible_bounds` across the ten-symbol,
+  nine-weight, three-scale matrix and verify invalid inputs and short buffers.
+- `SfSymbol.bounds()` now uses the Rust result on JVM, Android, iOS, JS, and
+  Wasm when available, and retains its Kotlin calculation as fallback. The
+  Wasm adapter clears cached Kotlin bounds after its asynchronous module load,
+  so those bounds are recalculated with Rust on the next request.
+- JVM Kotlin/Rust parity passes exactly across all 270 fixture combinations;
+  Android, iOS, and web adapter parity cases were added but await platform CI.
+- Locally, `compileKotlinWasmJs` passed. `jsNodeTest` could not execute the web
+  rendering test because the Skiko runtime failed to fetch its Wasm module.
+  Android compilation needs an Android SDK, and iOS C-interop/simulator checks
+  require macOS; those checks are delegated to the branch CI run.
 
 ## Apple animation evaluator
 

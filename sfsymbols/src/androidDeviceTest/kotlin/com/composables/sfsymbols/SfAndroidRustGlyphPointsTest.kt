@@ -2,6 +2,7 @@ package com.composables.sfsymbols
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,6 +40,16 @@ class SfAndroidRustGlyphPointsTest {
                     symbol.points(weight.wght, scale),
                     0f,
                 )
+                val expectedBounds = symbol.boundsFromKotlinData(weight, scale)
+                val rustBounds = sfRustGlyphBounds(symbol, weight.wght, scale)
+                assertNotNull("Rust bounds missing for $name ${weight.name} ${scale.name}", rustBounds)
+                assertArrayEquals(
+                    "$name ${weight.name} ${scale.name}",
+                    floatArrayOf(expectedBounds.left, expectedBounds.top, expectedBounds.right, expectedBounds.bottom),
+                    rustBounds!!,
+                    0f,
+                )
+                assertEquals(expectedBounds, symbol.bounds(weight, scale))
             }
         }
     }

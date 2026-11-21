@@ -8,6 +8,12 @@ internal expect fun sfRustGlyphPoints(
     scale: SfScale,
 ): FloatArray?
 
+internal expect fun sfRustGlyphBounds(
+    symbol: SfSymbol,
+    weight: Float,
+    scale: SfScale,
+): FloatArray?
+
 internal expect fun sfRustAnimationFrames(
     symbol: SfSymbol,
     effect: SfSymbolEffect,

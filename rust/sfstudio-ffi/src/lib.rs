@@ -393,6 +393,67 @@ pub unsafe extern "C" fn sfstudio_glyph_points(
     }
 }
 
+/// Calculate a symbol's tight visible bounds for an optical scale and weight.
+///
+/// Writes four `f32` values in `[left, top, right, bottom]` order. The return
+/// value is the number of values required or written; query with a null output
+/// and zero capacity. Negative errors use the same codes as
+/// `sfstudio_glyph_points`.
+///
+/// # Safety
+/// For nonzero `symbol_name_len`, `symbol_name` must point to that many readable
+/// bytes. If `output_capacity` is nonzero, `output` must point to that many
+/// writable `f32` values.
+#[no_mangle]
+pub unsafe extern "C" fn sfstudio_glyph_bounds(
+    symbol_name: *const u8,
+    symbol_name_len: usize,
+    scale: i32,
+    weight: f32,
+    output: *mut f32,
+    output_capacity: usize,
+) -> isize {
+    let symbol_name = match unsafe { read_utf8(symbol_name, symbol_name_len) } {
+        Ok(name) => name,
+        Err(code) => return code,
+    };
+    if output_capacity > 0 && output.is_null() {
+        return INVALID_OUTPUT;
+    }
+    if !weight.is_finite() {
+        return INVALID_WEIGHT;
+    }
+    let scale = match scale {
+        0 => sfstudio_core::vector::OpticalScale::Medium,
+        1 => sfstudio_core::vector::OpticalScale::Small,
+        2 => sfstudio_core::vector::OpticalScale::Large,
+        _ => return INVALID_SCALE,
+    };
+
+    match catch_unwind(AssertUnwindSafe(|| {
+        let catalog = sfstudio_core::vector::vector_catalog().map_err(|_| INTERNAL_ERROR)?;
+        let symbol = catalog.find(symbol_name).ok_or(UNKNOWN_SYMBOL)?;
+        let glyph = catalog
+            .glyph_for(symbol)
+            .map_err(|_| INTERNAL_ERROR)?
+            .ok_or(UNKNOWN_SYMBOL)?;
+        let geometry = catalog
+            .geometry_at_scale(symbol, &glyph, scale)
+            .map_err(|_| INTERNAL_ERROR)?;
+        let bounds = sfstudio_core::vector::visible_bounds(&glyph, &geometry, weight)
+            .map_err(|_| INTERNAL_ERROR)?;
+        let bounds = [bounds.left, bounds.top, bounds.right, bounds.bottom];
+        if bounds.iter().any(|value| !value.is_finite()) {
+            return Err(INTERNAL_ERROR);
+        }
+        Ok(bounds)
+    })) {
+        Ok(Ok(bounds)) => unsafe { write_f32s(output, output_capacity, &bounds) },
+        Ok(Err(code)) => code,
+        Err(_) => INTERNAL_ERROR,
+    }
+}
+
 #[cfg(target_os = "android")]
 #[no_mangle]
 pub extern "system" fn Java_com_composables_sfsymbols_RustFfi_glyphPoints<'local>(
@@ -426,6 +487,48 @@ pub extern "system" fn Java_com_composables_sfsymbols_RustFfi_glyphPoints<'local
         }
         let array: JFloatArray = env.new_float_array(points.len().try_into().ok()?).ok()?;
         env.set_float_array_region(&array, 0, &points).ok()?;
+        Some(array.into_raw())
+    }));
+
+    result.ok().flatten().unwrap_or(ptr::null_mut())
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "system" fn Java_com_composables_sfsymbols_RustFfi_glyphBounds<'local>(
+    mut env: jni::JNIEnv<'local>,
+    _receiver: jni::objects::JObject<'local>,
+    name: jni::objects::JString<'local>,
+    scale: jni::sys::jint,
+    weight: jni::sys::jfloat,
+) -> jni::sys::jfloatArray {
+    use jni::objects::JFloatArray;
+    use std::ptr;
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let name: String = env.get_string(&name).ok()?.into();
+        let required = unsafe {
+            sfstudio_glyph_bounds(name.as_ptr(), name.len(), scale, weight, ptr::null_mut(), 0)
+        };
+        if required != 4 {
+            return None;
+        }
+        let mut bounds = [0.0; 4];
+        let written = unsafe {
+            sfstudio_glyph_bounds(
+                name.as_ptr(),
+                name.len(),
+                scale,
+                weight,
+                bounds.as_mut_ptr(),
+                bounds.len(),
+            )
+        };
+        if written != required {
+            return None;
+        }
+        let array: JFloatArray = env.new_float_array(bounds.len().try_into().ok()?).ok()?;
+        env.set_float_array_region(&array, 0, &bounds).ok()?;
         Some(array.into_raw())
     }));
 
@@ -1684,6 +1787,36 @@ mod tests {
         }
     }
 
+    fn glyph_bounds(name: &[u8], scale: i32, weight: f32) -> Result<[f32; 4], isize> {
+        // SAFETY: Input remains alive for both calls and output has four floats.
+        unsafe {
+            let required = sfstudio_glyph_bounds(
+                name.as_ptr(),
+                name.len(),
+                scale,
+                weight,
+                std::ptr::null_mut(),
+                0,
+            );
+            if required != 4 {
+                return Err(required);
+            }
+            let mut output = [0.0; 4];
+            let written = sfstudio_glyph_bounds(
+                name.as_ptr(),
+                name.len(),
+                scale,
+                weight,
+                output.as_mut_ptr(),
+                output.len(),
+            );
+            if written != required {
+                return Err(written);
+            }
+            Ok(output)
+        }
+    }
+
     fn search(query: &[u8], limit: usize) -> Result<String, isize> {
         // SAFETY: Both slices remain alive for the call and output capacity is exact.
         unsafe {
@@ -1868,6 +2001,109 @@ mod tests {
                     1
                 ),
                 INVALID_OUTPUT
+            );
+        }
+    }
+
+    #[test]
+    fn glyph_bounds_abi_matches_rust_core_and_rejects_bad_inputs() {
+        let catalog = sfstudio_core::vector::vector_catalog().unwrap();
+        let names = [
+            "0.circle",
+            "arrow.up.right",
+            "cloud.sun.rain.fill",
+            "figure.run",
+            "gearshape.2",
+            "heart.fill",
+            "person.crop.circle.badge.checkmark",
+            "person.crop.circle.fill",
+            "square.dashed",
+            "wifi",
+        ];
+        let scales = [
+            sfstudio_core::vector::OpticalScale::Medium,
+            sfstudio_core::vector::OpticalScale::Small,
+            sfstudio_core::vector::OpticalScale::Large,
+        ];
+        let weights = [
+            28.93, 112.72, 276.31, 400.0, 508.0, 590.8, 700.0, 858.4, 1000.0,
+        ];
+        for name in names {
+            let symbol = catalog.find(name).unwrap();
+            let glyph = catalog.glyph_for(symbol).unwrap().unwrap();
+            for (scale_id, scale) in scales.into_iter().enumerate() {
+                let geometry = catalog.geometry_at_scale(symbol, &glyph, scale).unwrap();
+                for weight in weights {
+                    let expected =
+                        sfstudio_core::vector::visible_bounds(&glyph, &geometry, weight).unwrap();
+                    assert_eq!(
+                        glyph_bounds(name.as_bytes(), scale_id as i32, weight).unwrap(),
+                        [expected.left, expected.top, expected.right, expected.bottom],
+                        "{name} scale {scale_id} weight {weight}",
+                    );
+                }
+            }
+        }
+
+        let mut short = [123.0; 3];
+        // SAFETY: Input and output buffers are valid for their declared lengths.
+        unsafe {
+            assert_eq!(
+                sfstudio_glyph_bounds(
+                    b"heart.fill".as_ptr(),
+                    10,
+                    0,
+                    400.0,
+                    short.as_mut_ptr(),
+                    short.len(),
+                ),
+                4,
+            );
+            assert_eq!(short, [123.0; 3]);
+            assert_eq!(
+                sfstudio_glyph_bounds(std::ptr::null(), 1, 0, 400.0, std::ptr::null_mut(), 0),
+                INVALID_QUERY,
+            );
+            assert_eq!(
+                sfstudio_glyph_bounds([0xff].as_ptr(), 1, 0, 400.0, std::ptr::null_mut(), 0),
+                INVALID_UTF8,
+            );
+            assert_eq!(
+                sfstudio_glyph_bounds(b"missing".as_ptr(), 7, 0, 400.0, std::ptr::null_mut(), 0),
+                UNKNOWN_SYMBOL,
+            );
+            assert_eq!(
+                sfstudio_glyph_bounds(
+                    b"heart.fill".as_ptr(),
+                    10,
+                    3,
+                    400.0,
+                    std::ptr::null_mut(),
+                    0,
+                ),
+                INVALID_SCALE,
+            );
+            assert_eq!(
+                sfstudio_glyph_bounds(
+                    b"heart.fill".as_ptr(),
+                    10,
+                    0,
+                    f32::NAN,
+                    std::ptr::null_mut(),
+                    0,
+                ),
+                INVALID_WEIGHT,
+            );
+            assert_eq!(
+                sfstudio_glyph_bounds(
+                    b"heart.fill".as_ptr(),
+                    10,
+                    0,
+                    400.0,
+                    std::ptr::null_mut(),
+                    4,
+                ),
+                INVALID_OUTPUT,
             );
         }
     }
