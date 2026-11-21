@@ -192,11 +192,15 @@ Last local check: 2026-11-21, Windows x64, branch
   Wasm adapter clears cached Kotlin bounds after its asynchronous module load,
   so those bounds are recalculated with Rust on the next request.
 - JVM Kotlin/Rust parity passes exactly across all 270 fixture combinations;
-  Android, iOS, and web adapter parity cases were added but await platform CI.
-- Locally, `compileKotlinWasmJs` passed. `jsNodeTest` could not execute the web
-  rendering test because the Skiko runtime failed to fetch its Wasm module.
-  Android compilation needs an Android SDK, and iOS C-interop/simulator checks
-  require macOS; those checks are delegated to the branch CI run.
+  iOS simulator parity also passes across the same 270 combinations. Android
+  bounds cases compile in the device test source set; Android device runtime
+  parity remains unrun.
+- [Actions run #44876469889](https://github.com/lylicht/SFStudio/actions/runs/44876469889)
+  passes Rust C ABI checks, Android four-ABI packaging, iOS device/simulator
+  cinterop and simulator tests, and Windows/macOS/Linux JVM suites. JS/Wasm
+  main and test sources compile, but both Node runtime suites fail before test
+  execution because Skiko cannot load `skiko.wasm`; Rust Wasm bounds runtime
+  parity therefore remains unverified.
 
 ## Apple animation evaluator
 
