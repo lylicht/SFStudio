@@ -4,6 +4,7 @@ package com.composables.sfsymbols
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import com.composables.sfsymbols.ffi.sfstudio_animation_json
 import com.composables.sfsymbols.ffi.sfstudio_glyph_points
 import kotlinx.cinterop.UByteVar
 import kotlinx.cinterop.addressOf
@@ -53,7 +54,41 @@ internal actual fun sfRustAnimationFrames(
     tint: Color,
     palette: List<Color>,
     gradient: Boolean,
-): FloatArray? = null
+): FloatArray? = RustAnimation.frames(symbol, effect, time, rtl, variableValue, mode, tint, palette, gradient)
+
+private object RustAnimation {
+    fun frames(
+        symbol: SfSymbol,
+        effect: SfSymbolEffect,
+        time: Float,
+        rtl: Boolean,
+        variableValue: Float?,
+        mode: SfRenderingMode,
+        tint: Color,
+        palette: List<Color>,
+        gradient: Boolean,
+    ): FloatArray? = try {
+        val request = buildRustAnimationRequest(symbol, effect, time, rtl, variableValue, mode, tint, palette, gradient)
+        request.usePinned { pinnedRequest ->
+            val requestPointer = pinnedRequest.addressOf(0).reinterpret<UByteVar>()
+            val required = sfstudio_animation_json(requestPointer, request.size.convert(), null, 0uL)
+            if (required <= 0L || required > Int.MAX_VALUE.toLong()) return null
+            val response = ByteArray(required.toInt())
+            val written = response.usePinned { pinnedResponse ->
+                sfstudio_animation_json(
+                    requestPointer,
+                    request.size.convert(),
+                    pinnedResponse.addressOf(0).reinterpret<UByteVar>(),
+                    response.size.convert(),
+                )
+            }
+            if (written != required) return null
+            parseRustAnimationFrames(response.decodeToString(), symbol.layers.size)
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
 
 internal actual fun sfRustDrawFieldLevels(
     mask: ByteArray,

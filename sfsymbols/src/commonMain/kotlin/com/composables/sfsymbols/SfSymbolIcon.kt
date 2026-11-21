@@ -304,7 +304,7 @@ private fun DrawScope.drawSymbol(
         val variable = if (rustFrames == null) variableValue?.let { sfVariableLevels(sym, it) } else null
         for (i in layers.indices) {
             fx.reset()
-            val frame = i * 24
+            val frame = i * RUST_FRAME_STRIDE
             if (rustFrames != null) {
                 fx.scale = rustFrames[frame]
                 fx.dx = rustFrames[frame + 1]

@@ -98,15 +98,11 @@ kotlin {
         commonMain.dependencies {
             api(libs.compose.ui)
             api(libs.compose.ui.graphics)
+            implementation(libs.kotlinx.serialization.json)
         }
 
         jvmMain.dependencies {
             implementation(libs.jna)
-            implementation(libs.kotlinx.serialization.json)
-        }
-
-        androidMain.dependencies {
-            implementation(libs.kotlinx.serialization.json)
         }
 
         iosTest.dependencies {
