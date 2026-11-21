@@ -7,9 +7,9 @@ PR #7's head. It has a corresponding remote branch on GitHub. The original
 Kotlin/Compose implementation and all public KMP targets remain active.
 The Windows titlebar header now reserves the three caption-button widths plus a
 128 dp margin; the lower gallery toolbar uses the content-pane inset so its
-controls fit at the 1000 dp minimum. `:app:compileKotlinJvm` passes with the
-larger margin. The live default-size capture was taken before this last spacing
-increase; small-window, high-DPI, and refreshed visual checks remain unverified.
+controls fit at the 1000 dp minimum. A fresh Windows launch at 1280×820 visually
+confirms clearance between the native titlebar controls and SFStudio controls.
+The minimum-size and high-DPI layouts remain visually unverified.
 The caption-spacing change passed the full cross-platform workflow in [run
 #44886962212](https://github.com/lylicht/SFStudio/actions/runs/44886962212).
 The existing KMP `SfSymbol.layers` API now uses Rust-flattened animation layer

@@ -1,5 +1,5 @@
 [workspace]
-members = ["sfstudio-core", "sfstudio-mcp", "sfstudio-ffi"]
+members = ["sfstudio-core", "sfstudio-mcp", "sfstudio-ffi", "sfstudio-ui"]
 resolver = "2"
 
 [workspace.package]

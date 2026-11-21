@@ -137,11 +137,17 @@ draft. Sources: [Slint Winit docs](https://docs.slint.dev/latest/docs/slint/guid
 [Iced Canvas docs](https://docs.rs/iced/latest/iced/widget/canvas/index.html),
 and [Iced 0.15 milestone](https://github.com/iced-rs/iced/milestone/26).
 
-**Next gate:** Capture a saved reference at 1280×820 and minimum size, then
-compare a Rust symbol tile, inspector, header, and effect preview in light and
-dark themes. Check keyboard and screen-reader behavior and preserve the
-Rust-computed Apple effect frames. Treat the framework choice and Slint
-attribution as unresolved until that probe is measured.
+An isolated Slint 1.19 probe now lives in `rust/sfstudio-ui`; it compiles on
+Windows x64, its two Rust tests and the full Rust workspace checks pass, and
+its System/Light/Dark settings were visually exercised. The probe intentionally
+does not implement the full app or replace Compose.
+
+**Next gate:** Save Compose references at 1280×820 and minimum size, then compare
+the Rust symbol tile, inspector, header, and effect preview in light and dark
+themes. Complete missing favorites, toolbar actions, category coverage, and
+state persistence; check keyboard and screen-reader behavior and preserve the
+Rust-computed Apple effect frames. Keep the probe out of production until parity
+is measured, and resolve the Slint attribution requirement before distribution.
 
 ## 012 — Bind Android glyph interpolation through JNI
 

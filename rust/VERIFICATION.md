@@ -405,7 +405,24 @@ adapter checks are recorded below.
   and JVM test suite were not rerun.
 - After a further report of caption buttons crowding the app controls, the
   Windows header margin increased from 80 dp to 128 dp. `:app:compileKotlinJvm`
-  passed; visual validation at the minimum size and high DPI is still pending.
+  passed. A fresh Windows launch at 1280×820 confirms visually that the native
+  caption buttons do not overlap the SFStudio controls. Minimum-size and
+  high-DPI visual validation is still pending.
+
+## Isolated Rust desktop UI probe (2026-11-21)
+
+- `cargo check --manifest-path rust/Cargo.toml -p sfstudio-ui` — passed.
+- `cargo test --manifest-path rust/Cargo.toml --workspace` — passed all 53
+  Rust tests, including two probe tests for vector-path encoding.
+- `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings`
+  — passed.
+- Windows x64 visual inspection confirmed System follows the current dark OS
+  appearance and the Settings controls switch visibly to Light and Dark. This
+  probe is incomplete, unsaved as a reference capture, and not connected to the
+  production Compose app. It omits complete categories, Favorites, full toolbar
+  behavior, app-state persistence, and detailed inspector actions.
+- Slint 1.19 and its Rust 1.95 minimum are pinned in the probe crate. The
+  Slint attribution requirement remains unresolved before any distribution.
 
 ## Rust-flattened animation layers (2026-11-21)
 
