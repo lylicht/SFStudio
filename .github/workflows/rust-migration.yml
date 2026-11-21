@@ -194,6 +194,9 @@ jobs:
           api-level: 36
           target: google_apis
           arch: x86_64
+          cores: 4
+          emulator-boot-timeout: 1200
+          emulator-options: -no-window -gpu off -no-snapshot -noaudio -no-boot-anim
           script: ./gradlew :sfsymbols:connectedAndroidDeviceTest --no-daemon
 
   kmp-ios:

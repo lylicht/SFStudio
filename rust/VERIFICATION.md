@@ -212,10 +212,11 @@ Last local check: 2026-11-20, Windows x64, branch
   test passed on an Android 16 / API 36.1 x86_64 emulator, comparing the Rust
   and Kotlin renderers across ten symbols, all nine weights, and all three
   optical scales. Android effect frames, appearance, and draw-field behavior
-  remain on Kotlin. The first hosted emulator attempt failed before device boot:
-  the latest emulator requires `ANDROID_I_WANT_MY_TCG=yes` when hardware
-  acceleration is unavailable. The CI step now sets that flag; hosted device
-  verification is pending a rerun.
+  remain on Kotlin. Hosted CI required `ANDROID_I_WANT_MY_TCG=yes` to boot
+  without hardware acceleration. The first TCG run booted slowly, then the
+  package manager returned a broken pipe during test APK installation alongside
+  software GPU color-buffer errors. CI now uses four emulator cores and disables
+  GPU rendering; hosted device verification is pending a rerun.
 
 ## Not yet verified
 
