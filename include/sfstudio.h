@@ -81,6 +81,17 @@ intptr_t sfstudio_glyph_points(const uint8_t *symbol_name,
                                size_t output_capacity);
 
 /*
+ * Calculate tight visible bounds for a symbol's weight and optical scale.
+ * Writes four floats in [left, top, right, bottom] order. The return value is
+ * the required/written float count; query with a null output and zero capacity.
+ * A short buffer is left untouched. Errors match sfstudio_glyph_points.
+ */
+intptr_t sfstudio_glyph_bounds(const uint8_t *symbol_name,
+                               size_t symbol_name_len, int32_t scale,
+                               float weight, float *output,
+                               size_t output_capacity);
+
+/*
  * Evaluate Apple-style symbol effects and optional replace transitions from a
  * UTF-8 JSON request. `time` and transition `time` are finite, nonnegative
  * seconds. Request: {"symbol":"wifi","time":0.4,
