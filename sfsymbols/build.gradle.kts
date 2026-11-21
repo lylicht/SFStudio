@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.testing.Test
 import com.sfstudio.build.BuildRustAndroidFfi
+import com.sfstudio.tasks.BuildRustIosFfi
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -31,6 +32,29 @@ if (providers.gradleProperty("sfstudioUseSystemWebTools").orNull == "true") {
     }
 }
 
+val iosRustInputs = rootProject.files(
+    rootProject.fileTree("rust") {
+        include("**/*.rs", "**/*.toml")
+        exclude("target/**")
+    },
+    rootProject.file("rust/Cargo.lock"),
+    rootProject.file("include/sfstudio.h"),
+    rootProject.file("sfsymbols/src/commonMain/kotlin/com/composables/sfsymbols/SfSymbolsCatalog.kt"),
+    rootProject.file("app/src/jvmMain/resources/symbol_tags.txt"),
+)
+val iosRustBuilds = mapOf(
+    "aarch64-apple-ios" to "buildRustIosArm64Ffi",
+    "aarch64-apple-ios-sim" to "buildRustIosSimulatorArm64Ffi",
+).mapValues { (target, taskName) ->
+    tasks.register<BuildRustIosFfi>(taskName) {
+        targetTriple.set(target)
+        rustInputs.from(iosRustInputs)
+        repositoryDirectory.set(rootProject.layout.projectDirectory)
+        staticLibrary.set(rootProject.layout.projectDirectory.file("rust/target/$target/release/libsfstudio_ffi.a"))
+        definitionFile.set(layout.buildDirectory.file("generated/rust-cinterop/$target/sfstudio.def"))
+    }
+}
+
 kotlin {
     android {
         namespace = "com.composables.sfsymbols"
@@ -52,8 +76,12 @@ kotlin {
 
     jvm()
 
-    iosArm64()
-    iosSimulatorArm64()
+    iosArm64().compilations.getByName("main").cinterops.create("sfstudioRust") {
+        definitionFile.set(iosRustBuilds.getValue("aarch64-apple-ios").flatMap { it.definitionFile })
+    }
+    iosSimulatorArm64().compilations.getByName("main").cinterops.create("sfstudioRust") {
+        definitionFile.set(iosRustBuilds.getValue("aarch64-apple-ios-sim").flatMap { it.definitionFile })
+    }
 
     js {
         browser()
@@ -79,6 +107,10 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.kotlinx.serialization.json)
+        }
+
+        iosTest.dependencies {
+            implementation(kotlin("test"))
         }
 
         jvmTest.dependencies {

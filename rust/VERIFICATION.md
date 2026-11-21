@@ -11,6 +11,7 @@ Last local check: 2026-11-21, Windows x64, branch
   decoded Kotlin glyph and available optical-size variant.
 - `cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings` — passed.
 - `cargo check --manifest-path rust/Cargo.toml -p sfstudio-ffi --target aarch64-linux-android` — passed; Android JNI exports type-check for the Android target.
+- `cargo check --manifest-path rust/Cargo.toml -p sfstudio-ffi --target aarch64-apple-ios` and `--target aarch64-apple-ios-sim` — both passed on Windows; Kotlin/Native linking is not available on this host.
 - `cargo build --manifest-path rust/Cargo.toml -p sfstudio-ffi` — passed on
   Windows x64; Python `ctypes` smoke passed, including sizing calls, typo search,
   Unicode, invalid UTF-8, null pointers, short-buffer handling, exact Compose
@@ -49,7 +50,7 @@ Last local check: 2026-11-21, Windows x64, branch
   and the Rust-written JSON fixture with the existing Kotlin set serializer.
 - `gradlew.bat :app:assembleMcp --no-daemon` — passed.
 - `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon -PsfstudioUseSystemWebTools=true` — passed after routing JVM outline interpolation through Rust; this ran the complete Compose library and desktop app test suites.
-- `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon` — passed after the Android JNI changes; all existing Compose library and desktop app test suites pass.
+- `gradlew.bat :sfsymbols:jvmTest :app:jvmTest --no-daemon` — passed after Android JNI and iOS target configuration changes; Windows disables Apple cinterop and iOS simulator execution.
 - `gradlew.bat :app:compileKotlinJvm --no-daemon -PsfstudioUseSystemWebTools=true` — passed after reserving the Windows/Linux title-bar control area in the desktop header. [GitHub Actions run #43](https://github.com/lylicht/SFStudio/actions/runs/44832295245) passed.
 - `gradlew.bat :sfsymbols:compileKotlinJs :sfsymbols:compileKotlinWasmJs --no-daemon -PsfstudioUseSystemWebTools=true` — passed with JS and Wasm retaining Kotlin geometry.
 - `python scripts/test_rust_ffi.py` — passed the typed-float glyph points endpoint through Python `ctypes`, including interpolation parity against the JSON endpoint and short-buffer behavior.
@@ -233,10 +234,12 @@ Last local check: 2026-11-21, Windows x64, branch
 - Remaining Android, Kotlin/Native, Swift, JS, and Wasm bindings for the shared
   Rust API. Android weighted outline points are JNI-backed and pass on x86_64;
   Android effects, appearance, and draw-field JNI adapters are implemented but
-  pass CI compilation and await runtime parity on a device.
+  pass CI compilation and await runtime parity on a device. The iOS point
+  adapter and simulator parity test are implemented, but macOS cinterop
+  compilation/linking and test execution remain pending.
   JVM consumes Rust points, effect frames, appearance, gradients, and draw-field
-  reveal levels. JS and Wasm compilation passed locally; iOS targets compile in
-  run #44849774443 but still use Kotlin adapters.
+  reveal levels. JS and Wasm compilation passed locally; those targets still
+  use Kotlin adapters.
 - Pixel-by-pixel rendering parity, installer upgrades, user-data migration,
   and performance baselines. Kotlin still rasterizes the source paths and
   constructs Compose clip geometry; geometry and draw-field C ABIs have
@@ -246,6 +249,7 @@ Last local check: 2026-11-21, Windows x64, branch
 The passing CI run verifies the existing Kotlin Multiplatform targets remain
 buildable. Local JVM parity verifies the public desktop renderer uses Rust
 frames when the native library is available, and the Android emulator test
-verifies Rust outline points through the existing KMP renderer. The new Android
-rendering adapters pass the hosted compile gate and still need a device run;
-the remaining KMP targets continue to use Kotlin.
+verifies Rust outline points through the existing KMP renderer. The Android
+rendering adapters pass the hosted compile gate and still need a device run; the
+new iOS adapter still needs a macOS build and simulator run; JS and Wasm
+continue to use Kotlin.

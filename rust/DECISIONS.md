@@ -170,3 +170,17 @@ The Android source compile and four-ABI package gate passed in [Actions run
 #44849774443](https://github.com/lylicht/SFStudio/actions/runs/44849774443).
 Device runtime parity is still pending; hosted emulator attempts have no usable
 virtualization, and the current Windows host has no Android SDK.
+
+## 014 — Bind iOS outline interpolation through Kotlin/Native C interop
+
+**Decision:** Keep the published KMP API and Kotlin geometry fallback. Build
+the Rust FFI as target-specific static archives for iOS device and simulator,
+embed each archive in its target C-interop KLIB, and call the existing typed
+glyph-points C ABI from the iOS actual. Leave effects and Draw On/Off on Kotlin
+until their separate parity gates pass.
+
+**Gate:** Rust `cargo check` passes for `aarch64-apple-ios` and
+`aarch64-apple-ios-sim`. An iOS simulator test compares the native points with
+Kotlin across ten symbols, all nine weights, and all three scales. The Windows
+host cannot run Kotlin/Native Apple cinterop; macOS CI compilation, linking, and
+simulator parity remain pending.

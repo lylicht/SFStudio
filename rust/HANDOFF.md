@@ -36,7 +36,10 @@ Android effects, appearance, and draw-field rendering now have Rust JNI
 adapters with the existing Kotlin fallback. Their instrumentation parity cases
 are added. Run [#44849774443](https://github.com/lylicht/SFStudio/actions/runs/44849774443)
 passed Android main/device-test compilation and four-ABI packaging; runtime
-parity still needs a device. iOS, JS, and Wasm remain Kotlin-backed.
+parity still needs a device. iOS now has a Kotlin/Native C-interop adapter for
+weighted outline points and simulator parity coverage; Rust checks for both
+Apple target triples pass locally, but macOS interop compilation/linking and
+simulator execution are pending. iOS effects, JS, and Wasm remain Kotlin-backed.
 
 The Android JNI point bridge built `libsfstudio_ffi.so` for `armeabi-v7a`,
 `arm64-v8a`, `x86`, and `x86_64`. The local AAR contains all four libraries
@@ -92,8 +95,9 @@ coverage in [run #34](https://github.com/lylicht/SFStudio/actions/runs/448059126
 
 ## Next unblocked migration work
 
-1. Execute the new Android animation, appearance, and draw-field parity cases
-   on a device. Evaluate Kotlin/Native and JS/Wasm bindings independently.
+1. Run the macOS iOS interop/simulator gate, then execute the Android animation,
+   appearance, and draw-field parity cases on a device. Evaluate JS/Wasm
+   bindings independently.
 2. Continue porting the shared vector renderer, including path/clip generation
    and pixel-level comparison, while preserving Compose as the public UI until
    a Rust-native frontend meets the existing screenshot and interaction gates.

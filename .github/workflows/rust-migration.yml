@@ -188,14 +188,17 @@ jobs:
         run: ./gradlew :sfsymbols:compileAndroidMain :sfsymbols:compileAndroidDeviceTest :sfsymbols:assembleAndroidMain --no-daemon
 
   kmp-ios:
-    name: Existing iOS targets
+    name: iOS Rust bridge and simulator parity
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
           cache: gradle
-      - name: iOS device and simulator compilation
-        run: ./gradlew :sfsymbols:compileKotlinIosArm64 :sfsymbols:compileKotlinIosSimulatorArm64 --no-daemon
+      - name: iOS Rust bridge and simulator parity
+        run: ./gradlew :sfsymbols:compileKotlinIosArm64 :sfsymbols:iosSimulatorArm64Test --no-daemon
