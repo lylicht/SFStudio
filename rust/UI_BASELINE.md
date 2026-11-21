@@ -38,10 +38,13 @@ Compose UI.
 
 ## Appearance and remaining gate
 
-The production Compose catalog screenshot was in light appearance. Its Settings
-screen exposes System, Light, and Dark preference modes in code, but its
-appearance states were not visually captured. The minimum window is configured
-in `app/src/jvmMain/kotlin/com/sfsymbols/Main.kt`.
+The production Compose catalog screenshot was taken before the Windows fallback
+was added and appeared Light. With Windows `AppsUseLightTheme` set to `0`, a
+fresh post-fix launch resolved System mode to Dark and visibly rendered the dark
+palette. The native caption buttons and SFStudio controls were visibly separated
+at 1280×820; the minimum-size and high-DPI layouts remain unverified. Its
+Settings screen exposes System, Light, and Dark modes. The minimum window is
+configured in `app/src/jvmMain/kotlin/com/sfsymbols/Main.kt`.
 
 This is a textual and in-session baseline, not the saved screenshot required by
 decision 011. Rust-native UI selection remains gated on a saved reference at the

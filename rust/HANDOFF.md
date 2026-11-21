@@ -10,6 +10,9 @@ The Windows titlebar header now reserves the three caption-button widths plus a
 controls fit at the 1000 dp minimum. A fresh Windows launch at 1280×820 visually
 confirms clearance between the native titlebar controls and SFStudio controls.
 The minimum-size and high-DPI layouts remain visually unverified.
+Windows System appearance now falls back to the AppsUseLightTheme registry value
+when Compose reports Light; the running app resolved System to Dark on this
+machine. The value is polled once per second while the Windows UI is open.
 The caption-spacing change passed the full cross-platform workflow in [run
 #44886962212](https://github.com/lylicht/SFStudio/actions/runs/44886962212).
 The existing KMP `SfSymbol.layers` API now uses Rust-flattened animation layer

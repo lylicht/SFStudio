@@ -77,6 +77,7 @@ kotlin {
                 implementation(compose.material3)
                 implementation(project(":sfsymbols"))
                 implementation(libs.jna)
+                implementation(libs.jna.platform)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.compose.macos.ui)

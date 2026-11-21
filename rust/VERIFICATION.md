@@ -424,6 +424,22 @@ adapter checks are recorded below.
 - Slint 1.19 and its Rust 1.95 minimum are pinned in the probe crate. The
   Slint attribution requirement remains unresolved before any distribution.
 
+## Windows System appearance resolution (2026-11-21)
+
+- The first fresh Compose run resolved Windows System mode to Light even though
+  `AppsUseLightTheme` was `0` and no Light preference was saved. Its
+  `isSystemInDarkTheme()` result was false.
+- The JVM app now reads the Windows app-theme registry value through the existing
+  JNA stack, maps `0` to Dark and `1` to Light, falls back to Compose when the
+  value is unavailable, and refreshes it once per second while open.
+- `:app:jvmTest --tests com.sfsymbols.data.WindowsThemeTest --tests
+  com.sfsymbols.data.ThemeModeTest` and the full `:app:jvmTest` suite passed.
+  A fresh `:app:run` resolved System to Dark with `AppsUseLightTheme=0` and
+  visibly rendered the dark palette. Native caption buttons and SFStudio
+  controls were clear of each other at 1280×820. Minimum-size and high-DPI
+  window layouts remain unverified; non-Windows appearance still uses Compose's
+  system-theme source.
+
 ## Rust-flattened animation layers (2026-11-21)
 
 - `cargo test --workspace` — passed all 48 Rust unit tests; `cargo clippy
